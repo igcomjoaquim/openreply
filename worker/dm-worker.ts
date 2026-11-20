@@ -2,6 +2,7 @@ import { createDMWorker } from "@/lib/queue/dm-worker";
 import { recordWorkerHeartbeat } from "@/lib/ops/worker-health";
 import { reconcileComments } from "@/lib/polling/comment-reconciler";
 import { attachPendingNextReels } from "@/lib/automation/attach-next-reel";
+import { runScheduledPosts } from "@/lib/publishing/scheduler";
 import os from "node:os";
 
 const worker = createDMWorker();
@@ -48,10 +49,35 @@ async function poll() {
 setTimeout(() => void poll(), 10_000);
 const pollTimer = setInterval(() => void poll(), POLL_INTERVAL_MS);
 
+// Scheduled Instagram posts: publish whatever is due, once a minute. The flag
+// keeps a slow publish (video processing) from overlapping the next tick.
+const PUBLISH_INTERVAL_MS = 60_000;
+let publishing = false;
+
+async function publishDuePosts() {
+  if (publishing) return;
+  publishing = true;
+  try {
+    const result = await runScheduledPosts();
+    if (result.published || result.failed || result.retried || result.stuck) {
+      console.log("[DM Worker] Scheduled posts:", result);
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    console.error("[DM Worker] Scheduled posts failed:", message);
+  } finally {
+    publishing = false;
+  }
+}
+
+setTimeout(() => void publishDuePosts(), 15_000);
+const publishTimer = setInterval(() => void publishDuePosts(), PUBLISH_INTERVAL_MS);
+
 async function shutdown(signal: string) {
   console.log(`[DM Worker] ${signal} received, closing worker`);
   clearInterval(heartbeatTimer);
   clearInterval(pollTimer);
+  clearInterval(publishTimer);
   await worker.close();
   process.exit(0);
 }

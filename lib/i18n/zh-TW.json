@@ -468,5 +468,20 @@
   "{name} Campaign Report": "{name} 活動報表",
   "{type} post": "{type} 貼文",
   "”": "」",
-  "← Campaigns": "← 返回活動列表"
+  "← Campaigns": "← 返回活動列表",
+  "Scheduled posts": "排程貼文",
+  "Scheduled": "已排程",
+  "Publishing now": "發布中",
+  "Published": "已發布",
+  "Upcoming": "即將發布",
+  "Last 30 days": "最近 30 天",
+  "View on Instagram": "在 Instagram 查看",
+  "Cancel this post? Its files will be deleted.": "取消這則貼文？檔案將被刪除。",
+  "No posts scheduled yet.": "尚無排程貼文。",
+  "Times in Brasília. The page updates every 30 seconds.": "時間為巴西利亞時間。頁面每 30 秒更新。",
+  "Reel": "Reel",
+  "Photo": "照片",
+  "Carousel": "輪播",
+  "Cover": "封面",
+  "Caption": "說明文字"
 }

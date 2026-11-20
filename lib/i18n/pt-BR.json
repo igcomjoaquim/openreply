@@ -468,5 +468,20 @@
   "{name} Campaign Report": "Relatório da campanha {name}",
   "{type} post": "Publicação {type}",
   "”": "”",
-  "← Campaigns": "← Campanhas"
+  "← Campaigns": "← Campanhas",
+  "Scheduled posts": "Agendados",
+  "Scheduled": "Agendado",
+  "Publishing now": "Publicando agora",
+  "Published": "Publicado",
+  "Upcoming": "Próximos",
+  "Last 30 days": "Últimos 30 dias",
+  "View on Instagram": "Ver no Instagram",
+  "Cancel this post? Its files will be deleted.": "Cancelar este post? Os arquivos dele serão apagados.",
+  "No posts scheduled yet.": "Nenhum post agendado.",
+  "Times in Brasília. The page updates every 30 seconds.": "Horários de Brasília. A página se atualiza a cada 30 segundos.",
+  "Reel": "Reel",
+  "Photo": "Foto",
+  "Carousel": "Carrossel",
+  "Cover": "Capa",
+  "Caption": "Legenda"
 }

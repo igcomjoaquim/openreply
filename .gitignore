@@ -43,3 +43,6 @@ next-env.d.ts
 
 /app/generated/prisma
 .gstack/
+
+# scheduled post files (local runs; Railway uses a volume)
+/.media

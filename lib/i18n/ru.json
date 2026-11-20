@@ -468,5 +468,20 @@
   "{name} Campaign Report": "Отчёт по кампании «{name}»",
   "{type} post": "Пост {type}",
   "”": "»",
-  "← Campaigns": "← Кампании"
+  "← Campaigns": "← Кампании",
+  "Scheduled posts": "Запланированные",
+  "Scheduled": "Запланировано",
+  "Publishing now": "Публикуется",
+  "Published": "Опубликовано",
+  "Upcoming": "Предстоящие",
+  "Last 30 days": "Последние 30 дней",
+  "View on Instagram": "Открыть в Instagram",
+  "Cancel this post? Its files will be deleted.": "Отменить публикацию? Файлы будут удалены.",
+  "No posts scheduled yet.": "Пока нет запланированных публикаций.",
+  "Times in Brasília. The page updates every 30 seconds.": "Время по Бразилиа. Страница обновляется каждые 30 секунд.",
+  "Reel": "Reel",
+  "Photo": "Фото",
+  "Carousel": "Карусель",
+  "Cover": "Обложка",
+  "Caption": "Подпись"
 }

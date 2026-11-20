@@ -473,6 +473,7 @@ model ScheduledPost {
   mediaId             String?
   permalink           String?
   publishingStartedAt DateTime?
+  approvedAt          DateTime?
   publishedAt         DateTime?
   createdAt           DateTime            @default(now())
   updatedAt           DateTime            @updatedAt

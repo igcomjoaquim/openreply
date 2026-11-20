@@ -3,10 +3,15 @@
 import { refresh } from "next/cache";
 import { prisma } from "@/lib/db/client";
 import { getCurrentWorkspaceContext } from "@/lib/workspace-access";
-import { cancelScheduledPost, ScheduleError } from "@/lib/publishing/schedule";
+import {
+  approveScheduledPost,
+  cancelScheduledPost,
+  ScheduleError,
+} from "@/lib/publishing/schedule";
 
-export async function cancelScheduledPostAction(
-  id: string
+async function runOnOwnedPost(
+  id: string,
+  action: (id: string) => Promise<unknown>
 ): Promise<{ error?: string }> {
   const context = await getCurrentWorkspaceContext();
   if (!context) return { error: "Unauthorized" };
@@ -18,11 +23,19 @@ export async function cancelScheduledPostAction(
   if (!owned) return { error: "Not found" };
 
   try {
-    await cancelScheduledPost(id);
+    await action(id);
   } catch (error) {
     if (error instanceof ScheduleError) return { error: error.message };
     throw error;
   }
   refresh();
   return {};
+}
+
+export async function cancelScheduledPostAction(id: string) {
+  return runOnOwnedPost(id, cancelScheduledPost);
+}
+
+export async function approveScheduledPostAction(id: string) {
+  return runOnOwnedPost(id, approveScheduledPost);
 }

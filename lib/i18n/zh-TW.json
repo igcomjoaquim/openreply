@@ -483,5 +483,13 @@
   "Photo": "照片",
   "Carousel": "輪播",
   "Cover": "封面",
-  "Caption": "說明文字"
+  "Caption": "說明文字",
+  "Waiting for your OK": "等待你的確認",
+  "It only goes live after you approve. If the time has already passed, it goes out within a minute of your OK.": "你核准後才會發布。如果時間已過，會在你確認後一分鐘內發布。",
+  "Approve this post? It will go live at the scheduled time.": "核准這則貼文？它會在排定時間發布。",
+  "Approve": "核准",
+  "My feed": "我的動態",
+  "How your profile will look. Upcoming posts come first; tap one to check it.": "你的個人檔案將呈現的樣子。即將發布的貼文排在最前面；點一下即可檢查。",
+  "Could not load the posts already on Instagram. Try again in a minute.": "無法載入 Instagram 上已有的貼文。請稍後再試。",
+  "No Instagram account connected.": "尚未連結 Instagram 帳號。"
 }

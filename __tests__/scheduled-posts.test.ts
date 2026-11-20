@@ -61,7 +61,7 @@ describe("runScheduledPosts", () => {
     // Claim is conditional on PENDING so a second worker cannot take it.
     expect(mockPrisma.scheduledPost.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { id: "p1", status: "PENDING" },
+        where: { id: "p1", status: "PENDING", approvedAt: { not: null } },
         data: expect.objectContaining({ status: "PUBLISHING" }),
       })
     );
@@ -80,6 +80,17 @@ describe("runScheduledPosts", () => {
       `https://app.example.com/api/media/${VID}`,
       expect.objectContaining({ method: "DELETE", headers: { Authorization: "Bearer s3cret" } })
     );
+  });
+
+  it("only picks up posts the owner approved", async () => {
+    mockPrisma.scheduledPost.findMany.mockResolvedValue([]);
+    await runScheduledPosts(new Date("2026-11-20T21:30:00Z"));
+    expect(mockPrisma.scheduledPost.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ status: "PENDING", approvedAt: { not: null } }),
+      })
+    );
+    expect(mockPublish).not.toHaveBeenCalled();
   });
 
   it("skips a post another worker already claimed", async () => {

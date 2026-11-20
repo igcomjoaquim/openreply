@@ -16,6 +16,8 @@ export const schedulePostSchema = z.object({
   coverName: z.string().optional(),
   thumbOffsetMs: z.number().int().min(0).optional(),
   shareToFeed: z.boolean().optional(),
+  // Without this the post waits for the owner's OK on the Scheduled page.
+  approved: z.boolean().optional(),
   /** Instagram username; optional when only one account is connected. */
   username: z.string().optional(),
 });
@@ -80,6 +82,7 @@ export async function createScheduledPost(body: SchedulePostRequest) {
       thumbOffsetMs: body.thumbOffsetMs,
       shareToFeed: body.shareToFeed ?? true,
       publishAt,
+      approvedAt: body.approved ? new Date() : null,
     },
   });
 }
@@ -119,4 +122,23 @@ export async function cancelScheduledPost(id: string) {
     if (isValidMediaName(name)) await rm(mediaPath(name), { force: true });
   }
   return post;
+}
+
+/**
+ * Gives the owner's OK. A post is never published before this, so the owner
+ * can check media and caption first. If its time already passed, it goes out
+ * on the next worker run.
+ */
+export async function approveScheduledPost(id: string) {
+  const post = await prisma.scheduledPost.findUnique({ where: { id } });
+  if (!post) throw new ScheduleError("Scheduled post not found");
+  if (post.approvedAt) return post;
+  const updated = await prisma.scheduledPost.updateMany({
+    where: { id, status: "PENDING", approvedAt: null },
+    data: { approvedAt: new Date() },
+  });
+  if (updated.count !== 1) {
+    throw new ScheduleError(`Cannot approve a post that is ${post.status}`);
+  }
+  return prisma.scheduledPost.findUniqueOrThrow({ where: { id } });
 }

@@ -65,7 +65,7 @@ export async function runScheduledPosts(
   result.stuck = stuck.count;
 
   const due = await prisma.scheduledPost.findMany({
-    where: { status: "PENDING", publishAt: { lte: now } },
+    where: { status: "PENDING", approvedAt: { not: null }, publishAt: { lte: now } },
     orderBy: { publishAt: "asc" },
     take: 10,
     include: { instagramAccount: true },
@@ -73,7 +73,7 @@ export async function runScheduledPosts(
 
   for (const post of due) {
     const claim = await prisma.scheduledPost.updateMany({
-      where: { id: post.id, status: "PENDING" },
+      where: { id: post.id, status: "PENDING", approvedAt: { not: null } },
       data: {
         status: "PUBLISHING",
         publishingStartedAt: new Date(),

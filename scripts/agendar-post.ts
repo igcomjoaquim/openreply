@@ -13,7 +13,11 @@
  *   --capa-ms <milissegundos>  (Reel: quadro do vídeo usado como capa)
  *   --sem-feed                 (Reel: não aparece na grade do perfil)
  *   --conta <usuario>          (se houver mais de uma conta conectada)
+ *   --aprovado                 (já aprovado: sem isso o post espera o OK no painel)
  *   --local                    (usa http://localhost:3000 em vez do Railway)
+ *
+ * Depois de agendar, mostra o link do post na página Agendados para conferir.
+ * O post só é publicado depois de aprovado (botão Aprovar ou --aprovar).
  *
  * Lê OPENREPLY_URL e CRON_SECRET do .env (o segredo nunca é impresso).
  * PNG, HEIC e WEBP viram JPEG com o `sips` do macOS antes de subir.
@@ -169,10 +173,11 @@ async function main() {
       thumbOffsetMs: args["capa-ms"] ? Number(args["capa-ms"][0]) : undefined,
       shareToFeed: args["sem-feed"] ? false : undefined,
       username: args.conta?.[0],
+      approved: Boolean(args.aprovado),
     }),
   });
   const data = (await response.json().catch(() => ({}))) as {
-    post?: { id: string; publishAt: string };
+    post?: { id: string; publishAt: string; approvedAt: string | null };
     error?: string;
   };
   if (!response.ok || !data.post) {
@@ -188,6 +193,12 @@ async function main() {
 
   console.log(
     `Agendado! id ${data.post.id} — ${type} sai em ${formatBrasilia(data.post.publishAt)} (Brasília)`
+  );
+  console.log(`Conferir: ${baseUrl}/scheduled#post-${data.post.id}`);
+  console.log(
+    data.post.approvedAt
+      ? "Já aprovado: sai sozinho no horário."
+      : "ESPERANDO O OK: só sai depois de aprovar (botão Aprovar na página ou --aprovar)."
   );
 }
 

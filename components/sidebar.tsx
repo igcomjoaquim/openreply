@@ -20,6 +20,7 @@ const navItems = [
   { label: "Campaigns", href: "/campaigns" },
   { label: "DM Logs", href: "/logs" },
   { label: "Scheduled posts", href: "/scheduled" },
+  { label: "My feed", href: "/feed" },
   { label: "Settings", href: "/settings" },
   { label: "API & MCP", href: "/integrations" },
   { label: "Diagnostics", href: "/diagnostics" },

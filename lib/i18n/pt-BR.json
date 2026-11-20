@@ -483,5 +483,13 @@
   "Photo": "Foto",
   "Carousel": "Carrossel",
   "Cover": "Capa",
-  "Caption": "Legenda"
+  "Caption": "Legenda",
+  "Waiting for your OK": "Esperando seu OK",
+  "It only goes live after you approve. If the time has already passed, it goes out within a minute of your OK.": "Só vai ao ar depois que você aprovar. Se o horário já passou, sai em até 1 minuto depois do seu OK.",
+  "Approve this post? It will go live at the scheduled time.": "Aprovar este post? Ele vai ao ar no horário marcado.",
+  "Approve": "Aprovar",
+  "My feed": "Meu feed",
+  "How your profile will look. Upcoming posts come first; tap one to check it.": "Como seu perfil vai ficar. Os próximos posts aparecem primeiro; toque em um para conferir.",
+  "Could not load the posts already on Instagram. Try again in a minute.": "Não deu para carregar os posts que já estão no Instagram. Tente de novo em um minuto.",
+  "No Instagram account connected.": "Nenhuma conta do Instagram conectada."
 }

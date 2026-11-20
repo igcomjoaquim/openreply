@@ -112,3 +112,29 @@ export async function getPublishedMediaPreview(
     "media_type,media_url,thumbnail_url,children{media_type,media_url,thumbnail_url}"
   );
 }
+
+export interface ProfileMedia {
+  id: string;
+  media_type: "IMAGE" | "VIDEO" | "CAROUSEL_ALBUM";
+  media_product_type?: string;
+  media_url?: string;
+  thumbnail_url?: string;
+  permalink?: string;
+  timestamp?: string;
+}
+
+/** Latest posts on the profile grid, newest first (for the feed preview). */
+export async function getRecentProfileMedia(
+  accessToken: string,
+  igUserId: string,
+  limit = 30
+): Promise<ProfileMedia[]> {
+  const fields =
+    "id,media_type,media_product_type,media_url,thumbnail_url,permalink,timestamp";
+  const response = await fetch(
+    `${publishGraphBase()}/${igUserId}/media?fields=${encodeURIComponent(fields)}&limit=${limit}`,
+    { headers: { Authorization: `Bearer ${accessToken}` } }
+  );
+  const data = await handleResponse<{ data?: ProfileMedia[] }>(response);
+  return data.data ?? [];
+}

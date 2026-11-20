@@ -4,7 +4,7 @@ import { getCurrentWorkspaceContext } from "@/lib/workspace-access";
 import { decryptToken } from "@/lib/meta/oauth";
 import { getPublishedMediaPreview } from "@/lib/publishing/graph";
 import type { MediaItem } from "@/lib/publishing/publish-post";
-import { AutoRefresh, CancelButton } from "./client-parts";
+import { ApproveButton, AutoRefresh, CancelButton } from "./client-parts";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +18,10 @@ const STATUS_STYLE: Record<string, string> = {
   PUBLISHED: "bg-green-500/15 text-green-400 border-green-500/20",
   FAILED: "bg-red-500/15 text-red-400 border-red-500/20",
 };
+
+function waitingApproval(post: { status: string; approvedAt: Date | null }) {
+  return post.status === "PENDING" && !post.approvedAt;
+}
 
 function thirtyDaysAgo(): Date {
   return new Date(Date.now() - 30 * 24 * 60 * 60_000);
@@ -101,7 +105,11 @@ export default async function ScheduledPostsPage() {
     const card = byId.get(id)!;
     const { post, previews, cover } = card;
     return (
-      <article key={post.id} className="panel rounded p-4 sm:p-6 space-y-4">
+      <article
+        key={post.id}
+        id={`post-${post.id}`}
+        className="panel rounded p-4 sm:p-6 space-y-4 scroll-mt-24 target:ring-2 target:ring-accent"
+      >
         <div className="flex flex-wrap items-center gap-3">
           <span className="text-base font-semibold">
             {dateFormat.format(post.publishAt)}
@@ -114,6 +122,11 @@ export default async function ScheduledPostsPage() {
           >
             {statusLabel[post.status]}
           </span>
+          {waitingApproval(post) && (
+            <span className="rounded-lg border border-yellow-500/30 bg-yellow-500/15 px-2.5 py-1 text-xs font-medium text-yellow-400">
+              {t("Waiting for your OK")}
+            </span>
+          )}
           <div className="ml-auto flex items-center gap-3">
             {post.permalink && (
               <a
@@ -125,6 +138,7 @@ export default async function ScheduledPostsPage() {
                 {t("View on Instagram")}
               </a>
             )}
+            {waitingApproval(post) && <ApproveButton id={post.id} />}
             {(post.status === "PENDING" || post.status === "FAILED") && (
               <CancelButton id={post.id} />
             )}
@@ -172,6 +186,12 @@ export default async function ScheduledPostsPage() {
             {post.caption || t("(no text)")}
           </p>
         </div>
+
+        {waitingApproval(post) && (
+          <p className="text-xs text-muted">
+            {t("It only goes live after you approve. If the time has already passed, it goes out within a minute of your OK.")}
+          </p>
+        )}
 
         {post.error && (
           <p className="rounded border border-red-500/20 bg-red-500/10 px-3 py-2 text-xs text-red-400">

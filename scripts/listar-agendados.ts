@@ -4,6 +4,7 @@
  *   npx tsx scripts/listar-agendados.ts            lista
  *   npx tsx scripts/listar-agendados.ts --todos    lista tudo, sem limite de data
  *   npx tsx scripts/listar-agendados.ts --cancelar <id>
+ *   npx tsx scripts/listar-agendados.ts --aprovar <id>
  *   --local  usa http://localhost:3000
  */
 import { loadConfig, formatBrasilia } from "./lib/openreply-api";
@@ -17,6 +18,7 @@ interface Post {
   media: { name: string }[];
   error: string | null;
   permalink: string | null;
+  approvedAt: string | null;
   instagramAccount: { username: string };
 }
 
@@ -46,6 +48,20 @@ async function main() {
     return;
   }
 
+  const approveAt = argv.indexOf("--aprovar");
+  if (approveAt !== -1) {
+    const id = argv[approveAt + 1];
+    if (!id) throw new Error("Passe o id: --aprovar <id>");
+    const response = await fetch(`${baseUrl}/api/scheduled-posts/${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      headers,
+    });
+    const data = (await response.json().catch(() => ({}))) as { error?: string };
+    if (!response.ok) throw new Error(`Não aprovou: ${data.error ?? response.status}`);
+    console.log(`Aprovado: ${id} — sai no horário marcado (ou em até 1 minuto, se já passou)`);
+    return;
+  }
+
   const response = await fetch(
     `${baseUrl}/api/scheduled-posts${argv.includes("--todos") ? "?all=1" : ""}`,
     { headers }
@@ -59,11 +75,16 @@ async function main() {
   }
   for (const post of data.posts) {
     const caption = post.caption.replace(/\s+/g, " ").slice(0, 60);
+    const status =
+      post.status === "PENDING" && !post.approvedAt
+        ? "esperando OK"
+        : (STATUS[post.status] ?? post.status);
     console.log(
-      `${formatBrasilia(post.publishAt)}  ${post.type.padEnd(8)} ${(STATUS[post.status] ?? post.status).padEnd(16)} @${post.instagramAccount.username}  id ${post.id}`
+      `${formatBrasilia(post.publishAt)}  ${post.type.padEnd(8)} ${status.padEnd(16)} @${post.instagramAccount.username}  id ${post.id}`
     );
     console.log(`    ${post.media.length} arquivo(s) · "${caption}${post.caption.length > 60 ? "…" : ""}"`);
     if (post.permalink) console.log(`    ${post.permalink}`);
+    else if (post.status === "PENDING") console.log(`    conferir: ${baseUrl}/scheduled#post-${post.id}`);
     if (post.error) console.log(`    erro: ${post.error}`);
   }
 }

@@ -301,3 +301,25 @@ describe("matchKeywords — diacritics", () => {
     expect(matchKeywords("иод", ["йод"], true).matched).toBe(false);
   });
 });
+
+describe("matchKeywords — keyword split by hyphen or space", () => {
+  it.each(["e-book", "E-book", "E-Book", "E-BOOK", "e book", "quero o e-book!", "e.book", "e_book", "E–book"])(
+    "matches an ebook keyword in %s",
+    (text) => {
+      expect(matchKeywords(text, ["ebook"], true).matched).toBe(true);
+    }
+  );
+
+  it("still matches the plain word", () => {
+    expect(matchKeywords("EBOOK", ["ebook"], true).matched).toBe(true);
+  });
+
+  it("does not match unrelated text", () => {
+    expect(matchKeywords("free book", ["ebook"], true).matched).toBe(false);
+    expect(matchKeywords("ebooks", ["ebook"], true).matched).toBe(false);
+  });
+
+  it("does not scatter-match short keywords", () => {
+    expect(matchKeywords("s i m", ["sim"], true).matched).toBe(false);
+  });
+});

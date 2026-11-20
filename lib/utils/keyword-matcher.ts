@@ -100,6 +100,23 @@ function foldNumericHomoglyphs(value: string): string {
 }
 
 /**
+ * Whole-word pattern that also tolerates one space between letters, so an
+ * "ebook" keyword matches "e book" — and therefore "e-book", "e.book" and
+ * "E_BOOK" too, since stripSpecialCharacters has already turned those
+ * separators into spaces. Before this, an "ebook" campaign silently skipped
+ * every "e-book" comment (seen in production). Only for single-word keywords of at least
+ * four characters, so short words ("sim", "eu") never match scattered letters.
+ */
+function spacedKeywordPattern(cleanedKeyword: string): RegExp | null {
+  const chars = Array.from(cleanedKeyword);
+  if (chars.length < 4 || /\s/u.test(cleanedKeyword)) return null;
+  const body = chars
+    .map((c) => c.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+    .join(" ?");
+  return new RegExp(`(?<![\\p{L}\\p{N}])${body}(?![\\p{L}\\p{N}])`, "iu");
+}
+
+/**
  * Strip emojis and special characters from text, keeping only
  * letters (any script), numbers, and whitespace.
  */
@@ -215,6 +232,10 @@ export function matchKeywords(
         "iu"
       );
       if (regex.test(compareText)) {
+        return { matched: true, matchedKeyword: keyword };
+      }
+      const spaced = numericLike ? null : spacedKeywordPattern(compareKeyword);
+      if (spaced?.test(compareText)) {
         return { matched: true, matchedKeyword: keyword };
       }
     } else {

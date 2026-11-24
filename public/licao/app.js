@@ -98,7 +98,7 @@
   var STOP = "the a an and but or so to of in on at for is was were it he she they you i we my his her their this that with be have had did didn't don't not no yes".split(" ");
   function storyWords() {
     var all = words((C.story.paragraphs || []).join(" ").replace(/\[\[[^\]]*\]\]/g, " ") + " " + C.readAloud.text);
-    return all.filter(function (w, i) { return w.length >= 4 && STOP.indexOf(w) < 0 && all.indexOf(w) === i; });
+    return all.filter(function (w, i) { return w.length >= 3 && STOP.indexOf(w) < 0 && all.indexOf(w) === i; });
   }
 
   function findMistakes(text, list) {
@@ -252,7 +252,17 @@
     var box = el("div", { style: "display:flex;flex-direction:column;gap:10px" },
       el("p", { cls: "hint", text: "🎙️ Toque em Gravar, fale em inglês e toque em Parar quando terminar. Se faltar algo, é só gravar mais um pouco." }),
       btn, el("div", { cls: "meter" }, tm, wc), tr, msg);
-    var sess = null, timer = null, taken = "";
+    var sess = null, timer = null, taken = "", tries = 0, valve = null;
+    function offerValve() {
+      if (valve || step.done) return;
+      valve = el("button", { cls: "ghost", text: "Não estou conseguindo — liberar e o professor ouve meu áudio", onclick: function () {
+        if (step.done) return;
+        step.sec.querySelector(".rec").disabled = true; valve.remove();
+        say(msg, "🔓 Liberado. Seu professor vai ouvir o que você gravou.", true);
+        finish(step, 1, { transcript: taken, forced: true, wrongs: [] });
+      } });
+      box.append(valve);
+    }
     if (!SR) box.insertBefore(el("p", { cls: "warn", text: canRecord ? "Seu navegador grava, mas não mostra o que você fala. Para a correção na hora, abra este link no Chrome (Android) ou no Safari (iPhone)." : "Seu navegador não grava áudio. Abra este link no Chrome (Android) ou no Safari (iPhone)." }), btn);
     if (!SR && !canRecord) {
       box.append(el("button", { cls: "ghost", text: "Não consigo gravar — pular esta parte", onclick: function () { finish(step, 0, { skipped: true }); } }));
@@ -290,7 +300,11 @@
           taken = (taken + " " + t).trim(); render(taken);
           upload(step.key, blob, t, secs);
           if (ok(taken, secs)) done(taken, secs);
-          else { btn.textContent = "🎙️ Continuar gravando"; say(msg, SR ? opt.hint(taken) : "Grave um pouco mais (pelo menos " + (opt.minSeconds || 20) + " segundos)."); }
+          else {
+            btn.textContent = "🎙️ Continuar gravando"; say(msg, SR ? opt.hint(taken) : "Grave um pouco mais (pelo menos " + (opt.minSeconds || 20) + " segundos).");
+            if (secs >= 3) tries++;
+            if (tries >= 3) offerValve();
+          }
         },
       });
       busy = sess; say(msg, "");
@@ -662,9 +676,14 @@
         minWords: R.minWords, minSeconds: 30, unlockLive: true,
         check: function (t) {
           var sw = storyWords(), n = words(t), hits = sw.filter(function (w) { return n.indexOf(w) > -1; }).length;
-          return n.length >= R.minWords && norm(t).indexOf(secret) > -1 && hits >= Math.min(3, sw.length);
+          return n.length >= R.minWords && norm(t).indexOf(secret) > -1 && hits >= Math.min(LEVEL === "A1" ? 2 : 3, sw.length);
         },
-        hint: function (t) { return words(t).length < R.minWords ? "Fale mais um pouco (faltam " + (R.minWords - words(t).length) + " palavras)." : norm(t).indexOf(secret) < 0 ? "Você não falou a palavra secreta 🔑." : "Conte a história da fofoca, em inglês, com as palavras dela."; },
+        hint: function (t) {
+          if (words(t).length < R.minWords) return "Fale mais um pouco (faltam " + (R.minWords - words(t).length) + " palavras).";
+          if (norm(t).indexOf(secret) < 0) return "Você não falou a palavra secreta 🔑.";
+          var n = words(t), miss = storyWords().filter(function (w) { return n.indexOf(w) < 0; }).slice(0, 6);
+          return "Conte o que aconteceu NA FOFOCA, com as palavras dela. Tente usar: " + miss.join(", ") + ".";
+        },
         score: function (t, s, noText) {
           if (noText) return { pts: 3, msg: "🔓 Liberado! Seu professor vai ouvir o áudio.", data: { transcript: "" } };
           var used = ["would", "wouldn't", "didn't", "were", "had"].filter(function (w) { return words(t).indexOf(w) > -1; }).length;

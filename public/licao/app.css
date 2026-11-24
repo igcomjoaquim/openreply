@@ -220,3 +220,6 @@ h1,.hero-title,.result h2,.fb-head h2{font-family:var(--f-display)!important;fon
 .yt-state{font-weight:600;color:var(--marsala)}
 .yt-track{height:14px;border-radius:7px;background:var(--line);overflow:hidden;cursor:pointer}
 .yt-track i{display:block;height:100%;width:0;background:var(--marsala);transition:width .25s linear}
+.watch-now{background:var(--yellow)!important;color:var(--ink)!important;border:2px solid var(--ink);box-shadow:3px 3px 0 var(--ink);font-size:18px;animation:nudge 1.6s ease-in-out infinite}
+@keyframes nudge{50%{transform:translateY(-3px)}}
+@media (prefers-reduced-motion:reduce){.watch-now{animation:none}}

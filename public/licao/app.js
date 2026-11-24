@@ -126,8 +126,8 @@
     var all = steps.every(function (s) { return s.done; });
     if (att && !VIEW) post("/api/licao/attempt/" + att.id + "/progress", { token: att.token, step: step.key, score: pts, max: step.max, data: step.data });
     var i = steps.indexOf(step);
-    if (i < steps.length - 1) unlock(steps[i + 1], true);
-    if (all) showConclude(true);
+    if (i < steps.length - 1) unlock(steps[i + 1], !step.holdScroll);
+    if (all) showConclude(!step.holdScroll);
   }
   function unlock(step, scroll) {
     if (!step.sec.classList.contains("locked")) return;
@@ -418,10 +418,25 @@
       el("button", { text: "↺ Do começo", onclick: function () { withPlayer(function (p) { p.seekTo(S.start, true); p.playVideo(); }); } }),
       el("button", { text: "🐢 0.75×", onclick: function (e) { slow = !slow; e.target.textContent = slow ? "🐇 1×" : "🐢 0.75×"; withPlayer(function (p) { p.setPlaybackRate(slow ? 0.75 : 1); }); } }));
     var box = el.apply(null, ["ol", { cls: "items" }].concat(S.questions.map(function (q) { return el("li", { html: gapHtml(q) }); })));
-    var show = el("button", { cls: "btn yt", hidden: "", text: "👀 Agora assista COM imagem", onclick: function () { cover.remove(); show.hidden = true; withPlayer(function (p) { p.seekTo(S.start, true); p.playVideo(); }); } });
-    var btn = el("button", { cls: "btn", text: "Conferir", onclick: function () { gapCheck(step, box, btn, "Cena real", " só de ouvido 👂"); if (step.done) show.hidden = false; } });
+    // depois de conferir, a tela NÃO pula pra próxima parte: o aluno precisa ver
+    // o botão de assistir com imagem; só segue quando tocar em "Seguir".
+    step.holdScroll = true;
+    var nextIdx = function () { return steps.indexOf(step) + 1; };
+    var goOn = el("button", { cls: "btn", hidden: "", text: "Pronto, vamos para a fofoca →", onclick: function () {
+      withPlayer(function (p) { p.pauseVideo(); });
+      var nx = steps[nextIdx()]; if (nx) scrollTo(nx.sec); else if (concludeSec) scrollTo(concludeSec);
+    } });
+    var show = el("button", { cls: "btn yt watch-now", hidden: "", text: "👀 Agora toque aqui e assista COM imagem", onclick: function () {
+      cover.remove(); show.hidden = true; goOn.hidden = false;
+      withPlayer(function (p) { p.seekTo(S.start, true); p.playVideo(); });
+      scrollTo(wrap);
+    } });
+    var btn = el("button", { cls: "btn", text: "Conferir", onclick: function () {
+      gapCheck(step, box, btn, "Cena real", " só de ouvido 👂");
+      if (step.done) { show.hidden = false; scrollTo(show); }
+    } });
     sec.append(el("p", { html: rich(S.intro) + " Primeiro <b>só ouça</b>: a imagem fica escondida. Ouça 3 vezes (pode usar 0.75× na 2ª)." }),
-      wrap, timeline, ctrl, el("p", { cls: "small", html: "Responda só com o que você <b>ouviu</b>:" }), box, btn, show);
+      wrap, timeline, ctrl, el("p", { cls: "small", html: "Responda só com o que você <b>ouviu</b>:" }), box, btn, show, goOn);
   }
 
   function buildShadowing() {

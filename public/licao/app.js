@@ -801,6 +801,36 @@
     if (steps.every(function (s) { return s.done; })) { if (VIEW || saved.done) showResult(false); else showConclude(false); }
   }
 
+  // ---------- modo professor: tudo aberto + gabarito ----------
+  function gaps(text) { return (text.match(/\[\[([^\]]+)\]\]/g) || []).map(function (m) { return m.slice(2, -2).split("|")[0]; }); }
+  function plain(text) { return text.replace(/\[\[([^\]]+)\]\]/g, function (_, a) { return a.split("|")[0]; }).replace(/\*\*?/g, ""); }
+  function mcqAns(q) { return q.q + " → " + q.options[q.answer]; }
+  function teacherView() {
+    steps.forEach(function (s, i) { s.sec.classList.remove("locked"); bars[i].classList.add("on"); });
+    var K = {
+      review: C.review && ["Respostas esperadas (estruturas): " + C.review.keys.map(function (k) { return k.name; }).join(" · ")],
+      dictation: ["Texto do ditado: " + C.dictation.text],
+      scene: C.scene && [
+        "Trecho: " + Math.floor(C.scene.start / 60) + ":" + String(C.scene.start % 60).padStart(2, "0") + " → " + Math.floor(C.scene.end / 60) + ":" + String(C.scene.end % 60).padStart(2, "0"),
+      ].concat(C.scene.questions.map(function (q) { return typeof q === "string" ? plain(q) : mcqAns(q); })),
+      gossip: ["Palavra secreta: " + C.gossip.secret.toUpperCase(), "Texto do áudio: " + C.story.paragraphs.map(plain).join(" ")]
+        .concat((C.gossip.questions || []).map(mcqAns)),
+      shadowing: C.shadowing.map(function (x, k) { return (k + 1) + ". " + x.en; }),
+      retell: ["Destrava com: a palavra secreta (" + C.gossip.secret.toUpperCase() + ") + pelo menos " + C.retell.minWords + " palavras + 3 palavras da história."],
+      story: ["Lacunas, na ordem: " + gaps(C.story.paragraphs.join(" ")).join(" · ")],
+      read: ["Texto: " + C.readAloud.text],
+      writing: ["O aluno precisa usar: " + (C.writing.keys || []).map(function (k) { return k.name; }).join(" · "), "O texto dele é corrigido depois pela rotina (aparece no feedback)."],
+      realtime: ["Modelo: " + C.realtime.model, "Conta ponto por: " + C.realtime.keys.map(function (k) { return k.name; }).join(" · ")],
+    };
+    steps.forEach(function (s) {
+      var lines = K[s.key]; if (!lines) return;
+      var box = el("div", { cls: "teacher-key" }, el("b", { text: "🔑 Gabarito do professor" }));
+      lines.forEach(function (t) { box.append(el("p", { text: t })); });
+      if (s.key === "scene" && C.scene) box.append(el("a", { href: "https://www.youtube.com/watch?v=" + C.scene.youtubeId + "&t=" + C.scene.start + "s", target: "_blank", rel: "noopener", text: "▶ Abrir a cena no YouTube, já no minuto" }));
+      s.sec.append(box);
+    });
+  }
+
   build();
   if (VIEW) {
     saved = (D.view && D.view.progress) || {}; review = (D.view && D.view.review) || null;
@@ -809,7 +839,9 @@
     return;
   }
   if (PREVIEW) {
-    app.insertBefore(el("div", { cls: "viewnote" }, el("b", { text: "👀 Modo professor:" }), " pode testar à vontade — nada do que você fizer aqui é salvo nem conta para o aluno."), app.children[1] || null);
+    app.insertBefore(el("div", { cls: "viewnote" }, el("b", { text: "👀 Modo professor:" }),
+      " tudo aberto e com o 🔑 gabarito em cada parte. Pode testar à vontade — nada do que você fizer aqui é salvo nem conta para o aluno."), app.children[1] || null);
+    teacherView();
     return;
   }
   var mine = load() || {};

@@ -231,3 +231,7 @@ h1,.hero-title,.result h2,.fb-head h2{font-family:var(--f-display)!important;fon
 .mcq-opt.ok{border-color:var(--ok);background:var(--okbg)}
 .mcq-opt.bad{border-color:var(--marsala);background:var(--badbg);text-decoration:line-through}
 .checked .mcq-opt{cursor:default}
+.teacher-key{border:2px dashed var(--marsala);background:#FFF8EC;border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:6px;font-size:14px}
+.teacher-key b{color:var(--marsala)}
+.teacher-key p{margin:0}
+.teacher-key a{color:var(--marsala);font-weight:700}

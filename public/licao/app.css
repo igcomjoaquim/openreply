@@ -242,3 +242,58 @@ h1,.hero-title,.result h2,.fb-head h2{font-family:var(--f-display)!important;fon
 @keyframes bump{40%{transform:scale(1.18)}}
 .plus{position:absolute;right:8px;top:-6px;font-weight:800;color:var(--ok);animation:rise 1.3s ease forwards;pointer-events:none}
 @keyframes rise{to{transform:translateY(-22px);opacity:0}}
+
+/* ---------- cor por fase (cores da marca) ---------- */
+:root{--ph-ouvir:#FFD21F;--ph-fofoca:#C49A6C;--ph-escrever:#A8693A;--ph-falar:#7A2E3A}
+.step[data-phase]{border-top:6px solid var(--line)}
+.step[data-phase="ouvir"]{border-top-color:var(--ph-ouvir)}
+.step[data-phase="fofoca"]{border-top-color:var(--ph-fofoca)}
+.step[data-phase="escrever"]{border-top-color:var(--ph-escrever)}
+.step[data-phase="falar"]{border-top-color:var(--ph-falar)}
+.step[data-phase="ouvir"] .n{background:var(--ph-ouvir);color:var(--ink)}
+.step[data-phase="fofoca"] .n{background:var(--ph-fofoca);color:var(--ink)}
+.step[data-phase="escrever"] .n{background:var(--ph-escrever);color:#FFF8EC}
+.step[data-phase="falar"] .n{background:var(--ph-falar);color:#FFF8EC}
+.phase{display:inline-flex;align-self:flex-start;padding:2px 14px;border-radius:999px}
+.phase[data-phase="ouvir"]{background:var(--ph-ouvir);color:var(--ink)}
+.phase[data-phase="fofoca"]{background:var(--ph-fofoca);color:var(--ink)}
+.phase[data-phase="escrever"]{background:var(--ph-escrever);color:#FFF8EC}
+.phase[data-phase="falar"]{background:var(--ph-falar);color:#FFF8EC}
+
+/* ---------- perguntas escritas ---------- */
+.open{display:flex;flex-direction:column;gap:8px}
+.open-in{font:inherit;font-size:16px;padding:10px 12px;border:2px solid var(--line);border-radius:10px;background:var(--paper);color:var(--ink);width:100%}
+.open-in:focus{outline:none;border-color:var(--ink)}
+.open-in.ok{border-color:var(--ok);background:var(--okbg)}
+.open-in.bad{border-color:var(--marsala);background:var(--badbg)}
+.model-ans{font-size:14px;border-radius:10px;padding:8px 10px}
+.model-ans.good{background:var(--okbg)} .model-ans.bad{background:#FFF1B8}
+.reveal{align-self:flex-start}
+
+/* ---------- caderno nas laterais (tela larga) ---------- */
+@media (min-width:900px){
+  html,body{background-color:var(--paper);
+    background-image:
+      linear-gradient(90deg,transparent calc(50% - 330px),rgba(122,46,58,.18) calc(50% - 330px),rgba(122,46,58,.18) calc(50% - 328px),transparent calc(50% - 328px)),
+      repeating-linear-gradient(180deg,transparent 0 31px,rgba(29,27,24,.06) 31px 32px);
+    background-attachment:fixed}
+  body::after{content:"✎  ✓  →  ★";position:fixed;right:max(24px,calc(50% - 560px));top:140px;font-family:var(--f-hand);font-size:34px;color:rgba(122,46,58,.25);letter-spacing:.4em;writing-mode:vertical-rl;pointer-events:none}
+  .wrap{background:transparent}
+}
+/* ---------- mapa da lição ---------- */
+.lesson-map{display:none}
+@media (min-width:1180px){
+  .lesson-map{display:flex;flex-direction:column;gap:10px;position:fixed;top:96px;left:max(16px,calc(50% - 290px - 270px));width:240px;background:var(--card);border:2px solid var(--ink);box-shadow:4px 4px 0 var(--ink);border-radius:14px;padding:14px}
+  .map-title{font-family:var(--f-hand);font-size:24px;color:var(--marsala)}
+  .lesson-map ol{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
+  .lesson-map li{display:grid;grid-template-columns:22px 1fr auto;gap:8px;align-items:center;font-size:13px;padding:5px 6px;border-radius:8px;cursor:pointer;border-left:4px solid var(--line)}
+  .lesson-map li[data-phase="ouvir"]{border-left-color:var(--ph-ouvir)}
+  .lesson-map li[data-phase="fofoca"]{border-left-color:var(--ph-fofoca)}
+  .lesson-map li[data-phase="escrever"]{border-left-color:var(--ph-escrever)}
+  .lesson-map li[data-phase="falar"]{border-left-color:var(--ph-falar)}
+  .lesson-map li:hover{background:var(--paper)}
+  .map-locked{opacity:.5;cursor:default}
+  .map-done .map-dot{color:var(--ok);font-weight:800}
+  .map-pts{color:var(--muted);font-variant-numeric:tabular-nums}
+  .map-foot{margin:0;font-weight:700;font-size:13px}
+}

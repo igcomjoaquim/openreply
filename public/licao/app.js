@@ -132,10 +132,26 @@
     if (i < steps.length - 1) unlock(steps[i + 1], !step.holdScroll);
     if (all) showConclude(!step.holdScroll);
   }
+  var mapEl = null;
+  function refreshMap() {
+    if (!mapEl) return;
+    var left = steps.filter(function (s) { return !s.done; }).reduce(function (a, s) { return a + s.minutes; }, 0);
+    mapEl.replaceChildren(el("b", { cls: "map-title", text: "Mapa da lição" }));
+    var ol = el("ol");
+    steps.forEach(function (s) {
+      var state = s.done ? "done" : s.sec.classList.contains("locked") ? "locked" : "open";
+      ol.append(el("li", { cls: "map-" + state, "data-phase": PHASE[s.key] || "", onclick: function () { if (state !== "locked") s.sec.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" }); } },
+        el("span", { cls: "map-dot", text: s.done ? "✓" : state === "locked" ? "🔒" : "•" }),
+        el("span", { cls: "map-name", text: s.title.replace(/^[^\wÀ-ú]+/, "") }),
+        el("span", { cls: "map-pts", text: s.done ? s.score + "/" + s.max : s.minutes + "′" })));
+    });
+    mapEl.append(ol, el("p", { cls: "map-foot", text: "⭐ " + total() + " pts" + (left ? " · faltam ~" + left + " min" : " · tudo feito! 🎉") }));
+  }
   function unlock(step, scroll) {
     if (!step.sec.classList.contains("locked")) return;
     step.sec.classList.remove("locked");
     bars[steps.indexOf(step)].classList.add("on");
+    refreshMap();
     if (scroll) scrollTo(step.sec);
   }
   var wrongs = [], missed = {}, good = [];
@@ -154,6 +170,7 @@
   function updateScore() {
     var t = total(), gained = t - lastTotal; lastTotal = t;
     scoreEl.textContent = "⭐ " + t + " pts";
+    refreshMap();
     if (gained > 0 && !reduce) {
       scoreEl.classList.remove("bump"); void scoreEl.offsetWidth; scoreEl.classList.add("bump");
       var plus = el("span", { cls: "plus", text: "+" + gained });
@@ -327,10 +344,62 @@
     });
     return { ok: ok, total: qs.length, wrongs: ws };
   }
+  // ---------- perguntas de entendimento, por nível ----------
+  // A1: guiado — fala a resposta em voz alta e só depois vê as alternativas (sem chute).
+  // A2: escreve uma frase curta com um começo de ajuda. B1/B2: escreve livre.
+  // Na escrita, acerta se usar as palavras-chave (keys); depois vê a resposta-modelo.
+  var LEVEL = String(C.level || "A2").toUpperCase();
+  function questionEl(item) {
+    if (LEVEL !== "A1" && item.keys && item.keys.length) return openEl(item);
+    var li = mcqEl(item);
+    if (LEVEL === "A1") {
+      var opts = li.querySelector(".mcq-opts"); opts.hidden = true;
+      var say1 = el("p", { cls: "hint", text: "🗣️ Primeiro tente responder falando, em voz alta. Depois toque para ver as opções." });
+      var reveal = el("button", { type: "button", cls: "ghost reveal", text: "Já falei → ver as opções", onclick: function () { opts.hidden = false; reveal.remove(); say1.remove(); } });
+      li.insertBefore(say1, opts); li.insertBefore(reveal, opts);
+    }
+    return li;
+  }
+  function openEl(item) {
+    var big = LEVEL === "B1" || LEVEL === "B2";
+    var attrs = { cls: "open-in", autocomplete: "off", spellcheck: "false", placeholder: big ? "Escreva com as suas palavras, em inglês…" : (item.starter || "Escreva em inglês…") };
+    if (big) attrs.rows = "3"; else attrs.type = "text";
+    var input = el(big ? "textarea" : "input", attrs);
+    if (!big && item.starter) input.value = item.starter + " ";
+    var li = el("li", { cls: "open" }, el("span", { cls: "mcq-q", html: rich(item.q) }), input);
+    li._item = item;
+    return li;
+  }
+  function answered(q) {
+    if (q.classList.contains("mcq")) return !!q.querySelector(".mcq-opt.sel");
+    var v = q.querySelector(".open-in").value.trim(), st = (q._item.starter || "").trim();
+    return words(v).length >= words(st).length + 2;
+  }
+  function openCheck(q, label) {
+    var it = q._item, inp = q.querySelector(".open-in"), n = norm(inp.value);
+    var hits = it.keys.filter(function (g) { return g.some(function (k) { return n.indexOf(norm(k)) > -1; }); }).length;
+    var good = hits >= Math.ceil(it.keys.length * 0.6);
+    inp.disabled = true; inp.classList.add(good ? "ok" : "bad"); q.classList.add("checked");
+    q.append(el("div", { cls: "model-ans " + (good ? "good" : "bad") },
+      el("b", { text: good ? "✅ Isso! " : "🔁 Quase. " }), "Uma resposta possível: ", el("i", { text: it.model || it.options[it.answer] })));
+    return good ? null : { said: label + ": \"" + inp.value.trim() + "\"", right: it.model || it.options[it.answer], why: it.q };
+  }
+  // corrige alternativas e respostas escritas; null se ainda falta responder
+  function qCheck(box, label) {
+    var qs = [].slice.call(box.querySelectorAll("li.mcq, li.open"));
+    if (qs.some(function (q) { return !answered(q); })) return null;
+    var ok = 0, ws = [];
+    var m = mcqCheck(box, label) || { ok: 0, total: 0, wrongs: [] };
+    ok += m.ok; ws = ws.concat(m.wrongs);
+    qs.filter(function (q) { return q.classList.contains("open"); }).forEach(function (q) { var w = openCheck(q, label); if (w) ws.push(w); else ok++; });
+    return { ok: ok, total: qs.length, wrongs: ws };
+  }
+  function unanswered(box) { return [].some.call(box.querySelectorAll("li.mcq, li.open"), function (q) { return !answered(q); }); }
+
   function gapCheck(step, box, btn, label, extra) {
     var inputs = [].slice.call(box.querySelectorAll("input.gap"));
-    var hasMcq = box.querySelector("li.mcq");
-    if (hasMcq && [].some.call(box.querySelectorAll("li.mcq"), function (q) { return !q.querySelector(".mcq-opt.sel"); })) {
+    var hasMcq = box.querySelector("li.mcq, li.open");
+    if (hasMcq && unanswered(box)) {
       btn.textContent = "Responda todas antes de conferir"; setTimeout(function () { btn.textContent = "Conferir"; }, 1800); return;
     }
     if (inputs.some(function (i) { return !i.value.trim(); })) {
@@ -350,7 +419,7 @@
       }
     });
     var total = inputs.length;
-    if (hasMcq) { var m = mcqCheck(box, label); ok += m.ok; total += m.total; ws = ws.concat(m.wrongs); }
+    if (hasMcq) { var m = qCheck(box, label); ok += m.ok; total += m.total; ws = ws.concat(m.wrongs); }
     btn.disabled = true; btn.textContent = "Você acertou " + ok + " de " + total + (extra || "");
     var gd = ok === total ? [label + ": " + ok + " de " + ok + ". 🎉"] : [];
     finish(step, Math.round(ok / total * step.max), { answers: answers, wrongs: ws, good: gd });
@@ -359,12 +428,13 @@
   function ONCE() { return el("p", { cls: "hint", text: "💡 Revise antes de conferir: cada parte você confere uma vez só." }); }
 
   // ---------- partes ----------
+  var PHASE = { review: "falar", dictation: "ouvir", scene: "ouvir", gossip: "fofoca", shadowing: "fofoca", retell: "fofoca", story: "fofoca", read: "fofoca", writing: "escrever", realtime: "falar" };
   function section(step, phase) {
     var ptsEl = el("span", { cls: "pts" });
-    var sec = el("section", { cls: "step locked" },
+    var sec = el("section", { cls: "step locked", "data-phase": PHASE[step.key] || "" },
       el("h2", null, el("span", { cls: "n", text: steps.length + 1 }), step.title, el("span", { cls: "time", text: step.minutes + " min" }), ptsEl));
     step.sec = sec; step.ptsEl = ptsEl;
-    if (phase) app.append(el("div", { cls: "phase", text: phase }));
+    if (phase) app.append(el("div", { cls: "phase", "data-phase": PHASE[step.key] || "", text: phase }));
     app.append(sec);
     steps.push(step);
     return sec;
@@ -415,16 +485,16 @@
     var GQ = C.gossip.questions || [];
     var step = { key: "gossip", title: "Fofoca — só ouvir", minutes: 2 + Math.ceil(GQ.length / 2), max: 2 + GQ.length, skill: "ouvir" };
     var sec = section(step, "2. A fofoca 🕵️");
-    var qbox = GQ.length ? el.apply(null, ["ol", { cls: "items" }].concat(GQ.map(mcqEl))) : null;
+    var qbox = GQ.length ? el.apply(null, ["ol", { cls: "items" }].concat(GQ.map(questionEl))) : null;
     var inp = el("input", { type: "text", placeholder: "Palavra secreta", autocomplete: "off", autocapitalize: "off" });
     var msg = el("p", { cls: "msg", hidden: "" }), tries = 0;
     var btn = el("button", { cls: "btn", text: GQ.length ? "Conferir" : "Conferir palavra", onclick: function () {
       var v = norm(inp.value);
       if (v !== norm(C.gossip.secret)) { tries++; say(msg, v ? "Não é essa. Ouça o final do áudio de novo 🎧" : "Escreva a palavra secreta do fim do áudio."); return; }
-      if (qbox && [].some.call(qbox.querySelectorAll("li.mcq"), function (q) { return !q.querySelector(".mcq-opt.sel"); })) {
+      if (qbox && unanswered(qbox)) {
         say(msg, "Palavra certa! 🔑 Agora responda as perguntas sobre a história.", true); return;
       }
-      var m = qbox ? mcqCheck(qbox, "Fofoca") : { ok: 0, total: 0, wrongs: [] };
+      var m = qbox ? qCheck(qbox, "Fofoca") : { ok: 0, total: 0, wrongs: [] };
       say(msg, m.total ? "✅ Palavra secreta certa · você entendeu " + m.ok + " de " + m.total + " sobre a história." : "✅ Isso!", true);
       btn.disabled = true; inp.disabled = true;
       finish(step, (tries ? 1 : 2) + m.ok, { wrongs: m.wrongs, good: m.total && m.ok === m.total ? ["Fofoca: entendeu a história toda só de ouvido! 👂"] : [] });
@@ -432,7 +502,7 @@
     sec.append(el("p", { cls: "small", html: "Daqui até a leitura em voz alta, <b>tudo é sobre esta fofoca</b>: ouvir, imitar, recontar, completar e ler." }),
       el("p", { html: "🚫 <b>Não escreva a história.</b> Ouça 2 vezes, sem ler nada. 🔑 No fim tem uma <b>palavra secreta</b>." }),
       el("audio", { controls: "", preload: "none", src: FILE(C.gossip.audio) }),
-      qbox ? el("p", { cls: "small", html: "Responda <b>sem ler nada</b>, só com o que você ouviu:" }) : "", qbox || "",
+      qbox ? el("p", { cls: "small", html: LEVEL === "A1" ? "Responda <b>sem ler nada</b>, só com o que você ouviu:" : "Responda <b>com as suas palavras, em inglês</b>, só com o que você ouviu:" }) : "", qbox || "",
       el("p", { cls: "small", text: "🔑 Palavra secreta:" }), inp, btn, msg);
   }
 
@@ -482,7 +552,7 @@
       el("button", { text: "⏸ Pausar", onclick: function () { withPlayer(function (p) { p.pauseVideo(); }); } }),
       el("button", { text: "↺ Do começo", onclick: function () { withPlayer(function (p) { p.seekTo(S.start, true); p.playVideo(); }); } }),
       el("button", { text: "🐢 0.75×", onclick: function (e) { slow = !slow; e.target.textContent = slow ? "🐇 1×" : "🐢 0.75×"; withPlayer(function (p) { p.setPlaybackRate(slow ? 0.75 : 1); }); } }));
-    var box = el.apply(null, ["ol", { cls: "items" }].concat(S.questions.map(function (q) { return typeof q === "string" ? el("li", { html: gapHtml(q) }) : mcqEl(q); })));
+    var box = el.apply(null, ["ol", { cls: "items" }].concat(S.questions.map(function (q) { return typeof q === "string" ? el("li", { html: gapHtml(q) }) : questionEl(q); })));
     // depois de conferir, a tela NÃO pula pra próxima parte: o aluno precisa ver
     // o botão de assistir com imagem; só segue quando tocar em "Seguir".
     step.holdScroll = true;
@@ -785,6 +855,10 @@
     buildWriting(); buildRealtime();
     steps.forEach(function () { track.append(el("span")); });
     bars = [].slice.call(track.children);
+    // mapa da lição (só em tela larga): partes, o que já fez, pontos e tempo
+    mapEl = el("aside", { cls: "lesson-map", "aria-label": "Mapa da lição" });
+    document.body.append(mapEl);
+    refreshMap();
     concludeSec = el("section", { cls: "conclude", hidden: "" },
       el("h2", { text: "🏁 Você chegou ao fim!" }),
       el("p", { text: "Conferiu tudo? Toque no botão pra entregar a lição ao seu professor e ver a sua nota e o seu feedback." }),
@@ -818,9 +892,13 @@
   // ---------- modo professor: tudo aberto + gabarito ----------
   function gaps(text) { return (text.match(/\[\[([^\]]+)\]\]/g) || []).map(function (m) { return m.slice(2, -2).split("|")[0]; }); }
   function plain(text) { return text.replace(/\[\[([^\]]+)\]\]/g, function (_, a) { return a.split("|")[0]; }).replace(/\*\*?/g, ""); }
-  function mcqAns(q) { return q.q + " → " + q.options[q.answer]; }
+  function mcqAns(q) {
+    return q.q + " → " + (q.model || q.options[q.answer]) +
+      (LEVEL !== "A1" && q.keys ? "  (conta certo se usar: " + q.keys.map(function (g) { return g.join("/"); }).join(" + ") + ")" : "");
+  }
   function teacherView() {
     steps.forEach(function (s, i) { s.sec.classList.remove("locked"); bars[i].classList.add("on"); });
+    refreshMap();
     var K = {
       review: C.review && ["Respostas esperadas (estruturas): " + C.review.keys.map(function (k) { return k.name; }).join(" · ")],
       dictation: ["Texto do ditado: " + C.dictation.text],

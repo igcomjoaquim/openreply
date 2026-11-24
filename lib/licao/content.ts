@@ -25,9 +25,17 @@ const choice = z.object({
   q: z.string().min(1),
   options: z.array(z.string().min(1)).min(2).max(4),
   answer: z.number().int().min(0),
+  /** A2+: o aluno escreve; acerta se usar pelo menos 60% dos grupos (cada grupo = sinônimos). */
+  keys: z.array(z.array(z.string().min(1)).min(1)).optional(),
+  /** Resposta-modelo mostrada depois de conferir (A2+). */
+  model: z.string().optional(),
+  /** Começo de ajuda (A2): "The problem was that…". */
+  starter: z.string().optional(),
 });
 
 export const lessonContentSchema = z.object({
+  /** Nível da lição: muda como o aluno responde as perguntas de entendimento. */
+  level: z.enum(["A1", "A2", "B1", "B2"]).default("A2"),
   intro: z.string().default(""),
   minutes: z.number().int().positive().default(25),
   review: z

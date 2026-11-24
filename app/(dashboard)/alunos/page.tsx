@@ -157,7 +157,7 @@ export default async function StudentsPanelPage() {
                     </span>
                   )}
                   {r.history.length > 1 && <span className="text-muted tabular-nums">últimas notas: {r.history.map((p) => `${p}%`).join(" → ")}</span>}
-                  {r.waitingReview > 0 && <span className="text-warning">✍️ correção da rotina pendente</span>}
+                  {r.waitingReview > 0 && !r.demo && <span className="text-warning">✍️ correção da rotina pendente</span>}
                 </div>
               )}
 

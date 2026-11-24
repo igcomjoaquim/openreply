@@ -150,7 +150,16 @@
   var scoreEl;
   function total() { return steps.reduce(function (a, s) { return a + (s.done ? s.score : 0); }, 0); }
   function totalMax() { return steps.reduce(function (a, s) { return a + s.max; }, 0); }
-  function updateScore() { scoreEl.textContent = "⭐ " + total() + " pts"; }
+  var lastTotal = 0;
+  function updateScore() {
+    var t = total(), gained = t - lastTotal; lastTotal = t;
+    scoreEl.textContent = "⭐ " + t + " pts";
+    if (gained > 0 && !reduce) {
+      scoreEl.classList.remove("bump"); void scoreEl.offsetWidth; scoreEl.classList.add("bump");
+      var plus = el("span", { cls: "plus", text: "+" + gained });
+      scoreEl.parentNode.append(plus); setTimeout(function () { plus.remove(); }, 1400);
+    }
+  }
 
   // ---------- recorder (MediaRecorder + reconhecimento de fala) ----------
   var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -223,7 +232,9 @@
     var tm = el("span", { text: "0 s" }), wc = el("span", { text: "0 palavras" });
     var tr = el("div", { cls: "transcript", html: '<span class="small">O que você falar aparece aqui.</span>' });
     var msg = el("p", { cls: "msg", hidden: "" });
-    var box = el("div", { style: "display:flex;flex-direction:column;gap:10px" }, btn, el("div", { cls: "meter" }, tm, wc), tr, msg);
+    var box = el("div", { style: "display:flex;flex-direction:column;gap:10px" },
+      el("p", { cls: "hint", text: "🎙️ Toque em Gravar, fale em inglês e toque em Parar quando terminar. Se faltar algo, é só gravar mais um pouco." }),
+      btn, el("div", { cls: "meter" }, tm, wc), tr, msg);
     var sess = null, timer = null, taken = "";
     if (!SR) box.insertBefore(el("p", { cls: "warn", text: canRecord ? "Seu navegador grava, mas não mostra o que você fala. Para a correção na hora, abra este link no Chrome (Android) ou no Safari (iPhone)." : "Seu navegador não grava áudio. Abra este link no Chrome (Android) ou no Safari (iPhone)." }), btn);
     if (!SR && !canRecord) {
@@ -345,6 +356,8 @@
     finish(step, Math.round(ok / total * step.max), { answers: answers, wrongs: ws, good: gd });
   }
 
+  function ONCE() { return el("p", { cls: "hint", text: "💡 Revise antes de conferir: cada parte você confere uma vez só." }); }
+
   // ---------- partes ----------
   function section(step, phase) {
     var ptsEl = el("span", { cls: "pts" });
@@ -395,7 +408,7 @@
       });
     } });
     sec.append(el("p", { cls: "small", text: n + " frases seguidas, no ritmo normal. Ouça quantas vezes quiser, pause quando precisar, e escreva tudo." }),
-      el("audio", { controls: "", preload: "none", src: FILE(C.dictation.audio) }), ta, btn, msg, out);
+      el("audio", { controls: "", preload: "none", src: FILE(C.dictation.audio) }), ta, ONCE(), btn, msg, out);
   }
 
   function buildGossip() {
@@ -419,7 +432,7 @@
     sec.append(el("p", { cls: "small", html: "Daqui até a leitura em voz alta, <b>tudo é sobre esta fofoca</b>: ouvir, imitar, recontar, completar e ler." }),
       el("p", { html: "🚫 <b>Não escreva a história.</b> Ouça 2 vezes, sem ler nada. 🔑 No fim tem uma <b>palavra secreta</b>." }),
       el("audio", { controls: "", preload: "none", src: FILE(C.gossip.audio) }),
-      qbox ? el("p", { cls: "small", html: "Responda <b>sem ler nada</b>, só com o que você ouviu:" }) : null, qbox,
+      qbox ? el("p", { cls: "small", html: "Responda <b>sem ler nada</b>, só com o que você ouviu:" }) : "", qbox || "",
       el("p", { cls: "small", text: "🔑 Palavra secreta:" }), inp, btn, msg);
   }
 
@@ -488,7 +501,7 @@
       if (step.done) { show.hidden = false; scrollTo(show); }
     } });
     sec.append(el("p", { html: rich(S.intro) + " Primeiro <b>só ouça</b>: a imagem fica escondida. Ouça 3 vezes (pode usar 0.75× na 2ª)." }),
-      wrap, timeline, ctrl, el("p", { cls: "small", html: "Responda só com o que você <b>ouviu</b>:" }), box, btn, show, goOn);
+      wrap, timeline, ctrl, el("p", { cls: "small", html: "Responda só com o que você <b>ouviu</b>:" }), box, ONCE(), btn, show, goOn);
   }
 
   function buildShadowing() {
@@ -596,7 +609,7 @@
     var box = el.apply(null, ["div", { cls: "story" }].concat(S.paragraphs.map(function (p) { return el("p", { html: gapHtml(p) }); })));
     var voc = el("div", { cls: "vocab" }); S.vocab.forEach(function (v) { voc.append(el("b", { text: v[0] }), el("span", { text: v[1] })); });
     var btn = el("button", { cls: "btn", text: "Conferir", onclick: function () { gapCheck(step, box, btn, "Fofoca escrita"); } });
-    sec.append(el("p", { cls: "small", html: rich(S.intro) }), S.vocab.length ? voc : null, box, btn);
+    sec.append(el("p", { cls: "small", html: rich(S.intro) }), S.vocab.length ? voc : "", box, ONCE(), btn);
   }
 
   function buildRead() {
@@ -796,6 +809,7 @@
       s.sec.append(el("p", { cls: "msg good", text: "✅ Você já fez esta parte." }));
       lastDone = i;
     });
+    lastTotal = total(); // sem animação de pontos ao reabrir a lição
     updateScore();
     if (!VIEW && lastDone >= 0 && lastDone < steps.length - 1) { unlock(steps[lastDone + 1], false); scrollTo(steps[lastDone + 1].sec); }
     if (steps.every(function (s) { return s.done; })) { if (VIEW || saved.done) showResult(false); else showConclude(false); }

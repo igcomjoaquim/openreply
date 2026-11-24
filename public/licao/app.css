@@ -235,3 +235,10 @@ h1,.hero-title,.result h2,.fb-head h2{font-family:var(--f-display)!important;fon
 .teacher-key b{color:var(--marsala)}
 .teacher-key p{margin:0}
 .teacher-key a{color:var(--marsala);font-weight:700}
+.hint{font-size:13px;color:var(--muted);margin:0}
+.step.locked::after{content:"🔒 Abre quando você terminar a parte de cima";font-size:13px;font-weight:600;color:var(--ink)}
+.bar-row{position:relative}
+.score.bump{animation:bump .5s ease}
+@keyframes bump{40%{transform:scale(1.18)}}
+.plus{position:absolute;right:8px;top:-6px;font-weight:800;color:var(--ok);animation:rise 1.3s ease forwards;pointer-events:none}
+@keyframes rise{to{transform:translateY(-22px);opacity:0}}

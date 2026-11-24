@@ -65,6 +65,14 @@ export async function GET(_request: NextRequest, { params }: Params) {
 </a>`;
   }
 
+  // Lições antigas que ficaram pra trás (a mais nova não conta: ela ainda está no prazo)
+  const late = rows.slice(1).filter((r) => !r.graded);
+  const lateBox = late.length
+    ? `<section class="late"><span class="eyebrow">⏰ Ficou pra trás</span><b>${late.length === 1 ? "Você tem 1 lição atrasada" : `Você tem ${late.length} lições atrasadas`}</b><p class="small">Faça primeiro a lição mais nova. Depois, se der, recupere estas — cada uma treina o que vimos naquela aula.</p>${late
+        .map((r) => `<a class="hist-row" href="${base}/${r.id}${q}"><span class="hist-date">${dayMonth(r.date)}</span><span class="hist-title">${esc(r.title)}</span><span class="hist-status">${r.started ? "⏳ no meio" : "❌ não fez"}</span><span class="hist-link">fazer →</span></a>`)
+        .join("")}</section>`
+    : "";
+
   const graded = rows.filter((r) => r.graded).slice().reverse(); // da mais antiga para a mais nova
   let progress = "";
   if (graded.length) {
@@ -94,8 +102,11 @@ export async function GET(_request: NextRequest, { params }: Params) {
   const byMonth = new Map<string, string[]>();
   for (const r of rows) {
     const label = monthLabel(r.date);
-    const status = r.graded ? `✅ ${r.graded.score.pct}%` : r.started ? "⏳ no meio" : "🆕 nova";
-    const link = r.graded ? "ver" : r.started ? "continuar" : "começar";
+    const old = r.id !== newest?.id;
+    const status = r.graded
+      ? `✅ ${r.graded.score.pct}%`
+      : old ? (r.started ? "⏳ ficou no meio" : "❌ não fez") : r.started ? "⏳ no meio" : "🆕 nova";
+    const link = r.graded ? "ver" : old ? "fazer agora" : r.started ? "continuar" : "começar";
     const li = `<a class="hist-row" href="${base}/${r.id}${q}"><span class="hist-date">${dayMonth(r.date)}</span><span class="hist-title">${esc(r.title)}</span><span class="hist-status">${status}</span><span class="hist-link">${link} →</span></a>`;
     byMonth.set(label, [...(byMonth.get(label) ?? []), li]);
   }
@@ -112,6 +123,7 @@ export async function GET(_request: NextRequest, { params }: Params) {
   ${prof ? `<div class="viewnote">👀 <b>Modo professor:</b> você está vendo como ${esc(student.name)} vê. Nada do que você fizer aqui conta.</div>` : ""}
   <header><span class="hand">Hi, ${esc(student.name)}! 👋</span><h1>Minhas lições</h1></header>
   ${hero}
+  ${lateBox}
   ${progress}
   ${history}
   ${resetBox}

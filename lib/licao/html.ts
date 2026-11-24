@@ -16,7 +16,7 @@ export function page(title: string, body: string): string {
 <title>${esc(title)}</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Inter:wght@400;500;600;700&family=Caveat:wght@600;700&display=swap">
-<link rel="stylesheet" href="/licao/app.css?v=9">
+<link rel="stylesheet" href="/licao/app.css?v=10">
 </head><body>${body}</body></html>`;
 }
 

@@ -297,3 +297,6 @@ h1,.hero-title,.result h2,.fb-head h2{font-family:var(--f-display)!important;fon
   .map-pts{color:var(--muted);font-variant-numeric:tabular-nums}
   .map-foot{margin:0;font-weight:700;font-size:13px}
 }
+
+.late{background:var(--card);border:2px dashed var(--marsala);border-radius:14px;padding:16px 18px;display:flex;flex-direction:column;gap:6px}
+.late b{font-size:18px;color:var(--marsala)}

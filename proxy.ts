@@ -13,6 +13,12 @@ function hasSessionCookie(request: NextRequest): boolean {
 
 export function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
+
+  // homework.inglescomjoaquim.com: a raiz do endereço é a tela das lições.
+  const host = request.headers.get("x-forwarded-host") ?? request.headers.get("host") ?? "";
+  if (pathname === "/" && host.toLowerCase().startsWith("homework.")) {
+    return NextResponse.rewrite(new URL("/licao", request.url));
+  }
   const isProtected = PROTECTED_PREFIXES.some(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
   );
@@ -34,6 +40,7 @@ export function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
+    "/",
     "/dashboard/:path*",
     "/automations/:path*",
     "/logs/:path*",

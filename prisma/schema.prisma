@@ -483,3 +483,73 @@ model ScheduledPost {
   @@index([status, publishAt])
   @@index([instagramAccountId])
 }
+
+// ---------------------------------------------------------------------------
+// Lições de casa (Inglês com Joaquim): cada aluno tem um link fixo
+// /licao/<slug>; ele sempre abre a lição mais nova. A rotina das aulas publica
+// a lição pela API de serviço; o aluno grava e responde na página.
+// ---------------------------------------------------------------------------
+
+model Student {
+  id        String   @id @default(cuid())
+  /// Parte do link: /licao/<slug> (nome + sufixo aleatório, ex.: elis-k7p2).
+  slug      String   @unique
+  name      String
+  notionId  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  lessons Lesson[]
+}
+
+model Lesson {
+  id        String   @id @default(cuid())
+  studentId String
+  /// Data da aula (AAAA-MM-DD), só para mostrar e ordenar.
+  date      String
+  title     String
+  /// Conteúdo da lição (seções, textos, respostas, nomes dos áudios).
+  content   Json
+  createdAt DateTime @default(now())
+
+  student  Student         @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  attempts LessonAttempt[]
+
+  @@index([studentId, createdAt])
+}
+
+model LessonAttempt {
+  id         String    @id @default(cuid())
+  lessonId   String
+  /// Segredo do navegador do aluno para salvar o progresso.
+  token      String
+  /// { "<passo>": { score, max, data } }
+  progress   Json      @default("{}")
+  finishedAt DateTime?
+  /// Correção do professor/Claude, mostrada ao aluno quando volta à página.
+  review     Json?
+  reviewedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  lesson     Lesson               @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  recordings LessonRecording[]
+
+  @@index([lessonId])
+  @@index([finishedAt])
+}
+
+model LessonRecording {
+  id         String   @id @default(cuid())
+  attemptId  String
+  step       String
+  /// Arquivo de áudio no volume (MEDIA_DIR/licao).
+  fileName   String
+  transcript String   @default("")
+  seconds    Int      @default(0)
+  createdAt  DateTime @default(now())
+
+  attempt LessonAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+
+  @@index([attemptId])
+}

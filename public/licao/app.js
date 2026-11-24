@@ -12,6 +12,9 @@
   var FILE = function (n) { return "/api/licao/file/" + n; };
   var STORE = "licao:" + D.slug + ":" + D.lessonId + (D.mode === "practice" ? ":treino" : "");
   var VIEW = D.mode === "view";
+  // modo professor (link do painel): mostra tudo igual, mas não cria tentativa nem salva nada
+  var PREVIEW = !!D.preview;
+  var PQ = PREVIEW ? "professor=1" : "";
   var reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   // ---------- helpers ----------
@@ -757,8 +760,8 @@
     app.replaceChildren();
     scoreEl = el("span", { cls: "score", text: "⭐ 0 pts" });
     var track = el("div", { cls: "track", "aria-hidden": "true" });
-    app.append(el("div", { cls: "bar" }, el("div", { cls: "bar-row" }, el("a", { cls: "back", href: "/licao/" + D.slug, text: "← Minhas lições" }), scoreEl), track));
-    if (VIEW) app.append(el("div", { cls: "viewnote" }, el("b", { text: "✅ Você já fez esta lição." }), " Aqui estão as suas respostas e o seu feedback. ", el("a", { href: "?refazer=1", text: "🔁 Refazer para treinar" })));
+    app.append(el("div", { cls: "bar" }, el("div", { cls: "bar-row" }, el("a", { cls: "back", href: "/licao/" + D.slug + (PQ ? "?" + PQ : ""), text: "← Minhas lições" }), scoreEl), track));
+    if (VIEW) app.append(el("div", { cls: "viewnote" }, el("b", { text: "✅ Você já fez esta lição." }), " Aqui estão as suas respostas e o seu feedback. ", el("a", { href: "?refazer=1" + (PQ ? "&" + PQ : ""), text: "🔁 Refazer para treinar" })));
     if (D.mode === "practice") app.append(el("div", { cls: "viewnote" }, el("b", { text: "🔁 Modo treino." }), " Pode fazer de novo à vontade: a nota que vale é a da primeira vez."));
     app.append(el("header", null, el("span", { cls: "hand", text: "Hi, " + D.student + "! 👋" }), el("h1", { text: D.title }),
       el("p", { html: (C.intro ? rich(C.intro) + " " : "") + "Ouça → a fofoca → escreva → fale. Mais ou menos <b>" + C.minutes + " minutos</b>. Pode parar e continuar depois: o link guarda onde você parou." })));
@@ -803,6 +806,10 @@
     saved = (D.view && D.view.progress) || {}; review = (D.view && D.view.review) || null;
     steps.forEach(function (s) { if (!saved[s.key]) saved[s.key] = { score: 0, max: s.max, data: { skipped: true } }; });
     restore();
+    return;
+  }
+  if (PREVIEW) {
+    app.insertBefore(el("div", { cls: "viewnote" }, el("b", { text: "👀 Modo professor:" }), " pode testar à vontade — nada do que você fizer aqui é salvo nem conta para o aluno."), app.children[1] || null);
     return;
   }
   var mine = load() || {};

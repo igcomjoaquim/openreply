@@ -206,11 +206,11 @@ function card(r: Row) {
               )}
 
               <div className="mt-3 flex flex-wrap gap-3 text-xs">
-                <a href={`/licao/${r.slug}`} target="_blank" rel="noopener noreferrer" className="font-semibold text-accent hover:underline">
+                <a href={`/licao/${r.slug}?professor=1`} target="_blank" rel="noopener noreferrer" className="font-semibold text-accent hover:underline">
                   Ver como o aluno vê →
                 </a>
                 {r.state === "done" && r.lessonId && (
-                  <a href={`/licao/${r.slug}/${r.lessonId}`} target="_blank" rel="noopener noreferrer" className="font-semibold text-accent hover:underline">
+                  <a href={`/licao/${r.slug}/${r.lessonId}?professor=1`} target="_blank" rel="noopener noreferrer" className="font-semibold text-accent hover:underline">
                     Ver respostas e feedback →
                   </a>
                 )}

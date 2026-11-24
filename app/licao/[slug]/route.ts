@@ -44,6 +44,9 @@ export async function GET(_request: NextRequest, { params }: Params) {
     return new NextResponse(page("Minhas lições", `<div class="wrap"><p class="loading">Código não encontrado. <a href="/licao?sair=1">Digitar o código de novo</a></p></div>`), { status: 404, headers: HTML_HEADERS });
   }
   const rows = await studentLessons(student.id);
+  // ?professor=1: o Thiago olhando pelo painel — nada conta e não grava o código no navegador
+  const prof = _request.nextUrl.searchParams.get("professor") === "1";
+  const q = prof ? "?professor=1" : "";
   const base = `/licao/${student.slug}`;
   const newest = rows[0];
 
@@ -54,7 +57,7 @@ export async function GET(_request: NextRequest, { params }: Params) {
       : newest.started ? `<span class="pill">⏳ Começou</span>` : `<span class="pill new">🆕 Nova</span>`;
     const cta = newest.graded ? "Ver meu feedback →" : newest.started ? "Continuar →" : "Começar →";
     const minutes = Number(((await getPrisma().lesson.findUnique({ where: { id: newest.id }, select: { content: true } }))?.content as { minutes?: number })?.minutes) || 25;
-    hero = `<a class="hero-card" href="${base}/${newest.id}">
+    hero = `<a class="hero-card" href="${base}/${newest.id}${q}">
   <span class="hero-top"><span class="eyebrow">📌 Lição mais nova</span>${state}</span>
   <b class="hero-title">${esc(newest.title)}</b>
   <span class="small">Aula de ${dayMonth(newest.date)} · uns ${minutes} minutos</span>
@@ -93,7 +96,7 @@ export async function GET(_request: NextRequest, { params }: Params) {
     const label = monthLabel(r.date);
     const status = r.graded ? `✅ ${r.graded.score.pct}%` : r.started ? "⏳ no meio" : "🆕 nova";
     const link = r.graded ? "ver" : r.started ? "continuar" : "começar";
-    const li = `<a class="hist-row" href="${base}/${r.id}"><span class="hist-date">${dayMonth(r.date)}</span><span class="hist-title">${esc(r.title)}</span><span class="hist-status">${status}</span><span class="hist-link">${link} →</span></a>`;
+    const li = `<a class="hist-row" href="${base}/${r.id}${q}"><span class="hist-date">${dayMonth(r.date)}</span><span class="hist-title">${esc(r.title)}</span><span class="hist-status">${status}</span><span class="hist-link">${link} →</span></a>`;
     byMonth.set(label, [...(byMonth.get(label) ?? []), li]);
   }
   const history = rows.length
@@ -106,6 +109,7 @@ export async function GET(_request: NextRequest, { params }: Params) {
     : "";
   const body = `<div class="wrap home">
   <div class="bar"><div class="bar-row"><span class="brand"><span>Inglês com Joaquim</span></span><a class="small" href="/licao?sair=1">Não é você?</a></div></div>
+  ${prof ? `<div class="viewnote">👀 <b>Modo professor:</b> você está vendo como ${esc(student.name)} vê. Nada do que você fizer aqui conta.</div>` : ""}
   <header><span class="hand">Hi, ${esc(student.name)}! 👋</span><h1>Minhas lições</h1></header>
   ${hero}
   ${progress}
@@ -113,5 +117,5 @@ export async function GET(_request: NextRequest, { params }: Params) {
   ${resetBox}
   <footer>Falou, validou! 🚀</footer>
 </div>`;
-  return new NextResponse(page(`Lições — ${student.name}`, body), { headers: { ...HTML_HEADERS, "Set-Cookie": cookieHeader(student.slug) } });
+  return new NextResponse(page(`Lições — ${student.name}`, body), { headers: prof ? HTML_HEADERS : { ...HTML_HEADERS, "Set-Cookie": cookieHeader(student.slug) } });
 }

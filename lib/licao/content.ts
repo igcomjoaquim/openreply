@@ -20,6 +20,13 @@ const mistake = z.object({
 
 const audio = z.string().regex(/^[a-f0-9]{32}\.(mp3|m4a)$/);
 
+/** Pergunta de entendimento com alternativas (answer = índice da certa). */
+const choice = z.object({
+  q: z.string().min(1),
+  options: z.array(z.string().min(1)).min(2).max(4),
+  answer: z.number().int().min(0),
+});
+
 export const lessonContentSchema = z.object({
   intro: z.string().default(""),
   minutes: z.number().int().positive().default(25),
@@ -32,15 +39,20 @@ export const lessonContentSchema = z.object({
     })
     .optional(),
   dictation: z.object({ audio, text: z.string().min(1) }),
-  gossip: z.object({ audio, secret: z.string().min(2) }),
+  gossip: z.object({
+    audio,
+    secret: z.string().min(2),
+    /** Entendimento da fofoca (Método: What was the problem? / How did they solve it? …). */
+    questions: z.array(choice).max(5).default([]),
+  }),
   scene: z
     .object({
       youtubeId: z.string().regex(/^[\w-]{6,20}$/),
       start: z.number().int().min(0),
       end: z.number().int().positive(),
       intro: z.string(),
-      /** Perguntas com uma lacuna [[resposta]] cada. */
-      questions: z.array(z.string().min(1)).min(1),
+      /** Entendimento (alternativas) ou palavra exata ("… [[resposta]] …"). */
+      questions: z.array(z.union([z.string().min(1), choice])).min(1),
     })
     .optional(),
   shadowing: z

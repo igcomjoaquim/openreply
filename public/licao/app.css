@@ -223,3 +223,11 @@ h1,.hero-title,.result h2,.fb-head h2{font-family:var(--f-display)!important;fon
 .watch-now{background:var(--yellow)!important;color:var(--ink)!important;border:2px solid var(--ink);box-shadow:3px 3px 0 var(--ink);font-size:18px;animation:nudge 1.6s ease-in-out infinite}
 @keyframes nudge{50%{transform:translateY(-3px)}}
 @media (prefers-reduced-motion:reduce){.watch-now{animation:none}}
+.mcq{display:flex;flex-direction:column;gap:8px}
+.mcq-q{font-weight:600}
+.mcq-opts{display:flex;flex-direction:column;gap:6px}
+.mcq-opt{text-align:left;background:var(--paper);color:var(--ink);border:2px solid var(--line);border-radius:10px;padding:10px 12px;font-weight:500}
+.mcq-opt.sel{border-color:var(--ink);background:#FFF1B8}
+.mcq-opt.ok{border-color:var(--ok);background:var(--okbg)}
+.mcq-opt.bad{border-color:var(--marsala);background:var(--badbg);text-decoration:line-through}
+.checked .mcq-opt{cursor:default}

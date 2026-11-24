@@ -279,8 +279,46 @@
   function gapHtml(text) {
     return rich(text).replace(/\[\[([^\]]+)\]\]/g, function (_, a) { return '<input class="gap" autocomplete="off" autocapitalize="off" spellcheck="false" data-a="' + esc(a) + '">'; });
   }
+  // Pergunta de entendimento com alternativas: toca numa, ela fica marcada.
+  function mcqEl(item) {
+    var li = el("li", { cls: "mcq", "data-answer": String(item.answer) }, el("span", { cls: "mcq-q", html: rich(item.q) }));
+    var opts = el("div", { cls: "mcq-opts" });
+    // ordem embaralhada (a certa não fica sempre em primeiro); data-k guarda a original
+    var order = item.options.map(function (_, k) { return k; });
+    for (var i = order.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = order[i]; order[i] = order[j]; order[j] = t; }
+    order.forEach(function (k) {
+      var o = item.options[k];
+      opts.append(el("button", { type: "button", cls: "mcq-opt", "data-k": String(k), text: o, onclick: function (e) {
+        if (li.classList.contains("checked")) return;
+        [].forEach.call(opts.children, function (b) { b.classList.remove("sel"); });
+        e.currentTarget.classList.add("sel");
+      } }));
+    });
+    li.append(opts);
+    return li;
+  }
+  // corrige as alternativas; devolve {ok, total, wrongs} ou null se falta responder
+  function mcqCheck(box, label) {
+    var qs = [].slice.call(box.querySelectorAll("li.mcq"));
+    if (qs.some(function (q) { return !q.querySelector(".mcq-opt.sel"); })) return null;
+    var ok = 0, ws = [];
+    qs.forEach(function (q) {
+      var sel = q.querySelector(".mcq-opt.sel"), right = q.querySelector('.mcq-opt[data-k="' + q.getAttribute("data-answer") + '"]');
+      q.classList.add("checked");
+      if (sel === right) { ok++; sel.classList.add("ok"); }
+      else {
+        sel.classList.add("bad"); right.classList.add("ok");
+        ws.push({ said: label + ": marcou \"" + sel.textContent + "\"", right: right.textContent, why: q.querySelector(".mcq-q").textContent });
+      }
+    });
+    return { ok: ok, total: qs.length, wrongs: ws };
+  }
   function gapCheck(step, box, btn, label, extra) {
     var inputs = [].slice.call(box.querySelectorAll("input.gap"));
+    var hasMcq = box.querySelector("li.mcq");
+    if (hasMcq && [].some.call(box.querySelectorAll("li.mcq"), function (q) { return !q.querySelector(".mcq-opt.sel"); })) {
+      btn.textContent = "Responda todas antes de conferir"; setTimeout(function () { btn.textContent = "Conferir"; }, 1800); return;
+    }
     if (inputs.some(function (i) { return !i.value.trim(); })) {
       btn.textContent = "Preencha tudo antes de conferir"; setTimeout(function () { btn.textContent = "Conferir"; }, 1800); return;
     }
@@ -297,9 +335,11 @@
         ws.push({ said: "escreveu \"" + i.value.trim() + "\"", right: opts[0], why: label + ": " + ctx });
       }
     });
-    btn.disabled = true; btn.textContent = "Você acertou " + ok + " de " + inputs.length + (extra || "");
-    var gd = ok === inputs.length ? [label + ": " + ok + " de " + ok + ". 🎉"] : [];
-    finish(step, Math.round(ok / inputs.length * step.max), { answers: answers, wrongs: ws, good: gd });
+    var total = inputs.length;
+    if (hasMcq) { var m = mcqCheck(box, label); ok += m.ok; total += m.total; ws = ws.concat(m.wrongs); }
+    btn.disabled = true; btn.textContent = "Você acertou " + ok + " de " + total + (extra || "");
+    var gd = ok === total ? [label + ": " + ok + " de " + ok + ". 🎉"] : [];
+    finish(step, Math.round(ok / total * step.max), { answers: answers, wrongs: ws, good: gd });
   }
 
   // ---------- partes ----------
@@ -356,19 +396,28 @@
   }
 
   function buildGossip() {
-    var step = { key: "gossip", title: "Fofoca — só ouvir", minutes: 2, max: 2, skill: "ouvir" };
+    var GQ = C.gossip.questions || [];
+    var step = { key: "gossip", title: "Fofoca — só ouvir", minutes: 2 + Math.ceil(GQ.length / 2), max: 2 + GQ.length, skill: "ouvir" };
     var sec = section(step, "2. A fofoca 🕵️");
+    var qbox = GQ.length ? el.apply(null, ["ol", { cls: "items" }].concat(GQ.map(mcqEl))) : null;
     var inp = el("input", { type: "text", placeholder: "Palavra secreta", autocomplete: "off", autocapitalize: "off" });
     var msg = el("p", { cls: "msg", hidden: "" }), tries = 0;
-    var btn = el("button", { cls: "btn", text: "Conferir palavra", onclick: function () {
+    var btn = el("button", { cls: "btn", text: GQ.length ? "Conferir" : "Conferir palavra", onclick: function () {
       var v = norm(inp.value);
       if (v !== norm(C.gossip.secret)) { tries++; say(msg, v ? "Não é essa. Ouça o final do áudio de novo 🎧" : "Escreva a palavra secreta do fim do áudio."); return; }
-      say(msg, "✅ Isso!", true); btn.disabled = true; inp.disabled = true;
-      finish(step, tries ? 1 : 2, {});
+      if (qbox && [].some.call(qbox.querySelectorAll("li.mcq"), function (q) { return !q.querySelector(".mcq-opt.sel"); })) {
+        say(msg, "Palavra certa! 🔑 Agora responda as perguntas sobre a história.", true); return;
+      }
+      var m = qbox ? mcqCheck(qbox, "Fofoca") : { ok: 0, total: 0, wrongs: [] };
+      say(msg, m.total ? "✅ Palavra secreta certa · você entendeu " + m.ok + " de " + m.total + " sobre a história." : "✅ Isso!", true);
+      btn.disabled = true; inp.disabled = true;
+      finish(step, (tries ? 1 : 2) + m.ok, { wrongs: m.wrongs, good: m.total && m.ok === m.total ? ["Fofoca: entendeu a história toda só de ouvido! 👂"] : [] });
     } });
     sec.append(el("p", { cls: "small", html: "Daqui até a leitura em voz alta, <b>tudo é sobre esta fofoca</b>: ouvir, imitar, recontar, completar e ler." }),
       el("p", { html: "🚫 <b>Não escreva a história.</b> Ouça 2 vezes, sem ler nada. 🔑 No fim tem uma <b>palavra secreta</b>." }),
-      el("audio", { controls: "", preload: "none", src: FILE(C.gossip.audio) }), inp, btn, msg);
+      el("audio", { controls: "", preload: "none", src: FILE(C.gossip.audio) }),
+      qbox ? el("p", { cls: "small", html: "Responda <b>sem ler nada</b>, só com o que você ouviu:" }) : null, qbox,
+      el("p", { cls: "small", text: "🔑 Palavra secreta:" }), inp, btn, msg);
   }
 
   var ytReady = null;
@@ -381,7 +430,7 @@
     return ytReady;
   }
   function buildScene() {
-    var S = C.scene, step = { key: "scene", title: "🎬 Cena real — tela coberta", minutes: 4, max: 3, skill: "ouvir" };
+    var S = C.scene, step = { key: "scene", title: "🎬 Cena real — tela coberta", minutes: 4, max: Math.max(3, S.questions.length), skill: "ouvir" };
     var sec = section(step);
     var holder = el("div", { id: "ytp" });
     var cover = el("div", { cls: "cover" }, el("div", { cls: "cover-in" }, el("span", { cls: "cover-play", text: "🎧" }), el("span", { text: "Tela coberta — só ouvido" })));
@@ -392,7 +441,7 @@
       loadYT().then(function (YT) {
         player = new YT.Player(holder, {
           videoId: S.youtubeId, playerVars: { start: S.start, end: S.end, controls: 0, disablekb: 1, rel: 0, playsinline: 1, modestbranding: 1 },
-          events: { onReady: function () { fn(player); } },
+          events: { onReady: function () { try { player.unMute(); player.setVolume(100); } catch (e) {} fn(player); } },
         });
       });
     }
@@ -417,7 +466,7 @@
       el("button", { text: "⏸ Pausar", onclick: function () { withPlayer(function (p) { p.pauseVideo(); }); } }),
       el("button", { text: "↺ Do começo", onclick: function () { withPlayer(function (p) { p.seekTo(S.start, true); p.playVideo(); }); } }),
       el("button", { text: "🐢 0.75×", onclick: function (e) { slow = !slow; e.target.textContent = slow ? "🐇 1×" : "🐢 0.75×"; withPlayer(function (p) { p.setPlaybackRate(slow ? 0.75 : 1); }); } }));
-    var box = el.apply(null, ["ol", { cls: "items" }].concat(S.questions.map(function (q) { return el("li", { html: gapHtml(q) }); })));
+    var box = el.apply(null, ["ol", { cls: "items" }].concat(S.questions.map(function (q) { return typeof q === "string" ? el("li", { html: gapHtml(q) }) : mcqEl(q); })));
     // depois de conferir, a tela NÃO pula pra próxima parte: o aluno precisa ver
     // o botão de assistir com imagem; só segue quando tocar em "Seguir".
     step.holdScroll = true;

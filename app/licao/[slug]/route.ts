@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { autoResetDemo, isDemoStudent } from "@/lib/licao/demo";
 import { getPrisma } from "@/lib/db/client";
 import { HTML_HEADERS, cookieHeader, dayMonth, esc, monthLabel, page } from "@/lib/licao/html";
 import { SKILLS, type Skill, studentLessons } from "@/lib/licao/summary";
@@ -43,6 +44,7 @@ export async function GET(_request: NextRequest, { params }: Params) {
   if (!student) {
     return new NextResponse(page("Minhas lições", `<div class="wrap"><p class="loading">Código não encontrado. <a href="/licao?sair=1">Digitar o código de novo</a></p></div>`), { status: 404, headers: HTML_HEADERS });
   }
+  if (isDemoStudent(student.name)) await autoResetDemo(student.id);
   const rows = await studentLessons(student.id);
   // ?professor=1: o Thiago olhando pelo painel — nada conta e não grava o código no navegador
   const prof = _request.nextUrl.searchParams.get("professor") === "1";
@@ -116,7 +118,7 @@ export async function GET(_request: NextRequest, { params }: Params) {
 
   const demo = /^aluno teste/i.test(student.name.trim());
   const resetBox = demo
-    ? `<section class="card demo-reset"><h2>🧪 Aluno de demonstração</h2><p class="small">Depois de mostrar a lição pra alguém, zere aqui pra ela voltar a ficar nova (as lições antigas continuam).</p><form method="post" action="/api/licao/${student.slug}/reset"><button class="btn" type="submit">🔄 Zerar a lição nova</button></form>${_request.nextUrl.searchParams.has("zerado") ? `<p class="msg good">✅ Pronto, a lição nova está zerada.</p>` : ""}</section>`
+    ? `<section class="card demo-reset"><h2>🧪 Aluno de demonstração</h2><p class="small">A lição nova volta a ficar zerada sozinha 20 minutos depois que a pessoa para de mexer. Pra zerar na hora, toque aqui (as lições antigas continuam).</p><form method="post" action="/api/licao/${student.slug}/reset"><button class="btn" type="submit">🔄 Zerar a lição nova</button></form>${_request.nextUrl.searchParams.has("zerado") ? `<p class="msg good">✅ Pronto, a lição nova está zerada.</p>` : ""}</section>`
     : "";
   const body = `<div class="wrap home">
   <div class="bar"><div class="bar-row"><span class="brand"><span>Inglês com Joaquim</span></span><a class="small" href="/licao?sair=1">Não é você?</a></div></div>

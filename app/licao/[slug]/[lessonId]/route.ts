@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { autoResetDemo, isDemoStudent } from "@/lib/licao/demo";
 import { getPrisma } from "@/lib/db/client";
 import { HTML_HEADERS, dayMonth, page } from "@/lib/licao/html";
 import { gradedAttempt } from "@/lib/licao/summary";
@@ -22,6 +23,7 @@ export async function GET(request: NextRequest, { params }: Params) {
   if (!lesson || lesson.student.slug !== slug) {
     return new NextResponse(page("Lição", `<div class="wrap"><p class="loading">Lição não encontrada. <a href="/licao/${slug.replace(/[^a-z0-9-]/g, "")}">Voltar para as minhas lições</a></p></div>`), { status: 404, headers: HTML_HEADERS });
   }
+  if (isDemoStudent(lesson.student.name)) await autoResetDemo(lesson.studentId);
   const practice = request.nextUrl.searchParams.get("refazer") === "1";
   const graded = practice ? null : await gradedAttempt(lesson.id);
   const prev = await previousMistakes(lesson.studentId, lesson.id, lesson.createdAt);

@@ -300,3 +300,12 @@ h1,.hero-title,.result h2,.fb-head h2{font-family:var(--f-display)!important;fon
 
 .late{background:var(--card);border:2px dashed var(--marsala);border-radius:14px;padding:16px 18px;display:flex;flex-direction:column;gap:6px}
 .late b{font-size:18px;color:var(--marsala)}
+
+.prev-fix{background:var(--card);border:2px solid var(--yellow);border-radius:14px;padding:16px 18px;display:flex;flex-direction:column;gap:10px}
+.prev-fix h2{margin:0}
+.prev-item{border-top:1px dashed var(--line);padding-top:10px;display:flex;flex-direction:column;gap:4px}
+.prev-item .said{text-decoration:line-through;color:var(--marsala)}
+.prev-item .right{font-size:17px}
+.prev-item.ok .right{color:var(--ok)}
+.prev-act{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.btn.mini{padding:8px 14px;font-size:14px}

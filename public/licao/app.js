@@ -838,6 +838,40 @@
     d.append(sy); parent.append(d);
   }
 
+  // ---------- erros da lição anterior (abre a lição; não vale ponto) ----------
+  function buildPrev() {
+    var sec = el("section", { cls: "prev-fix" },
+      el("span", { cls: "eyebrow", text: "🔁 Antes de começar" }),
+      el("h2", { text: "Seus erros da lição de " + D.prev.dateLabel }),
+      el("p", { cls: "small", text: SR ? "Leia a frase certa e toque em 🎤 para falar em voz alta. Repita até ficar verde." : "Leia cada frase certa em voz alta, 3 vezes." }));
+    D.prev.items.forEach(function (f) {
+      var row = el("div", { cls: "prev-item" },
+        el("span", { cls: "said", text: f.said }),
+        el("b", { cls: "right", text: f.right }),
+        f.why ? el("p", { cls: "small", text: f.why }) : null);
+      if (SR) {
+        var msg = el("span", { cls: "small" }), btn = el("button", { cls: "btn mini", type: "button", text: "🎤 Falar" });
+        btn.addEventListener("click", function () {
+          var r = new SR(); r.lang = "en-US"; r.interimResults = false; r.maxAlternatives = 3;
+          btn.disabled = true; msg.textContent = "Ouvindo…";
+          r.onresult = function (e) {
+            var alts = [].slice.call(e.results[0]).map(function (x) { return x.transcript; });
+            var target = words(f.right), best = 0;
+            alts.forEach(function (t) { var said = words(t); var hit = target.filter(function (w) { return said.indexOf(w) > -1; }).length; best = Math.max(best, hit / (target.length || 1)); });
+            if (best >= 0.8) { row.classList.add("ok"); msg.textContent = "✅ Isso!"; }
+            else { msg.textContent = "Quase! A página ouviu: \"" + alts[0] + "\". Tente de novo."; }
+          };
+          r.onerror = function () { msg.textContent = "Não ouvi. Toque e fale de novo."; };
+          r.onend = function () { btn.disabled = false; if (msg.textContent === "Ouvindo…") msg.textContent = "Não ouvi. Toque e fale de novo."; };
+          try { r.start(); } catch (e) { btn.disabled = false; }
+        });
+        row.append(el("div", { cls: "prev-act" }, btn, msg));
+      }
+      sec.append(row);
+    });
+    app.append(sec);
+  }
+
   // ---------- montar ----------
   function build() {
     app.replaceChildren();
@@ -848,6 +882,7 @@
     if (D.mode === "practice") app.append(el("div", { cls: "viewnote" }, el("b", { text: "🔁 Modo treino." }), " Pode fazer de novo à vontade: a nota que vale é a da primeira vez."));
     app.append(el("header", null, el("span", { cls: "hand", text: "Hi, " + D.student + "! 👋" }), el("h1", { text: D.title }),
       el("p", { html: (C.intro ? rich(C.intro) + " " : "") + "Ouça → a fofoca → escreva → fale. Mais ou menos <b>" + C.minutes + " minutos</b>. Pode parar e continuar depois: o link guarda onde você parou." })));
+    if (D.prev && D.prev.items && D.prev.items.length && !VIEW) buildPrev();
     if (C.review) buildReview();
     buildDictation(); if (C.scene) buildScene();
     // tudo da fofoca em sequência, pro aluno não esquecer a história

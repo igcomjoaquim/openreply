@@ -23,6 +23,7 @@ type Row = {
   focus: { skill: Skill; avg: number } | null;
   waitingReview: number;
   history: number[];
+  late: number;
 };
 
 function nowMs(): number {
@@ -90,6 +91,7 @@ export default async function StudentsPanelPage() {
       focus,
       waitingReview,
       history: graded.slice(0, 6).map((g) => g.score.pct).reverse(),
+      late: s.lessons.slice(1).filter((l) => !l.attempts.some((a) => a.finishedAt)).length,
     };
   });
 
@@ -105,6 +107,8 @@ export default async function StudentsPanelPage() {
   const done = real.filter((r) => r.state === "done");
   const avg = done.length ? Math.round(done.reduce((a, r) => a + (r.pct ?? 0), 0) / done.length) : null;
   const pending = real.filter((r) => r.state !== "done");
+  // Quem lembrar: lição mais nova parada há 2+ dias, ou alguma lição antiga sem fazer
+  const remind = real.filter((r) => (r.state !== "done" && (r.daysSince ?? 0) >= 2) || r.late > 0);
 
   return (
     <div className="space-y-6">
@@ -119,6 +123,31 @@ export default async function StudentsPanelPage() {
         <Stat label="Ainda não fizeram" value={String(pending.length)} tone={pending.length ? "warning" : undefined} />
         <Stat label="Nota média" value={avg === null ? "—" : `${avg}%`} />
       </div>
+
+      {remind.length > 0 && (
+        <div className="space-y-2 rounded-2xl border border-warning/40 bg-warning/5 p-4">
+          <p className="text-sm font-semibold">📲 Quem lembrar hoje ({remind.length})</p>
+          <p className="text-xs text-muted">
+            Toque em &quot;Lembrar&quot;: o WhatsApp abre com a mensagem pronta. Escolha o aluno e envie.
+          </p>
+          {remind.map((r) => (
+            <div key={`rem-${r.slug}`} className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-2">
+              <span className="text-sm">
+                <b>{r.name}</b>{" "}
+                <span className="text-muted">· {reason(r)}</span>
+              </span>
+              <a
+                href={`https://wa.me/?text=${encodeURIComponent(reminderText(r))}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90"
+              >
+                Lembrar
+              </a>
+            </div>
+          ))}
+        </div>
+      )}
 
       {rows.length === 0 ? (
         <p className="text-sm text-muted">Nenhum aluno no site ainda. A rotina cria o aluno na primeira lição.</p>
@@ -143,6 +172,26 @@ export default async function StudentsPanelPage() {
       )}
     </div>
   );
+}
+
+function reason(r: Row): string {
+  const parts: string[] = [];
+  if (r.state === "new" && (r.daysSince ?? 0) >= 2) parts.push(`não abriu a lição de ${r.lessonDate ? dm(r.lessonDate) : "—"} (${r.daysSince} dias)`);
+  if (r.state === "started" && (r.daysSince ?? 0) >= 2) parts.push(`parou no meio da lição de ${r.lessonDate ? dm(r.lessonDate) : "—"}`);
+  if (r.late > 0) parts.push(r.late === 1 ? "1 lição atrasada" : `${r.late} lições atrasadas`);
+  return parts.join(" · ");
+}
+
+function reminderText(r: Row): string {
+  const first = r.name.split(" ")[0];
+  const date = r.lessonDate ? dm(r.lessonDate) : "";
+  const body =
+    r.state === "started"
+      ? `Vi que você começou a lição de ${date} e parou no meio. Bora terminar? Falta pouco! 💪`
+      : r.state === "new"
+        ? `A sua lição de ${date} ainda está te esperando 😉 Leva uns 20 minutinhos.`
+        : `Você tem ${r.late === 1 ? "1 lição atrasada" : `${r.late} lições atrasadas`} no site. Quando der, recupera lá! 😉`;
+  return `Oi, ${first}! ${body}\n\n👉 homework.inglescomjoaquim.com\n🔑 Seu código: ${r.code}\n\nFalou, validou! 🚀`;
 }
 
 /** Junta os integrantes de cada turma/dupla num bloco, na posição do primeiro. */

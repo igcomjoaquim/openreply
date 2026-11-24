@@ -15,6 +15,8 @@ const bodySchema = z.object({
   /** Link já existente do aluno; sem isso, procura pelo notionId ou cria um. */
   slug: z.string().regex(/^[a-z0-9-]{3,40}$/).optional(),
   notionId: z.string().optional(),
+  /** Turma/dupla (ex.: "Turma 1"); cada integrante é publicado como um aluno. */
+  group: z.string().min(1).max(60).optional(),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   title: z.string().min(1),
   content: lessonContentSchema,
@@ -29,7 +31,7 @@ export async function POST(request: NextRequest) {
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid lesson", issues: parsed.error.issues }, { status: 400 });
   }
-  const { studentName, slug, notionId, date, title, content } = parsed.data;
+  const { studentName, slug, notionId, group, date, title, content } = parsed.data;
 
   const missing: string[] = [];
   for (const name of lessonAudioNames(content)) {
@@ -47,19 +49,19 @@ export async function POST(request: NextRequest) {
   let student = slug
     ? await prisma.student.findUnique({ where: { slug } })
     : notionId
-      ? await prisma.student.findFirst({ where: { notionId } })
+      ? await prisma.student.findFirst({ where: { notionId, name: studentName } })
       : null;
   if (slug && !student) {
     return NextResponse.json({ error: "Unknown slug" }, { status: 404 });
   }
   if (!student) {
     student = await prisma.student.create({
-      data: { name: studentName, notionId, slug: makeSlug(studentName, randomBytes(3).toString("hex")) },
+      data: { name: studentName, notionId, group, slug: makeSlug(studentName, randomBytes(3).toString("hex")) },
     });
-  } else if (student.name !== studentName || (notionId && student.notionId !== notionId)) {
+  } else if (student.name !== studentName || (notionId && student.notionId !== notionId) || (group && student.group !== group)) {
     student = await prisma.student.update({
       where: { id: student.id },
-      data: { name: studentName, notionId: notionId ?? student.notionId },
+      data: { name: studentName, notionId: notionId ?? student.notionId, group: group ?? student.group },
     });
   }
 

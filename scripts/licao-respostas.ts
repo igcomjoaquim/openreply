@@ -4,6 +4,7 @@
  *   npx tsx scripts/licao-respostas.ts [--pendentes] [--desde 2026-11-24] [--local]
  *       → imprime JSON: notas por parte, o que o aluno falou (transcrição),
  *         o texto que escreveu e o link de cada gravação.
+ *   npx tsx scripts/licao-respostas.ts --apagar-aluno <slug> [--local] → apaga um código sem lição concluída
  *   npx tsx scripts/licao-respostas.ts --apagar <id> [--local]   → apaga uma tentativa (teste)
  *   npx tsx scripts/licao-respostas.ts --corrigir <id> --arquivo correcao.json [--local]
  *       → guarda a correção ({summary, writing[], speaking[], pronunciation[]});
@@ -27,6 +28,11 @@ async function main() {
   const a = args(process.argv.slice(2));
   const { baseUrl, secret } = loadConfig(a.local === "true");
   const auth = { authorization: `Bearer ${secret}` };
+  if (a["apagar-aluno"]) {
+    const res = await fetch(`${baseUrl}/api/licao-admin/students/${encodeURIComponent(a["apagar-aluno"])}`, { method: "DELETE", headers: auth });
+    console.log(res.ok ? `Código apagado: ${JSON.stringify(await res.json())}` : `Erro ${res.status}: ${await res.text()}`);
+    return;
+  }
   if (a.apagar) {
     const res = await fetch(`${baseUrl}/api/licao-admin/attempts/${encodeURIComponent(a.apagar)}`, { method: "DELETE", headers: auth });
     console.log(res.ok ? `Apagada: ${JSON.stringify(await res.json())}` : `Erro ${res.status}`);

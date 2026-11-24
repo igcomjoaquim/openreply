@@ -8,6 +8,7 @@
  * ex.: "audio": "ditado.mp3". O script sobe cada um e troca pelo nome no
  * servidor. Imprime o link fixo do aluno (sempre o mesmo para ele).
  *
+ * --turma "Turma 1": aluno de turma/dupla (rode uma vez por integrante, cada um com o próprio --aluno/--slug).
  * --substituir <id-da-lição>: troca o conteúdo de uma lição já publicada (só se ninguém concluiu).
  *
  * Lê OPENREPLY_URL e CRON_SECRET do .env (o segredo nunca é impresso).
@@ -88,6 +89,7 @@ async function main() {
       studentName: a.aluno,
       slug: a.slug,
       notionId: a.notion,
+      group: a.turma,
       date: a.data,
       title: a.titulo,
       content,

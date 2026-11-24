@@ -10,6 +10,7 @@ const DAY = 86_400_000;
 
 type Row = {
   name: string;
+  group: string | null;
   code: string;
   slug: string;
   demo: boolean;
@@ -76,6 +77,7 @@ export default async function StudentsPanelPage() {
     );
     return {
       name: s.name,
+      group: s.group,
       code: s.slug.toUpperCase(),
       slug: s.slug,
       demo: /^aluno teste/i.test(s.name.trim()),
@@ -122,7 +124,49 @@ export default async function StudentsPanelPage() {
         <p className="text-sm text-muted">Nenhum aluno no site ainda. A rotina cria o aluno na primeira lição.</p>
       ) : (
         <div className="space-y-2">
-          {sorted.map((r) => (
+          {blocks(sorted).map((b) =>
+            b.group ? (
+              <div key={`g-${b.group}`} className="space-y-2 rounded-2xl border border-border p-3">
+                <p className="px-1 text-sm font-semibold">
+                  👥 {b.group}{" "}
+                  <span className="font-normal text-muted">
+                    · {b.rows.filter((r) => r.state === "done").length} de {b.rows.length} fizeram
+                  </span>
+                </p>
+                {b.rows.map((r) => card(r))}
+              </div>
+            ) : (
+              card(b.rows[0])
+            )
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Junta os integrantes de cada turma/dupla num bloco, na posição do primeiro. */
+function blocks(rows: Row[]): { group: string | null; rows: Row[] }[] {
+  const out: { group: string | null; rows: Row[] }[] = [];
+  const seen = new Map<string, { group: string | null; rows: Row[] }>();
+  for (const r of rows) {
+    if (!r.group) {
+      out.push({ group: null, rows: [r] });
+      continue;
+    }
+    const g = seen.get(r.group);
+    if (g) g.rows.push(r);
+    else {
+      const b = { group: r.group, rows: [r] };
+      seen.set(r.group, b);
+      out.push(b);
+    }
+  }
+  return out;
+}
+
+function card(r: Row) {
+  return (
             <div
               key={r.slug}
               className={`rounded-xl border p-4 ${
@@ -172,10 +216,6 @@ export default async function StudentsPanelPage() {
                 )}
               </div>
             </div>
-          ))}
-        </div>
-      )}
-    </div>
   );
 }
 

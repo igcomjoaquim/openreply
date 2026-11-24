@@ -496,6 +496,8 @@ model Student {
   slug      String   @unique
   name      String
   notionId  String?
+  /// Turma ou dupla (ex.: "Turma 1"): cada integrante tem o próprio código.
+  group     String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

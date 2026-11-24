@@ -22,6 +22,7 @@ const pageTitles: Record<string, StaticMessageKey> = {
   "/logs": "DM Logs",
   "/scheduled": "Scheduled posts",
   "/feed": "My feed",
+  "/alunos": "Students",
   "/settings": "Settings",
   "/diagnostics": "Diagnostics",
 };

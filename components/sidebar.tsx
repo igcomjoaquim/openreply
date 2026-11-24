@@ -21,6 +21,7 @@ const navItems = [
   { label: "DM Logs", href: "/logs" },
   { label: "Scheduled posts", href: "/scheduled" },
   { label: "My feed", href: "/feed" },
+  { label: "Students", href: "/alunos" },
   { label: "Settings", href: "/settings" },
   { label: "API & MCP", href: "/integrations" },
   { label: "Diagnostics", href: "/diagnostics" },

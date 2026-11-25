@@ -158,6 +158,7 @@
 
   function finish(step, pts, data) {
     if (step.done) return;
+    dropDraft(step.key);
     step.done = true; step.score = pts; step.data = data || {};
     absorb(step.data);
     step.sec.classList.add("done");
@@ -205,8 +206,47 @@
       : el("b", { text: delivered ? "🏆 Lição entregue! Veja seu feedback." : doneN === steps.length ? "🏁 Todas as fases feitas! Falta só concluir." : "" }),
       el("button", { cls: "hud-go", type: "button", text: cur ? "ir ↓" : delivered ? "ver ↓" : "ir ao final ↓", onclick: function () {
         var t = cur ? cur.sec : delivered ? fbSec : concludeSec; if (t) t.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
-      } }));
+      } }),
+      !delivered ? el("button", { cls: "hud-pause", type: "button", text: "⏸ Pausar", onclick: pauseBox } ) : null);
   }
+  // ---------- pausar e continuar depois ----------
+  // o que já terminou vai pro servidor; o que está pela metade fica no aparelho (rascunho)
+  var DKEY = STORE + ":rascunho";
+  function drafts() { try { return JSON.parse(localStorage.getItem(DKEY) || "{}"); } catch (e) { return {}; } }
+  function fieldsOf(sec) { return [].slice.call(sec.querySelectorAll("input[type=text],input:not([type]),input.gap,textarea")); }
+  function saveDraft(step) {
+    if (!step || step.done || VIEW || PREVIEW) return;
+    var d = drafts(), vals = fieldsOf(step.sec).map(function (x) { return x.disabled ? null : x.value; });
+    if (vals.some(function (v) { return v; })) d[step.key] = vals; else delete d[step.key];
+    try { localStorage.setItem(DKEY, JSON.stringify(d)); } catch (e) {}
+  }
+  function dropDraft(key) { var d = drafts(); if (d[key]) { delete d[key]; try { localStorage.setItem(DKEY, JSON.stringify(d)); } catch (e) {} } }
+  function loadDrafts() {
+    if (VIEW || PREVIEW) return;
+    var d = drafts(), n = 0;
+    steps.forEach(function (s) {
+      if (s.done || !d[s.key]) return;
+      fieldsOf(s.sec).forEach(function (x, k) { var v = d[s.key][k]; if (v && !x.disabled && !x.value) { x.value = v; n++; x.dispatchEvent(new Event("input", { bubbles: true })); } });
+    });
+    if (n) pauseToast("✍️ Voltou o que você tinha escrito. Continue de onde parou!");
+  }
+  function pauseToast(t) { var d = el("div", { cls: "toast", role: "status", text: t }); document.body.append(d); setTimeout(function () { d.classList.add("out"); }, 3200); setTimeout(function () { d.remove(); }, 3800); }
+  document.addEventListener("input", function (e) { var sec = e.target.closest && e.target.closest("section"); if (!sec) return; var st = steps.filter(function (s) { return s.sec === sec; })[0]; if (st) saveDraft(st); });
+  function pauseBox() {
+    steps.forEach(saveDraft);
+    try { document.querySelectorAll("audio,video").forEach(function (a) { a.pause(); }); } catch (e) {}
+    var doneN = steps.filter(function (s) { return s.done; }).length;
+    var ov = el("div", { cls: "pause-ov", role: "dialog", "aria-modal": "true" },
+      el("div", { cls: "pause-box" },
+        el("span", { cls: "pause-ico", text: "⏸" }),
+        el("h2", { text: "Pode parar tranquilo!" }),
+        el("p", { text: doneN ? "As " + doneN + " fases que você terminou já estão salvas com o seu professor. O que você começou agora fica guardado neste celular." : "O que você começou fica guardado neste celular." }),
+        el("p", { html: "Pra continuar, é só abrir <b>este mesmo link</b> de novo: você volta exatamente pra fase " + Math.min(doneN + 1, steps.length) + "." }),
+        el("button", { cls: "btn big-btn", type: "button", text: "▶ Na verdade, quero continuar", onclick: function () { ov.remove(); } }),
+        el("a", { cls: "btn ghost", href: "/licao/" + D.slug + (PQ ? "?" + PQ : ""), text: "🗺️ Sair pra minhas lições" })));
+    document.body.append(ov);
+  }
+  window.addEventListener("pagehide", function () { steps.forEach(saveDraft); });
   function refreshMap() {
     refreshHud();
     if (!mapEl) return;
@@ -1340,6 +1380,7 @@
       saved = r.progress || {}; review = r.review || null;
       if (pending.length) { pending.splice(0).forEach(sendStep); return; } // fez partes offline: o que está na tela vale
       if (Object.keys(saved).length) restore();
+      loadDrafts();
       flushQueue();
     });
   })();

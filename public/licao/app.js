@@ -991,7 +991,7 @@
       wrap, timeline, ctrl, sceneGate.box, vbox || "", show, tbox || "", goOn);
     setTimeout(function () { if (step.done) sceneGate.unlock(false); }, 1500);
     if (PREVIEW) { showVocab(); showTranscript(); }
-    setTimeout(function () { if (step.done) showVocab(); }, 1500); // voltou numa lição já respondida
+    setTimeout(function () { if (step.done) { showVocab(); showTranscript(); } }, 1500); // voltou numa lição em que já fez a cena
   }
 
   function buildShadowing() {

@@ -22,6 +22,45 @@ const bodySchema = z.object({
   content: lessonContentSchema,
 });
 
+/**
+ * Lista todas as lições (para conferência da rotina): aluno, link, data e se os
+ * áudios da lição existem no volume.
+ */
+export async function GET(request: NextRequest) {
+  if (!isAuthorizedServiceRequest(request.headers.get("authorization"))) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const lessons = await getPrisma().lesson.findMany({ include: { student: true }, orderBy: { createdAt: "desc" } });
+  const out = [];
+  for (const l of lessons) {
+    const parsed = lessonContentSchema.safeParse(l.content);
+    const raw = l.content as { gossip?: { audio?: string } } | null;
+    const gossipAudio = raw?.gossip?.audio ?? null;
+    let gossipAudioOk = false;
+    if (gossipAudio) {
+      try {
+        await stat(lessonFilePath(gossipAudio));
+        gossipAudioOk = true;
+      } catch {
+        gossipAudioOk = false;
+      }
+    }
+    out.push({
+      id: l.id,
+      student: l.student.name,
+      slug: l.student.slug,
+      date: l.date,
+      title: l.title,
+      createdAt: l.createdAt,
+      valid: parsed.success,
+      gossipAudio,
+      gossipAudioOk,
+      url: `${lessonPageUrl(l.student.slug)}/${l.id}`,
+    });
+  }
+  return NextResponse.json({ lessons: out });
+}
+
 /** Publica uma lição nova: ela passa a ser a que o link do aluno abre. */
 export async function POST(request: NextRequest) {
   if (!isAuthorizedServiceRequest(request.headers.get("authorization"))) {

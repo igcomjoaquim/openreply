@@ -410,6 +410,8 @@
     }
     this.start = function () {
       tReq = Date.now();
+      // nenhum áudio da página tocando enquanto grava (senão a gravação pega o som do celular)
+      [].forEach.call(document.querySelectorAll("audio"), function (a) { try { a.pause(); } catch (e) {} });
       // Android: o reconhecimento pega o microfone primeiro (se a gravação pegar antes, ele fica surdo).
       // iPhone e computador: os dois ligam juntos (mais rápido). "FALE AGORA" só quando os dois já estão ouvindo.
       var p = IS_ANDROID ? startSR().then(startRec) : Promise.all([startRec(), startSR()]);
@@ -1205,8 +1207,18 @@
 
   function buildRetell() {
     var R = C.retell, secret = norm(C.gossip.secret);
+    // 🎧 OUVIR DE NOVO ANTES DE RECONTAR (pedido do Thiago 25/11, aluno Fellipe): o áudio da fofoca fica
+    // aberto no reconto, pra quem esqueceu uma parte ouvir de novo antes de falar. Vale pra todas as lições
+    // (toda lição tem gossip.audio).
+    var relisten = "";
+    if (C.gossip && C.gossip.audio) {
+      var ra = el("audio", { controls: "", preload: "none", src: FILE(C.gossip.audio) });
+      relisten = el("div", { cls: "relisten-wrap retell-relisten" },
+        el("p", { cls: "listen-fill", html: "🎧 <b>Esqueceu alguma parte?</b> Ouça a fofoca de novo antes de recontar (pode pausar e voltar 5 s)." }),
+        el("div", { cls: "a-wrap" }, ra, audioTools(ra)));
+    }
     speakingStep("retell", "Reconte a fofoca", 2, 5, "falar", null,
-      [el("p", { text: "Aperte o botão e fale, sem pressa:" }), el.apply(null, ["ul", { cls: "q" }].concat(R.prompts.map(function (p) { return el("li", { html: rich(p) }); })))],
+      [relisten, el("p", { text: "Aperte o botão e fale, sem pressa:" }), el.apply(null, ["ul", { cls: "q" }].concat(R.prompts.map(function (p) { return el("li", { html: rich(p) }); })))],
       {
         minWords: R.minWords, minSeconds: 30, unlockLive: true,
         check: function (t) {

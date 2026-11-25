@@ -713,7 +713,7 @@
 
   // ---------- gap exercises ----------
   function gapHtml(text) {
-    return rich(text).replace(/\[\[([^\]]+)\]\]/g, function (_, a) { return '<input class="gap" autocomplete="off" autocapitalize="off" spellcheck="false" data-a="' + esc(a) + '">'; });
+    return rich(text).replace(/\[\[([^\]]+)\]\]/g, function (_, a) { return '<input class="gap" autocomplete="off" autocapitalize="off" spellcheck="false" data-a="' + a + '">'; }); // a já vem escapado pelo rich()
   }
   // Pergunta de entendimento com alternativas: toca numa, ela fica marcada.
   function mcqEl(item) {

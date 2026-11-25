@@ -596,7 +596,7 @@
       for (var li = 0; li < ls.length && g < MAXG; li++) { keep.push(ls[li]); g += (ls[li].match(/\[\[/g) || []).length; }
       var seen = 0; text = keep.join("\n").replace(/\[\[([^\]]+)\]\]/g, function (m, a) { return ++seen <= MAXG ? m : a.split("|")[0]; });
       if (bankWords && bankWords.length) { var need = []; text.replace(/\[\[([^\]]+)\]\]/g, function (_, a) { need.push(a.split("|")[0]); }); var extra = bankWords.filter(function (w) { return need.map(norm).indexOf(norm(w)) < 0; }).slice(0, 2); bankWords = need.concat(extra); }
-      var html = rich(text).replace(/\n/g, "<br>").replace(/\[\[([^\]]+)\]\]/g, function (_, a) { answers.push(a.split("|").map(function (x) { return x.trim(); })); return '<input class="gap" data-i="' + (i++) + '" autocomplete="off" autocapitalize="off" spellcheck="false" size="7">'; });
+      var html = rich(text).replace(/\n/g, "<br>").replace(/\[\[([^\]]+)\]\]/g, function (_, a) { answers.push(a.replace(/&#39;/g, "'").replace(/&quot;/g, '"').replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&").split("|").map(function (x) { return x.trim(); })); return '<input class="gap" data-i="' + (i++) + '" autocomplete="off" autocapitalize="off" spellcheck="false" size="7">'; });
       var tx = el("div", { cls: "gaptext", html: html });
       var inputs = [].slice.call(tx.querySelectorAll("input.gap")), focused = inputs[0];
       inputs.forEach(function (inp, k) {

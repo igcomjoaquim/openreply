@@ -19,6 +19,10 @@ export function proxy(request: NextRequest) {
   if (pathname === "/" && host.toLowerCase().startsWith("homework.")) {
     return NextResponse.rewrite(new URL("/licao", request.url));
   }
+  // aprender.inglescomjoaquim.com: a raiz é a trilha A1 para estudar sozinho.
+  if (pathname === "/" && host.toLowerCase().startsWith("aprender.")) {
+    return NextResponse.rewrite(new URL("/aprender", request.url));
+  }
   const isProtected = PROTECTED_PREFIXES.some(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
   );

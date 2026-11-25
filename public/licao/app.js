@@ -132,6 +132,13 @@
     // não desce sozinho: o aluno lê o resultado com calma e toca quando quiser seguir
     if (i < steps.length - 1) unlock(steps[i + 1], false);
     if (all) showConclude(false);
+    var pct = step.max ? pts / step.max : 1, st = stars(pct);
+    step.sec.querySelector("h2").append(el("span", { cls: "stars", text: starText(st) }));
+    if (!all) { if (st === 3) SFX.stage(); else if (st === 2) SFX.small(); else SFX.oops(); }
+    step.sec.append(el("div", { cls: "stage-clear s" + st },
+      el("b", { text: (st === 3 ? "🎉 Fase " : st === 2 ? "👏 Fase " : "💪 Fase ") + (i + 1) + " de " + steps.length + " completa!" }),
+      el("span", { cls: "stars-big", text: starText(st) }),
+      el("span", { cls: "small", text: st === 3 ? "Perfeito!" : st === 2 ? "Muito bom! Dá pra chegar nas 3 estrelas." : "Passou! Treine de novo depois pra ganhar mais estrelas." })));
     if (!step.holdScroll) {
       var nx = all ? concludeSec : steps.slice(i + 1).filter(function (s) { return !s.done; })[0] || steps.filter(function (s) { return !s.done; })[0];
       if (nx) {
@@ -261,10 +268,53 @@
       (function tick() {
         if (b._cancel) { b.classList.remove("counting"); return; }
         if (n === 0) { b.classList.remove("counting"); resolve(); return; }
-        b.textContent = "Prepare-se… " + n; n--;
+        b.textContent = "Prepare-se… " + n; n--; SFX.tick();
         setTimeout(tick, 700);
       })();
     });
+  }
+  // ---------- sons de videogame (8-bit, originais, gerados na hora — sem arquivos) ----------
+  var SFX = (function () {
+    var ctx = null, on = true;
+    try { on = localStorage.getItem("licao_som") !== "0"; } catch (e) {}
+    function c() {
+      if (!ctx) { var A = window.AudioContext || window.webkitAudioContext; if (!A) return null; try { ctx = new A(); } catch (e) { return null; } }
+      if (ctx.state === "suspended") { try { ctx.resume(); } catch (e) {} }
+      return ctx;
+    }
+    function tone(f, t0, d, type, vol) {
+      var x = c(); if (!x) return;
+      var o = x.createOscillator(), g = x.createGain(), t = x.currentTime + t0;
+      o.type = type || "square"; o.frequency.setValueAtTime(f, t);
+      g.gain.setValueAtTime(vol || 0.07, t); g.gain.exponentialRampToValueAtTime(0.0008, t + d);
+      o.connect(g); g.connect(x.destination); o.start(t); o.stop(t + d + 0.03);
+    }
+    function seq(notes, st, type, vol) { if (!on) return; notes.forEach(function (n, i) { if (n) tone(n, i * st, st * 0.95, type, vol); }); }
+    return {
+      tick: function () { seq([784], 0.06, "triangle", 0.09); },
+      go: function () { seq([1047, 1568], 0.06, "square", 0.06); },
+      small: function () { seq([523, 659, 784], 0.08, "triangle", 0.1); },
+      stage: function () { seq([523, 659, 784, 1047, 0, 784, 1047], 0.085); },
+      oops: function () { if (!on) return; tone(330, 0, 0.12, "triangle", 0.09); tone(247, 0.12, 0.22, "triangle", 0.09); },
+      win: function () { seq([392, 523, 659, 784, 0, 659, 784, 0, 1047, 1047, 1047], 0.1); },
+      isOn: function () { return on; },
+      toggle: function () { on = !on; try { localStorage.setItem("licao_som", on ? "1" : "0"); } catch (e) {} if (on) seq([659, 988], 0.07); return on; },
+    };
+  })();
+  function stars(pct) { return pct >= 0.9 ? 3 : pct >= 0.6 ? 2 : 1; }
+  function starText(n) { return ["", "⭐☆☆", "⭐⭐☆", "⭐⭐⭐"][n]; }
+  // confete na vitória (canvas simples; respeita "reduzir movimento")
+  function confetti() {
+    if (reduce) return;
+    var cv = el("canvas", { cls: "confetti" }); document.body.append(cv);
+    var W = cv.width = innerWidth, H = cv.height = innerHeight, g = cv.getContext("2d"), cols = ["#FFD21F", "#7A2E3A", "#2E7D4F", "#C49A6C", "#ffffff"];
+    var ps = []; for (var i = 0; i < 140; i++) ps.push({ x: Math.random() * W, y: -20 - Math.random() * H * 0.5, vx: (Math.random() - 0.5) * 3, vy: 2 + Math.random() * 4, r: 4 + Math.random() * 5, a: Math.random() * 6, c: cols[i % cols.length] });
+    var t0 = performance.now();
+    (function draw(t) {
+      g.clearRect(0, 0, W, H);
+      ps.forEach(function (p) { p.x += p.vx; p.y += p.vy; p.a += 0.1; g.save(); g.translate(p.x, p.y); g.rotate(p.a); g.fillStyle = p.c; g.fillRect(-p.r, -p.r / 2, p.r * 2, p.r); g.restore(); });
+      if (t - t0 < 3200) requestAnimationFrame(draw); else cv.remove();
+    })(t0);
   }
   function upload(stepKey, blob, text, secs) {
     if (!att || !blob || !blob.size) return;
@@ -368,7 +418,7 @@
         var stream = r[0];
         btn.disabled = false;
         startMeter(stream);
-        btn.textContent = "🔴 FALE AGORA! (toque para parar)"; btn.classList.add("live");
+        btn.textContent = "🔴 FALE AGORA! (toque para parar)"; btn.classList.add("live"); SFX.go();
         if (navigator.vibrate) { try { navigator.vibrate(80); } catch (e) {} }
         var base = parseInt(tm.textContent, 10) || 0, t0 = Date.now();
         timer = setInterval(function () { tm.textContent = base + Math.round((Date.now() - t0) / 1000) + " s"; }, 500);
@@ -713,7 +763,7 @@
         },
       });
       busy = sess; rec.disabled = true; rec.textContent = "⏳ Ligando o microfone…";
-      Promise.all([sess.start(), countdown(rec)]).then(function () { rec.disabled = false; rec.textContent = "🔴 FALE AGORA! (toque para parar)"; rec.classList.add("live"); if (navigator.vibrate) { try { navigator.vibrate(80); } catch (e) {} } })
+      Promise.all([sess.start(), countdown(rec)]).then(function () { rec.disabled = false; rec.textContent = "🔴 FALE AGORA! (toque para parar)"; rec.classList.add("live"); SFX.go(); if (navigator.vibrate) { try { navigator.vibrate(80); } catch (e) {} } })
         .catch(function () { rec._cancel = true; busy = null; sess = null; rec.disabled = false; rec.textContent = "🎙️ Gravar"; say(msg, "O microfone está bloqueado. Toque no cadeado ao lado do endereço e libere o microfone."); });
     };
     next.onclick = function () {
@@ -834,7 +884,7 @@
   function conclude() {
     var b = concludeSec.querySelector("button");
     b.disabled = true; b.textContent = "Enviando…";
-    var done = function () { concludeSec.hidden = true; showResult(true); };
+    var done = function () { concludeSec.hidden = true; SFX.win(); confetti(); showResult(true); };
     if (!att) { done(); return; }
     post("/api/licao/attempt/" + att.id + "/progress", { token: att.token, step: "done", score: 0, max: 0, data: {}, finished: true }).then(done);
   }
@@ -965,8 +1015,9 @@
   function build() {
     app.replaceChildren();
     scoreEl = el("span", { cls: "score", text: "⭐ 0 pts" });
+    var soundBtn = el("button", { cls: "sound", type: "button", "aria-label": "Som", text: SFX.isOn() ? "🔊" : "🔇", onclick: function () { soundBtn.textContent = SFX.toggle() ? "🔊" : "🔇"; } });
     var track = el("div", { cls: "track", "aria-hidden": "true" });
-    app.append(el("div", { cls: "bar" }, el("div", { cls: "bar-row" }, el("a", { cls: "back", href: "/licao/" + D.slug + (PQ ? "?" + PQ : ""), text: "← Minhas lições" }), scoreEl), track));
+    app.append(el("div", { cls: "bar" }, el("div", { cls: "bar-row" }, el("a", { cls: "back", href: "/licao/" + D.slug + (PQ ? "?" + PQ : ""), text: "← Minhas lições" }), el("span", { cls: "bar-right" }, soundBtn, scoreEl)), track));
     if (VIEW) app.append(el("div", { cls: "viewnote" }, el("b", { text: "✅ Você já fez esta lição." }), " Aqui estão as suas respostas e o seu feedback. ", el("a", { href: "?refazer=1" + (PQ ? "&" + PQ : ""), text: "🔁 Refazer para treinar" })));
     if (D.mode === "practice") app.append(el("div", { cls: "viewnote" }, el("b", { text: "🔁 Modo treino." }), " Pode fazer de novo à vontade: a nota que vale é a da primeira vez."));
     app.append(el("header", null, el("span", { cls: "hand", text: "Hi, " + D.student + "! 👋" }), el("h1", { text: D.title }),

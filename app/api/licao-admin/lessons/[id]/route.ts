@@ -5,6 +5,7 @@ import { getPrisma } from "@/lib/db/client";
 import { isAuthorizedServiceRequest } from "@/lib/publishing/media-store";
 import { lessonAudioNames, lessonContentSchema } from "@/lib/licao/content";
 import { lessonFilePath } from "@/lib/licao/files";
+import { isDemoStudent } from "@/lib/licao/demo";
 
 export const runtime = "nodejs";
 
@@ -15,6 +16,7 @@ const bodySchema = z.object({ title: z.string().min(1).optional(), content: less
 /**
  * Troca o conteúdo de uma lição já publicada (correção antes do aluno fazer).
  * Recusa se alguém já concluiu a lição, pra não mudar o que valeu nota.
+ * Exceção: aluno de demonstração (Aluno Teste) — é o modelo que o professor mostra, sempre atualizado.
  */
 export async function PUT(request: NextRequest, { params }: Params) {
   if (!isAuthorizedServiceRequest(request.headers.get("authorization"))) {
@@ -35,9 +37,9 @@ export async function PUT(request: NextRequest, { params }: Params) {
   }
   if (missing.length) return NextResponse.json({ error: "Audio not uploaded", missing }, { status: 400 });
   const prisma = getPrisma();
-  const lesson = await prisma.lesson.findUnique({ where: { id }, include: { attempts: { select: { finishedAt: true } } } });
+  const lesson = await prisma.lesson.findUnique({ where: { id }, include: { attempts: { select: { finishedAt: true } }, student: { select: { name: true } } } });
   if (!lesson) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  if (lesson.attempts.some((a) => a.finishedAt)) {
+  if (!isDemoStudent(lesson.student.name) && lesson.attempts.some((a) => a.finishedAt)) {
     return NextResponse.json({ error: "Already finished by the student" }, { status: 409 });
   }
   await prisma.lesson.update({

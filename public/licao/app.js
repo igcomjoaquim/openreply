@@ -902,12 +902,26 @@
       withPlayer(function (p) { p.seekTo(S.start, true); p.playVideo(); });
       scrollTo(wrap);
     } });
+    // 📖 vocabulário do vídeo (pedido do Thiago 25/11): aparece DEPOIS de responder,
+    // pra primeira escuta ser desafio e o aluno rever o vídeo já entendendo tudo.
+    // scene.vocab = [["en", "pt", "chunk"?], ...] — com "chunk" = expressão da aula (fica destacada).
+    var vlist = (S.vocab || []).filter(function (v) { return v && v[0] && v[1]; });
+    var vbox = null;
+    if (vlist.length) {
+      var vg = el("div", { cls: "vocab" });
+      vlist.forEach(function (v) { vg.append(el("b", { cls: "tap" + (v[2] ? " chunk" : ""), text: "🔊 " + v[0], onclick: function () { speak(v[0]); } }), el("span", { text: v[1] })); });
+      vbox = el("div", { cls: "scene-vocab", hidden: "" },
+        el("p", { cls: "scene-vocab-t", html: "📖 <b>Vocabulário do vídeo</b> — toque pra ouvir. <span class=\"small\">Em destaque: o que a gente viu na aula.</span>" }), vg);
+    }
+    function showVocab() { if (vbox) vbox.hidden = false; }
     var btn = el("button", { cls: "btn", text: "Conferir", onclick: function () {
       gapCheck(step, box, btn, "Cena real", " só de ouvido 👂");
-      if (step.done) { show.hidden = false; scrollTo(show); }
+      if (step.done) { showVocab(); show.hidden = false; scrollTo(show); }
     } });
     sec.append(el("p", { html: rich(S.intro) + " Primeiro <b>só ouça</b>: a imagem fica escondida. Ouça 3 vezes (pode usar 0.75× na 2ª)." }),
-      wrap, timeline, ctrl, el("p", { cls: "small", html: "Responda só com o que você <b>ouviu</b>:" }), box, box.querySelector("input.gap") ? hintBtn(box) : "", ONCE(), btn, show, goOn);
+      wrap, timeline, ctrl, el("p", { cls: "small", html: "Responda só com o que você <b>ouviu</b>:" }), box, box.querySelector("input.gap") ? hintBtn(box) : "", ONCE(), btn, vbox || "", show, goOn);
+    if (PREVIEW) showVocab();
+    setTimeout(function () { if (step.done) showVocab(); }, 1500); // voltou numa lição já respondida
   }
 
   function buildShadowing() {
@@ -1407,7 +1421,8 @@
       dictation: ["Texto do ditado: " + C.dictation.text],
       scene: C.scene && [
         "Trecho: " + Math.floor(C.scene.start / 60) + ":" + String(C.scene.start % 60).padStart(2, "0") + " → " + Math.floor(C.scene.end / 60) + ":" + String(C.scene.end % 60).padStart(2, "0"),
-      ].concat(C.scene.questions.map(function (q) { return typeof q === "string" ? plain(q) : mcqAns(q); })),
+      ].concat(C.scene.questions.map(function (q) { return typeof q === "string" ? plain(q) : mcqAns(q); }))
+        .concat((C.scene.vocab || []).length ? ["Vocabulário: " + C.scene.vocab.map(function (v) { return v[0] + " = " + v[1]; }).join(" · ")] : []),
       gossip: ["Palavra secreta: " + C.gossip.secret.toUpperCase(), "Texto do áudio: " + C.story.paragraphs.map(plain).join(" ")]
         .concat((C.gossip.questions || []).map(mcqAns)),
       shadowing: C.shadowing.map(function (x, k) { return (k + 1) + ". " + x.en; }),

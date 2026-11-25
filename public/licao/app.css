@@ -431,3 +431,11 @@ h1,.hero-title,.result h2,.fb-head h2,.login h1{font-family:var(--f-display)!imp
 .relisten{align-self:flex-start;background:#FFF8EC;border:2px solid var(--marsala);color:var(--marsala);border-radius:999px;padding:8px 14px;font-weight:700;font-size:15px;cursor:pointer}
 .relisten:active{transform:scale(.97)}
 .relisten-box[hidden]{display:none}
+/* v24 — 25/11: vocabulário do vídeo depois das perguntas da cena */
+.scene-vocab{background:#FFF8EC;border:2px dashed var(--marsala);border-radius:14px;padding:12px 14px;margin:6px 0}
+.scene-vocab[hidden]{display:none}
+.scene-vocab-t{margin:0 0 8px}
+.vocab .tap.chunk{background:#F5D76E;border-radius:6px;padding:0 4px}
+.scene-vocab .vocab{grid-template-columns:1fr;gap:0}
+.scene-vocab .vocab b{white-space:normal;justify-self:start;margin-top:8px}
+.scene-vocab .vocab span{color:var(--ink-soft,#6b5a4c);padding-left:22px}

@@ -456,3 +456,8 @@ h1,.hero-title,.result h2,.fb-head h2,.login h1{font-family:var(--f-display)!imp
 .listen-gated[hidden]{display:none}
 .sh-text.sh-blind{filter:blur(13px);opacity:.55;-webkit-user-select:none;user-select:none;position:relative}
 .listen-fill{margin:0;background:#FFF3DC;border-radius:10px;padding:8px 12px}
+/* v28 — 25/11: azul = o nativo usa no dia a dia */
+.vocab .tap.nat{background:#BFE0F7;border-radius:6px;padding:0 4px}
+.tr-en mark.nat,.tr-legend mark.nat{background:#BFE0F7}
+.tr-legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px;color:#6b5a4c;margin:0 0 4px}
+.tr-legend mark{background:#F5D76E;border-radius:4px;padding:0 4px;color:#2B211B}

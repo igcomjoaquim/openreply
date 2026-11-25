@@ -939,10 +939,18 @@
     // scene.transcript = [{t: segundos do vídeo, en: "fala", pt: "tradução"}]. A frase que está tocando acende;
     // tocar numa frase pula o vídeo pra ela. Os chunks da aula (vocab com "chunk") ficam marcados no texto.
     var tlines = [], tbox = null;
-    var chunkRx = (S.vocab || []).filter(function (v) { return v && v[2]; }).map(function (v) { return v[0].replace(/…|\.\.\./g, "").trim(); }).filter(function (s) { return s.length > 2; });
+    // 🟨 amarelo = o que viu na aula · 🟦 azul = o nativo usa no dia a dia (poucos por vídeo, pra não poluir)
+    function legend() {
+      var has = function (k) { return (S.vocab || []).some(function (v) { return v && v[2] === k; }) || (S.transcript || []).some(function (x) { return k === "nativo" ? /\+\+/.test(x.en) : /\*\*/.test(x.en); }); };
+      if (!has("chunk") && !has("nativo")) return "";
+      return el("p", { cls: "tr-legend" },
+        has("chunk") ? el("span", null, el("mark", { text: "amarelo" }), " o que você viu na aula") : "",
+        has("nativo") ? el("span", null, el("mark", { cls: "nat", text: "azul" }), " o nativo usa no dia a dia — vale aprender") : "");
+    }
+    var chunkRx = (S.vocab || []).filter(function (v) { return v && v[2] === "chunk"; }).map(function (v) { return v[0].replace(/…|\.\.\./g, "").trim(); }).filter(function (s) { return s.length > 2; });
     function markChunks(s) {
       var h = esc(s);
-      if (/\*\*/.test(s)) return h.replace(/\*\*(.+?)\*\*/g, "<mark>$1</mark>"); // chunk marcado à mão no roteiro
+      if (/\*\*|\+\+/.test(s)) return h.replace(/\*\*(.+?)\*\*/g, "<mark>$1</mark>").replace(/\+\+(.+?)\+\+/g, '<mark class="nat">$1</mark>'); // marcado à mão: **aula** · ++nativo++
       chunkRx.forEach(function (c) { var rx = new RegExp(esc(c).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i"); h = h.replace(rx, function (m) { return "<mark>" + m + "</mark>"; }); });
       return h;
     }
@@ -957,7 +965,7 @@
       var ptBtn = hasPt ? el("button", { cls: "relisten", type: "button", text: "🇧🇷 Mostrar tradução", onclick: function () { tl.classList.toggle("show-pt"); ptBtn.textContent = tl.classList.contains("show-pt") ? "🇧🇷 Esconder tradução" : "🇧🇷 Mostrar tradução"; } }) : null;
       tbox = el("div", { cls: "scene-tr", hidden: "" },
         el("p", { cls: "scene-vocab-t", html: "📝 <b>O que foi falado</b> — acompanhe enquanto o vídeo toca. Toque numa frase pra voltar nela." }),
-        ptBtn || "", tl);
+        legend(), ptBtn || "", tl);
     }
     function showTranscript() { if (tbox) tbox.hidden = false; }
 
@@ -968,9 +976,9 @@
     var vbox = null;
     if (vlist.length) {
       var vg = el("div", { cls: "vocab" });
-      vlist.forEach(function (v) { vg.append(el("b", { cls: "tap" + (v[2] ? " chunk" : ""), text: "🔊 " + v[0], onclick: function () { speak(v[0]); } }), el("span", { text: v[1] })); });
+      vlist.forEach(function (v) { vg.append(el("b", { cls: "tap" + (v[2] === "chunk" ? " chunk" : v[2] === "nativo" ? " nat" : ""), text: "🔊 " + v[0], onclick: function () { speak(v[0]); } }), el("span", { text: v[1] })); });
       vbox = el("div", { cls: "scene-vocab", hidden: "" },
-        el("p", { cls: "scene-vocab-t", html: "📖 <b>Vocabulário do vídeo</b> — toque pra ouvir. <span class=\"small\">Em destaque: o que a gente viu na aula.</span>" }), vg);
+        el("p", { cls: "scene-vocab-t", html: "📖 <b>Vocabulário do vídeo</b> — toque pra ouvir." }), legend(), vg);
     }
     function showVocab() { if (vbox) vbox.hidden = false; }
     var btn = el("button", { cls: "btn", text: "Conferir", onclick: function () {

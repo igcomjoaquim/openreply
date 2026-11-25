@@ -316,3 +316,4 @@ h1,.hero-title,.result h2,.fb-head h2{font-family:var(--f-display)!important;fon
 
 .btn.next-part{align-self:center;margin-top:6px}
 section{scroll-margin-top:84px}
+.rec.counting,.btn.counting{background:var(--yellow);color:#2B211B;font-weight:700}

@@ -455,3 +455,4 @@ h1,.hero-title,.result h2,.fb-head h2,.login h1{font-family:var(--f-display)!imp
 .listen-lock .ll-ico{font-size:22px}
 .listen-gated[hidden]{display:none}
 .sh-text.sh-blind{filter:blur(13px);opacity:.55;-webkit-user-select:none;user-select:none;position:relative}
+.listen-fill{margin:0;background:#FFF3DC;border-radius:10px;padding:8px 12px}

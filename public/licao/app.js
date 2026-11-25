@@ -1118,20 +1118,19 @@
   }
 
   function buildStory() {
-    var S = C.story, step = { key: "story", title: "A fofoca escrita", minutes: 3, max: 10, skill: "ler" };
+    var S = C.story, step = { key: "story", title: "Ouça e complete a fofoca", minutes: 4, max: 10, skill: "ouvir" };
     var sec = section(step);
     var box = el.apply(null, ["div", { cls: "story" }].concat(S.paragraphs.map(function (p) { return el("p", { html: gapHtml(p) }); })));
     var voc = el("div", { cls: "vocab" }); S.vocab.forEach(function (v) { voc.append(el("b", { cls: "tap", text: "🔊 " + v[0], onclick: function () { speak(v[0]); } }), el("span", { text: v[1] })); });
     var btn = el("button", { cls: "btn", text: "Conferir", onclick: function () { gapCheck(step, box, btn, "Fofoca escrita"); } });
-    // 🎧 ouvir a fofoca de novo aqui mesmo (pedido do Thiago 25/11: senão o aluno esquece a história)
+    // 🎧 OUÇA E COMPLETE (pedido do Thiago 25/11): o áudio da fofoca fica aberto em cima do texto com lacunas —
+    // o aluno ouve e preenche o que escuta (não é só lembrar/ler).
     var again = null;
     if (C.gossip && C.gossip.audio) {
-      var ga = el("audio", { controls: "", preload: "none", src: FILE(C.gossip.audio) }), gw = el("div", { cls: "a-wrap relisten-box", hidden: "" }, ga, audioTools(ga));
-      var gb = el("button", { cls: "relisten", type: "button", text: "🎧 Ouvir a fofoca de novo", onclick: function () {
-        gw.hidden = !gw.hidden; gb.textContent = gw.hidden ? "🎧 Ouvir a fofoca de novo" : "🎧 Esconder o áudio";
-        if (!gw.hidden) ga.play().catch(function () {}); else ga.pause();
-      } });
-      again = el("div", { cls: "relisten-wrap" }, gb, gw);
+      var ga = el("audio", { controls: "", preload: "none", src: FILE(C.gossip.audio) });
+      again = el("div", { cls: "relisten-wrap" },
+        el("p", { cls: "listen-fill", html: "🎧 <b>Ouça a fofoca e complete o que falta.</b> Pause quando precisar e volte 5 s pra ouvir de novo." }),
+        el("div", { cls: "a-wrap" }, ga, audioTools(ga)));
     }
     sec.append(el("p", { cls: "small", html: rich(S.intro) }), again || "", S.vocab.length ? voc : "", box, box.querySelector("input.gap") ? hintBtn(box) : "", ONCE(), btn);
   }

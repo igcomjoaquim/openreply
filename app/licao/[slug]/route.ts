@@ -86,18 +86,18 @@ export async function GET(_request: NextRequest, { params }: Params) {
   const trailItems = rows.slice().reverse();
   const nextId = rows.find((r) => !r.graded)?.id;
   const trail = rows.length
-    ? `<section class="card"><h2>🗺️ Sua trilha</h2><div class="trail">${trailItems
+    ? `<section class="card"><h2>Sua trilha</h2><div class="trail">${trailItems
         .map((r, i) => {
           const st = r.graded ? starsOf(r.graded.score.pct) : 0;
           const cls = r.graded ? "done" : r.id === nextId ? "next" : "todo";
-          const stars = r.graded ? ["", "⭐", "⭐⭐", "⭐⭐⭐"][st] : r.id === nextId ? "▶" : "🔸";
+          const stars = r.graded ? ["", "★☆☆", "★★☆", "★★★"][st] : r.id === nextId ? "agora" : "";
           return `<a class="node ${cls}" href="${base}/${r.id}${q}"><span class="dot">${i + 1}</span><span class="nstars">${stars}</span><span class="ndate">${dayMonth(r.date)}</span></a>`;
         })
         .join('<span class="link"></span>')}</div></section>`
     : "";
   const got = game.badges.filter((b) => b.got).length;
   const badges = rows.length
-    ? `<section class="card"><h2>🏅 Medalhas <span class="small">${got} de ${game.badges.length}</span></h2><div class="badges">${game.badges
+    ? `<section class="card"><h2>Medalhas <span class="small">${got} de ${game.badges.length}</span></h2><div class="badges">${game.badges
         .map((b) => `<div class="badge ${b.got ? "got" : ""}" title="${esc(b.desc)}"><span class="bi">${b.got ? b.icon : "🔒"}</span><b>${esc(b.name)}</b><span class="small">${esc(b.desc)}</span></div>`)
         .join("")}</div></section>`
     : "";

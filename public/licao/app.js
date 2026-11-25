@@ -136,9 +136,9 @@
     step.sec.querySelector("h2").append(el("span", { cls: "stars", text: starText(st) }));
     if (!all) { if (st === 3) SFX.stage(); else if (st === 2) SFX.small(); else SFX.oops(); }
     step.sec.append(el("div", { cls: "stage-clear s" + st },
-      el("b", { text: (st === 3 ? "🎉 Fase " : st === 2 ? "👏 Fase " : "💪 Fase ") + (i + 1) + " de " + steps.length + " completa!" }),
+      el("b", { text: "Fase " + (i + 1) + "/" + steps.length + " concluída" }),
       el("span", { cls: "stars-big", text: starText(st) }),
-      el("span", { cls: "small", text: st === 3 ? "Perfeito!" : st === 2 ? "Muito bom! Dá pra chegar nas 3 estrelas." : "Passou! Treine de novo depois pra ganhar mais estrelas." })));
+      el("span", { cls: "small", text: st === 3 ? "Perfeito. Nativo ficaria com inveja." : st === 2 ? "Mandou bem — dá pra buscar a terceira estrela." : "Passou. Na próxima a gente caça mais estrelas." })));
     if (!step.holdScroll) {
       var nx = all ? concludeSec : steps.slice(i + 1).filter(function (s) { return !s.done; })[0] || steps.filter(function (s) { return !s.done; })[0];
       if (nx) {
@@ -187,7 +187,7 @@
   var lastTotal = 0;
   function updateScore() {
     var t = total(), gained = t - lastTotal; lastTotal = t;
-    scoreEl.textContent = "⭐ " + t + " pts";
+    scoreEl.textContent = "★ " + t + " pts";
     refreshMap();
     if (gained > 0 && !reduce) {
       scoreEl.classList.remove("bump"); void scoreEl.offsetWidth; scoreEl.classList.add("bump");
@@ -273,7 +273,7 @@
       })();
     });
   }
-  // ---------- sons de videogame (8-bit, originais, gerados na hora — sem arquivos) ----------
+  // ---------- sons curtos e suaves (gerados na hora — sem arquivos) ----------
   var SFX = (function () {
     var ctx = null, on = true;
     try { on = localStorage.getItem("licao_som") !== "0"; } catch (e) {}
@@ -291,14 +291,14 @@
     }
     function seq(notes, st, type, vol) { if (!on) return; notes.forEach(function (n, i) { if (n) tone(n, i * st, st * 0.95, type, vol); }); }
     return {
-      tick: function () { seq([784], 0.06, "triangle", 0.09); },
-      go: function () { seq([1047, 1568], 0.06, "square", 0.06); },
-      small: function () { seq([523, 659, 784], 0.08, "triangle", 0.1); },
-      stage: function () { seq([523, 659, 784, 1047, 0, 784, 1047], 0.085); },
-      oops: function () { if (!on) return; tone(330, 0, 0.12, "triangle", 0.09); tone(247, 0.12, 0.22, "triangle", 0.09); },
-      blip: function () { seq([988, 1319], 0.05, "square", 0.05); },
-      combo: function (n) { var b = 523 * Math.pow(1.0595, Math.min(n, 12) * 2); seq([b, b * 1.26, b * 1.5], 0.05, "square", 0.06); },
-      win: function () { seq([392, 523, 659, 784, 0, 659, 784, 0, 1047, 1047, 1047], 0.1); },
+      tick: function () { seq([660], 0.07, "sine", 0.12); },
+      go: function () { seq([880, 1320], 0.07, "sine", 0.12); },
+      blip: function () { seq([1047, 1397], 0.06, "sine", 0.1); },
+      combo: function (n) { var b = 660 * Math.pow(1.0595, Math.min(n, 12) * 2); seq([b, b * 1.5], 0.06, "sine", 0.1); },
+      small: function () { seq([659, 880], 0.1, "sine", 0.12); },
+      stage: function () { seq([523, 659, 784, 1047], 0.08, "triangle", 0.12); },
+      oops: function () { if (!on) return; tone(392, 0, 0.12, "sine", 0.1); tone(330, 0.11, 0.2, "sine", 0.1); },
+      win: function () { seq([523, 659, 784, 1047, 0, 784, 1047, 1319], 0.1, "triangle", 0.13); },
       isOn: function () { return on; },
       toggle: function () { on = !on; try { localStorage.setItem("licao_som", on ? "1" : "0"); } catch (e) {} if (on) seq([659, 988], 0.07); return on; },
     };
@@ -311,7 +311,7 @@
     combo++; if (combo > comboBest) comboBest = combo;
     if (combo >= 3) {
       comboBonus++; comboDirty = true; SFX.combo(combo);
-      var t = el("div", { cls: "combo-toast", text: "🔥 Combo x" + combo + "!  +1 XP" });
+      var t = el("div", { cls: "combo-toast", text: "Combo ×" + combo + "  ·  +1 XP" });
       document.body.append(t); setTimeout(function () { t.remove(); }, 1300);
     }
   }
@@ -320,7 +320,7 @@
     post("/api/licao/attempt/" + att.id + "/progress", { token: att.token, step: "combo", score: 0, max: 0, data: { best: comboBest, bonus: comboBonus } });
   }
   function stars(pct) { return pct >= 0.9 ? 3 : pct >= 0.6 ? 2 : 1; }
-  function starText(n) { return ["", "⭐☆☆", "⭐⭐☆", "⭐⭐⭐"][n]; }
+  function starText(n) { return ["", "★☆☆", "★★☆", "★★★"][n]; }
   // confete na vitória (canvas simples; respeita "reduzir movimento")
   function confetti() {
     if (reduce) return;
@@ -1079,7 +1079,7 @@
   // ---------- montar ----------
   function build() {
     app.replaceChildren();
-    scoreEl = el("span", { cls: "score", text: "⭐ 0 pts" });
+    scoreEl = el("span", { cls: "score", text: "★ 0 pts" });
     var soundBtn = el("button", { cls: "sound", type: "button", "aria-label": "Som", text: SFX.isOn() ? "🔊" : "🔇", onclick: function () { soundBtn.textContent = SFX.toggle() ? "🔊" : "🔇"; } });
     var track = el("div", { cls: "track", "aria-hidden": "true" });
     app.append(el("div", { cls: "bar" }, el("div", { cls: "bar-row" }, el("a", { cls: "back", href: "/licao/" + D.slug + (PQ ? "?" + PQ : ""), text: "← Minhas lições" }), el("span", { cls: "bar-right" }, soundBtn, scoreEl)), track));

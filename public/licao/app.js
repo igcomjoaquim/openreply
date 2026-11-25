@@ -129,8 +129,19 @@
     var all = steps.every(function (s) { return s.done; });
     if (att && !VIEW) post("/api/licao/attempt/" + att.id + "/progress", { token: att.token, step: step.key, score: pts, max: step.max, data: step.data });
     var i = steps.indexOf(step);
-    if (i < steps.length - 1) unlock(steps[i + 1], !step.holdScroll);
-    if (all) showConclude(!step.holdScroll);
+    // não desce sozinho: o aluno lê o resultado com calma e toca quando quiser seguir
+    if (i < steps.length - 1) unlock(steps[i + 1], false);
+    if (all) showConclude(false);
+    if (!step.holdScroll) {
+      var nx = all ? concludeSec : steps.slice(i + 1).filter(function (s) { return !s.done; })[0] || steps.filter(function (s) { return !s.done; })[0];
+      if (nx) {
+        var label = all ? "Ir para o final 🏁" : "Próxima parte: " + (nx.title || "").replace(/^[^\wÀ-ú]+/, "") + " ↓";
+        var go = el("button", { cls: "btn next-part", type: "button", text: label, onclick: function () {
+          go.remove(); (nx.sec || nx).scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+        } });
+        step.sec.append(go);
+      }
+    }
   }
   var mapEl = null;
   function refreshMap() {

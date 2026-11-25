@@ -313,3 +313,6 @@ h1,.hero-title,.result h2,.fb-head h2{font-family:var(--f-display)!important;fon
 .level{display:flex;align-items:center;gap:8px}
 .level-bar{flex:1;height:10px;border-radius:999px;background:var(--line);overflow:hidden}
 .level-bar i{display:block;height:100%;width:0;background:var(--ok);transition:width .08s linear}
+
+.btn.next-part{align-self:center;margin-top:6px}
+section{scroll-margin-top:84px}

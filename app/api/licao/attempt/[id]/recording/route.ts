@@ -28,6 +28,13 @@ export async function POST(request: NextRequest, { params }: Params) {
     transcript = "";
   }
   const seconds = Math.max(0, Math.min(3600, Math.round(Number(q.get("seconds")) || 0)));
+  // diagnóstico do microfone (aparelho, tempos, voz no áudio) só no log, pra medir falhas de gravação
+  let diag = "";
+  try {
+    diag = decodeURIComponent(request.headers.get("x-diag") ?? "").slice(0, 600);
+  } catch {
+    diag = "";
+  }
   const name = newLessonFile(ext);
   try {
     await saveBody(request.body, name);
@@ -35,5 +42,6 @@ export async function POST(request: NextRequest, { params }: Params) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "Upload failed" }, { status: 400 });
   }
   await getPrisma().lessonRecording.create({ data: { attemptId: id, step, fileName: name, transcript, seconds } });
+  console.log(`licao-gravacao ${JSON.stringify({ attempt: id, step, seconds, ua: (request.headers.get("user-agent") ?? "").slice(0, 160), diag })}`);
   return NextResponse.json({ ok: true });
 }

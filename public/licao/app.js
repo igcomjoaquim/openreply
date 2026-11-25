@@ -294,70 +294,165 @@
   }
 
   // ---------- recorder (MediaRecorder + reconhecimento de fala) ----------
-  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  /* Conserto 25/11 (alunos: "o microfone corta, embola e atrasa"). Medido em 66 gravações reais:
+   * 1) no Android o reconhecimento de fala e a gravação brigam pelo microfone: às vezes o áudio
+   *    fica perfeito e a página não entende nada (12 tentativas seguidas de uma aluna), às vezes o
+   *    contrário (arquivo vazio). Agora: o microfone abre só na hora de gravar e fecha no fim; se a
+   *    página não entender nada mas o áudio tiver voz, o celular passa para "só gravar" (o professor
+   *    ouve e corrige) em vez de mandar o aluno repetir sem fim;
+   * 2) o Chrome do Android repete pedaços do texto ("On Friday… On Friday…"): o texto agora é
+   *    montado de novo a cada resultado, sem repetição;
+   * 3) a fala era cortada no fim (o aluno solta o botão ainda falando, e o reconto parava sozinho
+   *    no meio da frase): agora a gravação continua 0,5 s depois de soltar e nada para sozinho. */
+  var SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+  var IS_ANDROID = /Android/i.test(navigator.userAgent);
+  var SR_OFF_KEY = "licao_so_gravar";
+  var srOff = false;
+  try { var off = +localStorage.getItem(SR_OFF_KEY) || 0; srOff = off > Date.now() - 7 * 864e5; } catch (e) {}
+  var SR = SpeechRec && !srOff ? SpeechRec : null;
+  function turnOffSR() { SR = null; try { localStorage.setItem(SR_OFF_KEY, String(Date.now())); } catch (e) {} }
   var canRecord = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder);
-  var micStream = null, busy = null;
-  function getMic() {
-    if (micStream) return Promise.resolve(micStream);
-    return navigator.mediaDevices.getUserMedia({ audio: true }).then(function (s) { micStream = s; return s; });
+  var busy = null;
+  var MIC = { audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1 } };
+  function openMic() {
+    return navigator.mediaDevices.getUserMedia(MIC).catch(function (e) {
+      if (e && e.name === "OverconstrainedError") return navigator.mediaDevices.getUserMedia({ audio: true });
+      throw e;
+    });
   }
   function pickMime() {
     var opts = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/ogg"];
     for (var i = 0; i < opts.length; i++) if (MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(opts[i])) return opts[i];
     return "";
   }
-  /* Uma sessão de gravação. cb.onText(texto) a cada pedaço; cb.onStop(texto, segundos). */
+  function waitMs(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+  // junta os pedaços do texto sem repetir (Chrome do Android manda a mesma frase de novo, às vezes maior)
+  function mergeSegs(list) {
+    var out = [];
+    list.forEach(function (s) {
+      s = String(s || "").trim(); if (!s) return;
+      var n = norm(s), last = out.length ? norm(out[out.length - 1]) : "";
+      if (last && n.indexOf(last) === 0) { out[out.length - 1] = s; return; }
+      if (last && last.indexOf(n) > -1) return;
+      out.push(s);
+    });
+    return out;
+  }
+  var TAIL_MS = 500; // continua gravando depois de soltar, pra não comer a última palavra
+  /* Uma sessão de gravação. cb.onText(texto) a cada pedaço; cb.onStop(texto, segundos, áudio, info). */
   function Session(cb) {
-    var self = this, finals = "", interim = "", chunks = [], mr = null, rec = null, t0 = Date.now(), stopped = false;
-    this.text = function () { return (finals + " " + interim).trim(); };
+    var self = this, done = [], run = [], interim = "", chunks = [], mr = null, rec = null, stream = null;
+    var t0 = Date.now(), tReq = Date.now(), stopped = false, srEnded = null, srEndedResolve = null;
+    var an = null, srcNode = null, buf = null, lvl = 0, voiced = 0, lastTick = 0, raf = 0;
+    var diag = { android: IS_ANDROID, sr: !!SR };
+    this.diag = diag;
+    this.text = function () { return mergeSegs(done.concat(run, [interim])).join(" ").replace(/\s+/g, " ").trim(); };
     this.seconds = function () { return Math.round((Date.now() - t0) / 1000); };
-    var srEnded = null, srEndedResolve = null;
+    this.level = function () { return lvl; };
+    function meter() {
+      try {
+        var x = SFX.ctx(); if (!x || !stream) return;
+        an = x.createAnalyser(); an.fftSize = 512; buf = new Float32Array(an.fftSize);
+        srcNode = x.createMediaStreamSource(stream); srcNode.connect(an);
+        lastTick = performance.now();
+        (function tick(now) {
+          an.getFloatTimeDomainData(buf);
+          var p = 0; for (var i = 0; i < buf.length; i++) { var v = Math.abs(buf[i]); if (v > p) p = v; }
+          lvl = p; if (p > 0.05 && now) voiced += (now - lastTick) / 1000; if (now) lastTick = now;
+          raf = requestAnimationFrame(tick);
+        })();
+      } catch (e) {}
+    }
+    function startSR() {
+      if (!SR) return Promise.resolve();
+      rec = new SR(); rec.lang = "en-US"; rec.continuous = true; rec.interimResults = true;
+      rec.onresult = function (e) {
+        // remonta tudo desta rodada (não só o pedaço novo): é isso que tira as repetições do Android
+        var fin = [], tmp = "";
+        for (var i = 0; i < e.results.length; i++) {
+          var t = e.results[i][0].transcript;
+          if (e.results[i].isFinal) fin.push(t); else tmp += " " + t;
+        }
+        run = fin; interim = tmp; diag.srResults = (diag.srResults || 0) + 1;
+        cb.onText(self.text());
+      };
+      srEnded = new Promise(function (r) { srEndedResolve = r; });
+      rec.onend = function () {
+        // o celular desliga o reconhecimento quando a pessoa pausa; se ainda está gravando, liga de novo
+        done = done.concat(run, interim ? [interim] : []); run = []; interim = "";
+        if (!stopped) { diag.srRestarts = (diag.srRestarts || 0) + 1; try { rec.start(); return; } catch (e) {} }
+        if (srEndedResolve) srEndedResolve();
+      };
+      rec.onerror = function (e) { diag.srError = e && e.error; };
+      var ok = new Promise(function (r) { rec.onstart = function () { diag.srStartMs = Date.now() - tReq; r(); }; setTimeout(r, 1500); });
+      try { rec.start(); } catch (e) { return Promise.resolve(); }
+      return ok;
+    }
+    function startRec() {
+      if (!canRecord) return Promise.resolve();
+      return openMic().then(function (s) {
+        stream = s; diag.micMs = Date.now() - tReq;
+        var tr = s.getAudioTracks()[0], st = tr && tr.getSettings ? tr.getSettings() : {};
+        diag.rate = st.sampleRate; diag.muted = tr && tr.muted;
+        var mime = pickMime();
+        mr = new MediaRecorder(s, mime ? { mimeType: mime } : undefined);
+        diag.mime = mr.mimeType || mime;
+        mr.ondataavailable = function (e) { if (e.data && e.data.size) chunks.push(e.data); };
+        var on = new Promise(function (r) { mr.onstart = function () { diag.recStartMs = Date.now() - tReq; r(); }; setTimeout(r, 1500); });
+        mr.start(); // sem fatiar: o arquivo sai inteiro no fim (fatiar estragava arquivo no celular)
+        meter();
+        return on;
+      }, function (e) {
+        diag.micError = e && e.name;
+        // microfone negado de verdade: avisa. Outro erro (microfone ocupado pelo reconhecimento): segue sem gravar
+        if (e && (e.name === "NotAllowedError" || e.name === "SecurityError") || !SR) throw e;
+      });
+    }
     this.start = function () {
-      return (canRecord ? getMic() : Promise.resolve(null)).then(function (stream) {
-        var ready = Promise.resolve();
-        if (SR) {
-          rec = new SR(); rec.lang = "en-US"; rec.continuous = true; rec.interimResults = true;
-          rec.onresult = function (e) {
-            interim = "";
-            for (var i = e.resultIndex; i < e.results.length; i++) {
-              if (e.results[i].isFinal) finals += " " + e.results[i][0].transcript;
-              else interim += " " + e.results[i][0].transcript;
-            }
-            cb.onText(self.text());
-          };
-          srEnded = new Promise(function (r) { srEndedResolve = r; });
-          rec.onend = function () { if (!stopped) { try { rec.start(); } catch (e) {} } else if (srEndedResolve) srEndedResolve(); };
-          rec.onerror = function () {};
-          // só diz "pode falar" quando o reconhecimento já está ouvindo (senão o começo se perde)
-          ready = new Promise(function (r) { rec.onstart = function () { r(); }; setTimeout(r, 1500); });
-          try { rec.start(); } catch (e) {}
-        }
-        if (stream) {
-          var mime = pickMime();
-          mr = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
-          mr.ondataavailable = function (e) { if (e.data && e.data.size) chunks.push(e.data); };
-          mr.start(1000);
-        }
-        return ready.then(function () { t0 = Date.now(); return stream; });
+      tReq = Date.now();
+      // Android: o reconhecimento pega o microfone primeiro (se a gravação pegar antes, ele fica surdo).
+      // iPhone e computador: os dois ligam juntos (mais rápido). "FALE AGORA" só quando os dois já estão ouvindo.
+      var p = IS_ANDROID ? startSR().then(startRec) : Promise.all([startRec(), startSR()]);
+      return p.then(function () {
+        if (stopped) return stream;
+        t0 = Date.now(); diag.readyMs = t0 - tReq;
+        return stream;
       });
     };
+    function release() {
+      cancelAnimationFrame(raf);
+      try { if (srcNode) srcNode.disconnect(); } catch (e) {}
+      if (stream) stream.getTracks().forEach(function (t) { try { t.stop(); } catch (e) {} });
+      lvl = 0;
+    }
     this.stop = function () {
       if (stopped) return Promise.resolve(); stopped = true;
-      if (rec) { try { rec.stop(); } catch (e) {} }
-      var secs = self.seconds();
-      return new Promise(function (resolve) {
-        if (!mr || mr.state === "inactive") { resolve(null); return; }
-        mr.onstop = function () { resolve(new Blob(chunks, { type: mr.mimeType || "audio/webm" })); };
-        try { mr.stop(); } catch (e) { resolve(null); }
+      var secs = self.seconds(), tStop = Date.now();
+      if (cb.onStopping) cb.onStopping();
+      return waitMs(mr || rec ? TAIL_MS : 0).then(function () {
+        if (rec) { try { rec.stop(); } catch (e) {} }
+        return new Promise(function (resolve) {
+          if (!mr || mr.state === "inactive") { resolve(null); return; }
+          mr.onstop = function () { resolve(chunks.length ? new Blob(chunks, { type: mr.mimeType || "audio/webm" }) : null); };
+          try { mr.stop(); } catch (e) { resolve(null); }
+        });
       }).then(function (blob) {
-        // espera o celular entregar o último pedaço do texto (até 2,5 s)
-        var wait = SR && srEnded ? Promise.race([srEnded.then(function () { return new Promise(function (r) { setTimeout(r, 250); }); }), new Promise(function (r) { setTimeout(r, 2500); })]) : Promise.resolve();
+        release();
+        // espera o último pedaço do texto (no máximo 1,2 s depois do fim da gravação)
+        var wait = rec && srEnded ? Promise.race([srEnded, waitMs(1200)]) : Promise.resolve();
         return wait.then(function () {
-          interim = interim; cb.onStop(self.text(), secs, blob);
+          diag.voiceS = Math.round(voiced * 10) / 10; diag.bytes = blob ? blob.size : 0;
+          diag.endMs = Date.now() - tStop - TAIL_MS; diag.secs = secs;
+          cb.onStop(self.text(), secs, blob && blob.size > 800 ? blob : null, diag);
         });
       });
     };
+    // cancela sem salvar (o aluno soltou antes do microfone ligar)
+    this.abort = function () { stopped = true; try { if (rec) rec.abort(); } catch (e) {} try { if (mr && mr.state !== "inactive") mr.stop(); } catch (e) {} release(); };
   }
+  /* O áudio tinha voz mas a página não entendeu nenhuma palavra: neste celular o reconhecimento
+     não funciona junto com a gravação. Passa a só gravar (o professor ouve), em vez de repetir sem fim. */
+  function srFailed(t, info) { return SR && !String(t || "").trim() && info && info.voiceS >= 1.2 && info.bytes > 800; }
   // contagem 3-2-1 enquanto o microfone liga: o aluno só fala quando já está gravando
   function countdown(b) {
     return new Promise(function (resolve) {
@@ -397,6 +492,7 @@
       oops: function () { if (!on) return; tone(330, 0, 0.12, "triangle", 0.09); tone(247, 0.12, 0.22, "triangle", 0.09); },
       win: function () { seq([392, 523, 659, 784, 0, 659, 784, 0, 1047, 1047, 1047], 0.1); },
       isOn: function () { return on; },
+      ctx: c,
       toggle: function () { on = !on; try { localStorage.setItem("licao_som", on ? "1" : "0"); } catch (e) {} if (on) seq([659, 988], 0.07); return on; },
     };
   })();
@@ -443,11 +539,13 @@
       if (t - t0 < 3200) requestAnimationFrame(draw); else cv.remove();
     })(t0);
   }
-  function upload(stepKey, blob, text, secs) {
+  function upload(stepKey, blob, text, secs, info) {
     if (!att || !blob || !blob.size) return;
+    var diag = "";
+    try { diag = encodeURIComponent(JSON.stringify(info || {}).slice(0, 600)); } catch (e) {}
     var url = "/api/licao/attempt/" + att.id + "/recording?token=" + encodeURIComponent(att.token) + "&step=" + encodeURIComponent(stepKey) + "&seconds=" + secs;
     var send = function (n) {
-      fetch(url, { method: "POST", headers: { "Content-Type": blob.type || "audio/webm", "X-Transcript": encodeURIComponent(text.slice(0, 1500)) }, body: blob })
+      fetch(url, { method: "POST", headers: { "Content-Type": blob.type || "audio/webm", "X-Transcript": encodeURIComponent(text.slice(0, 1500)), "X-Diag": diag }, body: blob })
         .then(function (r) { if (r.status >= 500) throw 0; }).catch(function () { if (n > 0) setTimeout(function () { send(n - 1); }, n === 2 ? 3000 : 10000); });
     };
     send(2);
@@ -503,27 +601,19 @@
     var tm = el("span", { text: "0 s" }), wc = el("span", { text: "0 palavras" });
     var lvl = el("i"), level = el("div", { cls: "level", hidden: "" }, el("span", { text: "🎙️" }), el("div", { cls: "level-bar" }, lvl));
     var meterStop = null;
-    function startMeter(stream) {
-      if (!stream || !(window.AudioContext || window.webkitAudioContext)) return;
-      try {
-        var ctx = new (window.AudioContext || window.webkitAudioContext)(), an = ctx.createAnalyser(), buf = new Uint8Array(256), raf = 0;
-        an.fftSize = 512; ctx.createMediaStreamSource(stream).connect(an);
-        (function tick() {
-          an.getByteTimeDomainData(buf);
-          var peak = 0; for (var i = 0; i < buf.length; i++) peak = Math.max(peak, Math.abs(buf[i] - 128));
-          lvl.style.width = Math.min(100, Math.round(peak / 128 * 260)) + "%";
-          raf = requestAnimationFrame(tick);
-        })();
-        level.hidden = false;
-        meterStop = function () { cancelAnimationFrame(raf); try { ctx.close(); } catch (e) {} level.hidden = true; lvl.style.width = "0"; };
-      } catch (e) {}
+    function startMeter(s) {
+      if (!s || !s.level) return;
+      var raf = 0;
+      (function tick() { lvl.style.width = Math.min(100, Math.round(s.level() * 260)) + "%"; raf = requestAnimationFrame(tick); })();
+      level.hidden = false;
+      meterStop = function () { cancelAnimationFrame(raf); level.hidden = true; lvl.style.width = "0"; };
     }
     var tr = el("div", { cls: "transcript", html: '<span class="small">O que você falar aparece aqui.</span>' });
     var msg = el("p", { cls: "msg", hidden: "" });
     var box = el("div", { style: "display:flex;flex-direction:column;gap:10px" },
       el("p", { cls: "hint", html: "🎙️ <b>Segure o botão</b> (igual áudio de WhatsApp). Quando aparecer 🔴 FALE AGORA, fale em inglês, perto do celular, e <b>solte</b> no fim. Fala comprida? Dê um toque só, espere 3, 2, 1 e toque de novo para parar." }),
       btn, level, el("div", { cls: "meter" }, tm, wc), tr, msg);
-    var sess = null, timer = null, taken = "", tries = 0, valve = null;
+    var sess = null, timer = null, taken = "", tries = 0, valve = null, totalSecs = 0;
     function offerValve() {
       if (valve || step.done) return;
       valve = el("button", { cls: "ghost", text: "Não estou conseguindo — liberar e o professor ouve meu áudio", onclick: function () {
@@ -534,7 +624,8 @@
       } });
       box.append(valve);
     }
-    if (!SR) box.insertBefore(el("p", { cls: "warn", text: canRecord ? "Seu navegador grava, mas não mostra o que você fala. Para a correção na hora, abra este link no Chrome (Android) ou no Safari (iPhone)." : "Seu navegador não grava áudio. Abra este link no Chrome (Android) ou no Safari (iPhone)." }), btn);
+    if (!SR && SpeechRec && srOff) box.insertBefore(el("p", { cls: "warn", text: "🎧 Neste celular a página só grava (não consegue ler a fala ao mesmo tempo). Pode gravar normalmente: seu professor ouve e corrige." }), btn);
+    else if (!SR) box.insertBefore(el("p", { cls: "warn", text: canRecord ? "Seu navegador grava, mas não mostra o que você fala. Para a correção na hora, abra este link no Chrome (Android) ou no Safari (iPhone)." : "Seu navegador não grava áudio. Abra este link no Chrome (Android) ou no Safari (iPhone)." }), btn);
     if (!SR && !canRecord) {
       box.append(el("button", { cls: "ghost", text: "Não consigo gravar — pular esta parte", onclick: function () { finish(step, 0, { skipped: true }); } }));
     }
@@ -543,11 +634,11 @@
       wc.textContent = words(t).length + " palavras" + (opt.minWords ? " · mínimo " + opt.minWords : "");
       if (opt.live) opt.live(t);
     }
-    function ok(t, secs) { return SR ? opt.check(t) : secs >= (opt.minSeconds || 20); }
+    function ok(t, secs) { return SR ? opt.check(t) : totalSecs >= (opt.minSeconds || 20); }
     function done(t, secs) {
       step.sec.querySelector(".rec").disabled = true;
       btn.textContent = "✅ Áudio enviado"; btn.classList.remove("live");
-      var r = opt.score(t, secs, !SR);
+      var r = opt.score(t, totalSecs, !SR);
       say(msg, r.msg, true);
       finish(step, r.pts, r.data);
     }
@@ -561,14 +652,17 @@
         sess = new Session({
           onText: function (t) {
             render(t);
-            // só encerra sozinho depois da contagem (o que falou antes ainda conta no texto)
-            if (live && opt.unlockLive && !isPortuguese(t) && ok(t, sess.seconds())) { btn.disabled = true; sess.stop(); }
+            // antes parava sozinho ao bater o mínimo e cortava a frase no meio; agora só avisa
+            if (live && opt.unlockLive && !isPortuguese(t) && ok(t, 0)) say(msg, "✅ Já deu o mínimo! Termine sua frase e solte o botão.", true);
           },
-          onStop: function (t, secs, blob) {
+          onStopping: function () { clearInterval(timer); btn.textContent = "⏳ Salvando…"; },
+          onStop: function (t, secs, blob, info) {
             clearInterval(timer); busy = null; sess = null; live = false; ptt.reset(); btn.disabled = false; btn.classList.remove("live");
             if (meterStop) { meterStop(); meterStop = null; }
+            var note = "";
+            if (srFailed(t, info)) { turnOffSR(); info.srOff = true; note = "🎧 Seu celular não deixa a página ler a fala enquanto grava. Tudo bem: a partir de agora a página só grava e o seu professor ouve e corrige."; }
             if (SR && !t.trim()) {
-              upload(step.key, blob, "", secs);
+              upload(step.key, blob, "", secs, info);
               btn.textContent = "🎙️ Gravar de novo (segure)";
               say(msg, secs < 2 ? "Muito rápido! Segure o botão, espere o 🔴 FALE AGORA, fale e só depois solte." : "Seu áudio foi gravado, mas a página não entendeu as palavras. Fale um pouco mais alto e devagar, com o celular perto da boca, e grave de novo.");
               if (secs >= 3) { tries++; if (tries >= 3) offerValve(); }
@@ -581,8 +675,10 @@
               return;
             }
             taken = (taken + " " + t).trim(); render(taken);
-            upload(step.key, blob, t, secs);
+            if (blob) totalSecs += secs;
+            upload(step.key, blob, t, secs, info);
             if (ok(taken, secs)) done(taken, secs);
+            else if (note) { btn.textContent = "🎙️ Continuar gravando (segure)"; say(msg, note + " Grave mais um pouco (pelo menos " + (opt.minSeconds || 20) + " segundos no total)."); }
             else {
               btn.textContent = "🎙️ Continuar gravando (segure)"; say(msg, SR ? opt.hint(taken) : "Grave um pouco mais (pelo menos " + (opt.minSeconds || 20) + " segundos).");
               if (secs >= 3) tries++;
@@ -594,6 +690,7 @@
         btn.textContent = "⏳ Ligando o microfone…";
         var p = sess.start(), mine = sess;
         p.then(function (s) { stream0 = s; }, function () {
+          if (mine) mine.abort();
           if (sess !== mine) return;
           btn._cancel = true; busy = null; sess = null; ptt.reset(); btn.disabled = false; btn.textContent = "🎙️ Gravar";
           say(msg, "O microfone está bloqueado. Toque no cadeado ao lado do endereço e libere o microfone.");
@@ -602,7 +699,7 @@
       },
       live: function (tap) {
         live = true; btn._cancel = true; btn.classList.remove("counting");
-        startMeter(stream0);
+        startMeter(sess);
         btn.textContent = tap ? "🔴 FALE AGORA! (toque para parar)" : "🔴 FALE AGORA! (solte para parar)"; btn.classList.add("live"); SFX.go();
         buzz(80);
         var base = parseInt(tm.textContent, 10) || 0, t0 = Date.now();
@@ -1059,8 +1156,12 @@
         shLive = false;
         sess = new Session({
           onText: function (t) { if (shLive) judge(t, false); },
-          onStop: function (t, secs, blob) {
-            busy = null; sess = null; shLive = false; shPtt.reset(); rec.disabled = false; upload("shadowing-" + (si + 1), blob, t, secs);
+          onStopping: function () { rec.textContent = "⏳ Salvando…"; },
+          onStop: function (t, secs, blob, info) {
+            busy = null; sess = null; shLive = false; shPtt.reset(); rec.disabled = false;
+            var note = "";
+            if (srFailed(t, info)) { turnOffSR(); info.srOff = true; note = "🎧 Seu celular não deixa a página ler a fala enquanto grava. Tudo bem: a partir de agora a página só grava e o seu professor ouve e corrige."; }
+            upload("shadowing-" + (si + 1), blob, t, secs, info);
             if (SR && !t.trim()) {
               rec.textContent = "🎙️ Gravar de novo (segure)"; rec.classList.remove("live");
               say(msg, secs < 2 ? "Muito rápido! Segure o botão, espere o 🔴 FALE AGORA, fale e só depois solte." : "Seu áudio foi gravado, mas a página não entendeu as palavras. Fale um pouco mais alto e devagar, perto do celular.");
@@ -1068,11 +1169,12 @@
               return;
             }
             judge(t, true);
+            if (note) say(msg, note, true);
           },
         });
         busy = sess; rec.textContent = "⏳ Ligando o microfone…";
         var p = sess.start(), mine = sess;
-        p.then(null, function () { if (sess !== mine) return; rec._cancel = true; busy = null; sess = null; shPtt.reset(); rec.disabled = false; rec.textContent = "🎙️ Gravar"; say(msg, "O microfone está bloqueado. Toque no cadeado ao lado do endereço e libere o microfone."); });
+        p.then(null, function () { if (mine) mine.abort(); if (sess !== mine) return; rec._cancel = true; busy = null; sess = null; shPtt.reset(); rec.disabled = false; rec.textContent = "🎙️ Gravar"; say(msg, "O microfone está bloqueado. Toque no cadeado ao lado do endereço e libere o microfone."); });
         return p;
       },
       live: function (tap) {

@@ -362,62 +362,12 @@ h2 .stars{font-size:14px;margin-left:6px;letter-spacing:1px}
 .badge .small{font-size:11px}
 .lvl-card .level-bar{flex:none;height:12px}
 
-/* ================= v2 · visual profissional (25/11) =================
-   Mesma marca (amarelo, marsala, madeira), mas: fundo limpo, fonte moderna de título
-   (Bricolage Grotesque), letra de caneta só na assinatura, menos enfeite. */
-:root{
-  --paper:#F6F2EC; --card:#FFFFFF; --ink:#1d1b18; --muted:#6E6257; --line:#E8DFD3;
-  --f-display:"Bricolage Grotesque","Inter",system-ui,sans-serif;
-  --shadow:0 1px 2px rgba(29,27,24,.05),0 10px 28px -16px rgba(29,27,24,.22);
-  --star:#E3A500;
-}
-body{font-size:16px;letter-spacing:-.005em}
+/* ================= fonte nova (25/11): Bricolage Grotesque nos títulos — mais fácil de ler.
+   O resto do visual continua o de antes (caderno, cores por fase, emoji). ================= */
+:root{--f-display:"Bricolage Grotesque","Inter",system-ui,sans-serif}
 h1,.hero-title,.result h2,.fb-head h2,.login h1{font-family:var(--f-display)!important;font-weight:800!important;letter-spacing:-.02em!important}
-.step h2,.card h2,.fb-card h3,.teacher h3,.conclude h2,.review h3{font-family:var(--f-display)!important;font-weight:700!important;font-size:19px!important;letter-spacing:-.01em}
-.focus b.big-skill{font-family:var(--f-display);font-weight:700;font-size:24px}
-.big{font-family:var(--f-display);font-weight:800}
-.sh-text{font-family:var(--f-display);font-weight:600;background:#F6F2EC}
-/* saudação e rótulos: discretos */
-.hand{font-family:var(--f-body)!important;font-size:15px!important;font-weight:600!important;color:var(--muted)!important}
-.phase,.month{font-family:var(--f-body)!important;font-size:12px!important;font-weight:700!important;text-transform:uppercase;letter-spacing:.1em;background:none!important;color:var(--marsala)!important;padding:0!important;margin:14px 0 -10px!important;border-radius:0}
-.phase::before{content:"";display:inline-block;width:18px;height:3px;border-radius:2px;background:currentColor;vertical-align:middle;margin-right:8px}
-.brand span{font-family:var(--f-display);font-weight:800;font-size:17px;letter-spacing:-.01em}
-footer{font-size:22px;opacity:.9}
-/* cartões */
-.step,.card,.fb-card,.focus,.late,.lvl-card,.prev-fix,.bonus{border-radius:16px;box-shadow:var(--shadow);border:1px solid var(--line)}
-.step[data-phase]{border-top:3px solid var(--line)}
-.step[data-phase="ouvir"]{border-top-color:var(--ph-ouvir)}
-.step[data-phase="fofoca"]{border-top-color:var(--ph-fofoca)}
-.step[data-phase="escrever"]{border-top-color:var(--ph-escrever)}
-.step[data-phase="falar"]{border-top-color:var(--ph-falar)}
-.step.done{border-color:var(--line);border-top-color:var(--ok)}
-.n{width:26px;height:26px;font-size:13px;font-weight:700;border-radius:8px}
-.focus{border:1px solid var(--line);border-left:4px solid var(--marsala)}
-.prev-fix{border:1px solid var(--line);border-left:4px solid var(--yellow)}
-.late{border:1px solid var(--line);border-left:4px solid var(--marsala);border-style:solid}
-.lvl-card{border:1px solid var(--line)}
-.bonus{border:1px solid var(--line);border-left:4px solid var(--yellow)}
-.hero-card{box-shadow:var(--shadow)}
-/* botões */
-.btn,a.btn{border-radius:12px;font-weight:700;letter-spacing:-.005em}
-.btn.next-part{background:var(--card);color:var(--ink);border:1.5px solid var(--ink)}
-.score{background:var(--ink)!important;color:#fff!important;font-weight:700}
-/* estrelas e fim de fase: limpo */
-h2 .stars{color:var(--star);font-size:15px;letter-spacing:2px;margin-left:auto}
-h2 .stars + .pts,.pts + .stars{margin-left:8px}
-.stage-clear{flex-direction:row;flex-wrap:wrap;justify-content:space-between;align-items:center;text-align:left;gap:4px 12px;background:#FBF8F3!important;border:1px solid var(--line);border-radius:12px;padding:12px 14px;animation:pop .35s ease-out}
-.stage-clear b{font-family:var(--f-display)!important;font-size:16px!important;font-weight:700}
-.stage-clear .stars-big{color:var(--star);font-size:22px;letter-spacing:3px}
-.stage-clear .small{flex-basis:100%}
-.combo-toast{background:var(--ink);color:var(--yellow);font-size:15px;letter-spacing:.02em}
-/* página do aluno */
-.trail .done .dot{background:#fff;border-color:var(--ok);color:var(--ok)}
-.trail .next .dot{background:var(--yellow);border-color:var(--ink)}
-.trail .nstars{color:var(--star);letter-spacing:1px}
-.badge{background:#F3EEE7;opacity:.6}
-.badge.got{background:#fff;border:1px solid var(--yellow);box-shadow:var(--shadow)}
-.badge .bi{filter:grayscale(1)}
-.badge.got .bi{filter:none}
-.lvl-top b{font-family:var(--f-display);font-size:20px;font-weight:800}
-.lvl-badge{background:var(--ink)}
-.prev-fix h2,.late b{font-family:var(--f-display);font-weight:700;font-size:20px;letter-spacing:-.01em}
+.step h2,.card h2,.fb-card h3,.teacher h3,.conclude h2,.review h3,.prev-fix h2{font-family:var(--f-display)!important;font-weight:700!important;letter-spacing:-.01em}
+.focus b.big-skill,.big,.sh-text,.lvl-top b,.stage-clear b,.late b{font-family:var(--f-display)!important;font-weight:700!important}
+.phase,.month{font-family:var(--f-display)!important;font-weight:700!important;font-size:18px!important;letter-spacing:-.01em}
+.hand{font-family:var(--f-display)!important;font-weight:700!important;font-size:20px!important}
+.brand span{font-family:var(--f-display);font-weight:800;font-size:17px}

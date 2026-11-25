@@ -790,6 +790,28 @@
       }), chips);
   }
 
+  // 🔒 OUVIR ANTES DE LER (regra do Thiago 25/11): nada escrito sobre um áudio aparece antes de o aluno
+  // ouvir o áudio inteiro — perguntas da fofoca e da cena, frase do shadowing. Tira a muleta da leitura.
+  function heardKey(k) { return STORE + ":ouviu:" + k; }
+  function wasHeard(k) { try { return localStorage.getItem(heardKey(k)) === "1"; } catch (e) { return false; } }
+  function markHeard(k) { try { localStorage.setItem(heardKey(k), "1"); } catch (e) {} }
+  function listenGate(key, label, parts) {
+    var lock = el("div", { cls: "listen-lock" }, el("span", { cls: "ll-ico", text: "🔒🎧" }), el("span", { html: label }));
+    var inner = el.apply(null, ["div", { cls: "listen-gated", hidden: "" }].concat(parts));
+    var box = el("div", null, lock, inner), open = false;
+    function unlock(scroll) {
+      if (open) return; open = true; lock.remove(); inner.hidden = false; markHeard(key);
+      if (scroll) { SFX.blip(); scrollTo(inner); }
+    }
+    if (wasHeard(key) || PREVIEW) unlock(false);
+    return { box: box, unlock: unlock };
+  }
+  function whenHeard(a, fn) {
+    var fired = false;
+    function chk() { if (!fired && a.duration && (a.ended || a.currentTime / a.duration >= 0.92)) { fired = true; fn(); } }
+    a.addEventListener("timeupdate", chk); a.addEventListener("ended", chk);
+  }
+
   function buildDictation() {
     var step = { key: "dictation", title: "Ditado", minutes: 4, max: 5, skill: "ouvir" };
     var sec = section(step, "1. Ouça 🎧");
@@ -835,11 +857,15 @@
       btn.disabled = true; inp.disabled = true;
       finish(step, (tries ? 1 : 2) + m.ok, { wrongs: m.wrongs, good: m.total && m.ok === m.total ? ["Fofoca: entendeu a história toda só de ouvido! 👂"] : [] });
     } });
+    var ga = el("audio", { controls: "", preload: "none", src: FILE(C.gossip.audio) });
+    var gate = listenGate("gossip", "Primeiro <b>ouça a fofoca inteira</b>, sem ler nada. As perguntas aparecem quando o áudio terminar.",
+      [qbox ? el("p", { cls: "small", html: LEVEL === "A1" ? "Responda <b>sem ler nada</b>, só com o que você ouviu:" : "Responda <b>com as suas palavras, em inglês</b>, só com o que você ouviu:" }) : "", qbox || "",
+        el("p", { cls: "small", text: "🔑 Palavra secreta:" }), inp, btn, msg]);
+    whenHeard(ga, function () { gate.unlock(true); });
     sec.append(el("p", { cls: "small", html: "Daqui até a leitura em voz alta, <b>tudo é sobre esta fofoca</b>: ouvir, imitar, recontar, completar e ler." }),
       el("p", { html: "🚫 <b>Não escreva a história.</b> Ouça 2 vezes, sem ler nada. 🔑 No fim tem uma <b>palavra secreta</b>." }),
-      (function () { var a = el("audio", { controls: "", preload: "none", src: FILE(C.gossip.audio) }); return el("div", { cls: "a-wrap" }, a, audioTools(a)); })(),
-      qbox ? el("p", { cls: "small", html: LEVEL === "A1" ? "Responda <b>sem ler nada</b>, só com o que você ouviu:" : "Responda <b>com as suas palavras, em inglês</b>, só com o que você ouviu:" }) : "", qbox || "",
-      el("p", { cls: "small", text: "🔑 Palavra secreta:" }), inp, btn, msg);
+      el("div", { cls: "a-wrap" }, ga, audioTools(ga)), gate.box);
+    setTimeout(function () { if (step.done) gate.unlock(false); }, 1500);
   }
 
   var ytReady = null;
@@ -857,7 +883,7 @@
     var holder = el("div", { id: "ytp" });
     var cover = el("div", { cls: "cover" }, el("div", { cls: "cover-in" }, el("span", { cls: "cover-play", text: "🎧" }), el("span", { text: "Tela coberta — só ouvido" })));
     var wrap = el("div", { cls: "yt-wrap" }, holder, cover);
-    var player = null, slow = false;
+    var player = null, slow = false, sceneGate = null, scenePlayed = false;
     function withPlayer(fn) {
       if (player) { fn(player); return; }
       loadYT().then(function (YT) {
@@ -881,6 +907,8 @@
       var cur = player.getCurrentTime() - S.start, f = Math.min(1, Math.max(0, cur / len));
       fill.style.width = (f * 100) + "%"; now.textContent = mmss(Math.min(len, Math.max(0, cur)));
       var st = player.getPlayerState ? player.getPlayerState() : -1;
+      if (st === 1 && cur > 1) scenePlayed = true;
+      if (sceneGate && scenePlayed && (f >= 0.95 || st === 0)) sceneGate.unlock(true);
       state.textContent = st === 1 ? "🔊 Tocando…" : st === 3 ? "⏳ Carregando…" : f >= 0.98 || st === 0 ? "✅ Terminou — toque em ↺ pra ouvir de novo" : "⏸ Pausado";
       if (tlines.length) {
         var abs = player.getCurrentTime(), cur2 = -1;
@@ -949,8 +977,11 @@
       gapCheck(step, box, btn, "Cena real", " só de ouvido 👂");
       if (step.done) { showVocab(); show.hidden = false; scrollTo(show); }
     } });
+    sceneGate = listenGate("scene", "Primeiro <b>ouça o trecho inteiro</b> (tela coberta, sem ler nada). As perguntas aparecem quando ele terminar.",
+      [el("p", { cls: "small", html: "Responda só com o que você <b>ouviu</b>:" }), box, box.querySelector("input.gap") ? hintBtn(box) : "", ONCE(), btn]);
     sec.append(el("p", { html: rich(S.intro) + " Primeiro <b>só ouça</b>: a imagem fica escondida. Ouça 3 vezes (pode usar 0.75× na 2ª)." }),
-      wrap, timeline, ctrl, el("p", { cls: "small", html: "Responda só com o que você <b>ouviu</b>:" }), box, box.querySelector("input.gap") ? hintBtn(box) : "", ONCE(), btn, vbox || "", show, tbox || "", goOn);
+      wrap, timeline, ctrl, sceneGate.box, vbox || "", show, tbox || "", goOn);
+    setTimeout(function () { if (step.done) sceneGate.unlock(false); }, 1500);
     if (PREVIEW) { showVocab(); showTranscript(); }
     setTimeout(function () { if (step.done) showVocab(); }, 1500); // voltou numa lição já respondida
   }
@@ -958,7 +989,7 @@
   function buildShadowing() {
     var SH = C.shadowing, step = { key: "shadowing", title: "Shadowing — ouça e imite", minutes: 3, max: SH.length, skill: "falar" };
     var sec = section(step);
-    var si = 0, res = [], miss = [], audio = new Audio(), hl = null, sess = null;
+    var si = 0, res = [], miss = [], audio = new Audio(), hl = null, sess = null, shHeard = {};
     var count = el("span"), dots = el("div", { cls: "sh-dots" }), text = el("div", { cls: "sh-text" }), pt = el("div", { cls: "sh-pt" });
     var msg = el("p", { cls: "msg", hidden: "" });
     var play = el("button", { cls: "btn", text: "🔊 Ouvir" }), slowB = el("button", { cls: "soft", text: "🐢 Devagar" });
@@ -967,6 +998,9 @@
     function render() {
       count.textContent = "Frase " + (si + 1) + " de " + SH.length; pt.textContent = SH[si].pt ? "🇧🇷 " + SH[si].pt : "";
       text.replaceChildren(); SH[si].en.split(" ").forEach(function (w, i) { if (i) text.append(" "); text.append(el("span", { text: w })); });
+      var blind = !shHeard[si] && !PREVIEW;
+      text.classList.toggle("sh-blind", blind); pt.hidden = blind;
+      text.title = blind ? "Ouça a frase primeiro" : "";
       [].forEach.call(dots.children, function (d, i) { d.className = i === si ? "cur" : res[i] === undefined ? "" : res[i] >= 0.95 ? "ok" : "meh"; });
       rec.disabled = false; rec.textContent = "🎤 Segure e fale"; next.hidden = true; say(msg, "");
     }
@@ -974,6 +1008,8 @@
       var spans = [].slice.call(text.children), lens = spans.map(function (s) { return s.textContent.length + 1; });
       var tot = lens.reduce(function (a, b) { return a + b; }, 0);
       audio.src = FILE(isSlow ? SH[si].slow : SH[si].audio); audio.play().catch(function () {});
+      var mySi = si;
+      audio.onended = function () { if (mySi === si && !shHeard[si]) { shHeard[si] = true; text.classList.remove("sh-blind"); pt.hidden = !SH[si].pt; text.title = ""; SFX.blip(); } };
       clearInterval(hl);
       hl = setInterval(function () {
         if (!audio.duration) return;
@@ -1006,6 +1042,7 @@
       pre: function () {
         if (step.done) return true;
         if (rec.textContent.indexOf("🔁") === 0) { render(); return true; }
+        if (!shHeard[si] && !PREVIEW) { say(msg, "🎧 Primeiro ouça a frase (toque em 🔊 Ouvir). Depois você vê ela escrita e repete."); return true; }
         return false;
       },
       stop: function () { rec.disabled = true; if (sess) sess.stop(); },

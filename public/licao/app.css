@@ -450,3 +450,8 @@ h1,.hero-title,.result h2,.fb-head h2,.login h1{font-family:var(--f-display)!imp
 .tr-en mark{background:#F5D76E;border-radius:4px;padding:0 2px;color:inherit}
 .tr-pt{display:none;font-size:14px;color:#6b5a4c;margin-top:2px}
 .tr-lines.show-pt .tr-pt{display:block}
+/* v26 — 25/11: ouvir antes de ler */
+.listen-lock{display:flex;gap:10px;align-items:center;background:#FFF3DC;border:2px dashed var(--marsala);border-radius:14px;padding:12px 14px;margin:8px 0;font-size:15px}
+.listen-lock .ll-ico{font-size:22px}
+.listen-gated[hidden]{display:none}
+.sh-text.sh-blind{filter:blur(13px);opacity:.55;-webkit-user-select:none;user-select:none;position:relative}

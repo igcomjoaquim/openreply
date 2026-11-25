@@ -439,3 +439,14 @@ h1,.hero-title,.result h2,.fb-head h2,.login h1{font-family:var(--f-display)!imp
 .scene-vocab .vocab{grid-template-columns:1fr;gap:0}
 .scene-vocab .vocab b{white-space:normal;justify-self:start;margin-top:8px}
 .scene-vocab .vocab span{color:var(--ink-soft,#6b5a4c);padding-left:22px}
+/* v25 — 25/11: texto do vídeo pra acompanhar (depois de assistir com imagem) */
+.scene-tr{background:#FFFDF7;border:2px solid var(--line,#e6d3bc);border-radius:14px;padding:12px 14px;margin:6px 0;display:flex;flex-direction:column;gap:8px}
+.scene-tr[hidden]{display:none}
+.tr-lines{display:flex;flex-direction:column;gap:2px}
+.tr-line{display:flex;flex-direction:column;padding:6px 8px;border-radius:10px;cursor:pointer;border-left:4px solid transparent;transition:background .2s}
+.tr-line:hover{background:#FFF3DC}
+.tr-line.now{background:#FFE9A8;border-left-color:var(--marsala)}
+.tr-en{font-size:16px;line-height:1.45}
+.tr-en mark{background:#F5D76E;border-radius:4px;padding:0 2px;color:inherit}
+.tr-pt{display:none;font-size:14px;color:#6b5a4c;margin-top:2px}
+.tr-lines.show-pt .tr-pt{display:block}

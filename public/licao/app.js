@@ -882,6 +882,11 @@
       fill.style.width = (f * 100) + "%"; now.textContent = mmss(Math.min(len, Math.max(0, cur)));
       var st = player.getPlayerState ? player.getPlayerState() : -1;
       state.textContent = st === 1 ? "🔊 Tocando…" : st === 3 ? "⏳ Carregando…" : f >= 0.98 || st === 0 ? "✅ Terminou — toque em ↺ pra ouvir de novo" : "⏸ Pausado";
+      if (tlines.length) {
+        var abs = player.getCurrentTime(), cur2 = -1;
+        tlines.forEach(function (x, i) { if (abs >= x.t - 0.3) cur2 = i; });
+        tlines.forEach(function (x, i) { x.el.classList.toggle("now", i === cur2 && st === 1); });
+      }
     }, 250);
     var ctrl = el("div", { cls: "yt-ctrl" },
       el("button", { text: "▶ Tocar", onclick: function () { withPlayer(function (p) { p.playVideo(); }); } }),
@@ -898,10 +903,36 @@
       var nx = steps[nextIdx()]; if (nx) scrollTo(nx.sec); else if (concludeSec) scrollTo(concludeSec);
     } });
     var show = el("button", { cls: "btn yt watch-now", hidden: "", text: "👀 Agora toque aqui e assista COM imagem", onclick: function () {
-      cover.remove(); show.hidden = true; goOn.hidden = false;
+      cover.remove(); show.hidden = true; goOn.hidden = false; showTranscript();
       withPlayer(function (p) { p.seekTo(S.start, true); p.playVideo(); });
       scrollTo(wrap);
     } });
+    // 📝 texto do trecho pra acompanhar (pedido do Thiago 25/11): aparece no fim, quando ela assiste COM imagem.
+    // scene.transcript = [{t: segundos do vídeo, en: "fala", pt: "tradução"}]. A frase que está tocando acende;
+    // tocar numa frase pula o vídeo pra ela. Os chunks da aula (vocab com "chunk") ficam marcados no texto.
+    var tlines = [], tbox = null;
+    var chunkRx = (S.vocab || []).filter(function (v) { return v && v[2]; }).map(function (v) { return v[0].replace(/…|\.\.\./g, "").trim(); }).filter(function (s) { return s.length > 2; });
+    function markChunks(s) {
+      var h = esc(s);
+      if (/\*\*/.test(s)) return h.replace(/\*\*(.+?)\*\*/g, "<mark>$1</mark>"); // chunk marcado à mão no roteiro
+      chunkRx.forEach(function (c) { var rx = new RegExp(esc(c).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i"); h = h.replace(rx, function (m) { return "<mark>" + m + "</mark>"; }); });
+      return h;
+    }
+    if ((S.transcript || []).length) {
+      var tl = el("div", { cls: "tr-lines" });
+      S.transcript.forEach(function (x) {
+        var row = el("div", { cls: "tr-line", role: "button", tabindex: "0", onclick: function () { withPlayer(function (p) { p.seekTo(x.t, true); p.playVideo(); }); } },
+          el("span", { cls: "tr-en", html: markChunks(x.en) }), x.pt ? el("span", { cls: "tr-pt", text: x.pt }) : "");
+        tlines.push({ t: x.t, el: row }); tl.append(row);
+      });
+      var hasPt = S.transcript.some(function (x) { return x.pt; });
+      var ptBtn = hasPt ? el("button", { cls: "relisten", type: "button", text: "🇧🇷 Mostrar tradução", onclick: function () { tl.classList.toggle("show-pt"); ptBtn.textContent = tl.classList.contains("show-pt") ? "🇧🇷 Esconder tradução" : "🇧🇷 Mostrar tradução"; } }) : null;
+      tbox = el("div", { cls: "scene-tr", hidden: "" },
+        el("p", { cls: "scene-vocab-t", html: "📝 <b>O que foi falado</b> — acompanhe enquanto o vídeo toca. Toque numa frase pra voltar nela." }),
+        ptBtn || "", tl);
+    }
+    function showTranscript() { if (tbox) tbox.hidden = false; }
+
     // 📖 vocabulário do vídeo (pedido do Thiago 25/11): aparece DEPOIS de responder,
     // pra primeira escuta ser desafio e o aluno rever o vídeo já entendendo tudo.
     // scene.vocab = [["en", "pt", "chunk"?], ...] — com "chunk" = expressão da aula (fica destacada).
@@ -919,8 +950,8 @@
       if (step.done) { showVocab(); show.hidden = false; scrollTo(show); }
     } });
     sec.append(el("p", { html: rich(S.intro) + " Primeiro <b>só ouça</b>: a imagem fica escondida. Ouça 3 vezes (pode usar 0.75× na 2ª)." }),
-      wrap, timeline, ctrl, el("p", { cls: "small", html: "Responda só com o que você <b>ouviu</b>:" }), box, box.querySelector("input.gap") ? hintBtn(box) : "", ONCE(), btn, vbox || "", show, goOn);
-    if (PREVIEW) showVocab();
+      wrap, timeline, ctrl, el("p", { cls: "small", html: "Responda só com o que você <b>ouviu</b>:" }), box, box.querySelector("input.gap") ? hintBtn(box) : "", ONCE(), btn, vbox || "", show, tbox || "", goOn);
+    if (PREVIEW) { showVocab(); showTranscript(); }
     setTimeout(function () { if (step.done) showVocab(); }, 1500); // voltou numa lição já respondida
   }
 

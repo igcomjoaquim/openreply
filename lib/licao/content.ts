@@ -63,6 +63,8 @@ export const lessonContentSchema = z.object({
       questions: z.array(z.union([z.string().min(1), choice])).min(1),
       /** Vocabulário do vídeo, mostrado depois das perguntas: [en, pt] ou [en, pt, "chunk"] (expressão da aula, em destaque). */
       vocab: z.array(z.array(z.string()).min(2).max(3)).max(14).default([]),
+      /** Texto do trecho pra acompanhar depois de assistir: t = segundo do vídeo; **chunk** marca a expressão da aula. */
+      transcript: z.array(z.object({ t: z.number().min(0), en: z.string().min(1), pt: z.string().optional() })).max(40).default([]),
     })
     .optional(),
   shadowing: z

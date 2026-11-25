@@ -3,6 +3,7 @@ import { autoResetDemo, isDemoStudent } from "@/lib/licao/demo";
 import { getPrisma } from "@/lib/db/client";
 import { HTML_HEADERS, cookieHeader, dayMonth, esc, monthLabel, page } from "@/lib/licao/html";
 import { SKILLS, type Skill, studentLessons } from "@/lib/licao/summary";
+import { gameOf, starsOf } from "@/lib/licao/game";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -75,6 +76,32 @@ export async function GET(_request: NextRequest, { params }: Params) {
         .join("")}</section>`
     : "";
 
+  // ---- jeito de jogo: nível, trilha de fases e medalhas ----
+  const game = gameOf(rows);
+  const levelCard = rows.length
+    ? `<section class="lvl-card"><div class="lvl-top"><span class="lvl-badge">Nível ${game.level}</span><b>${esc(game.levelName)}</b><span class="xp">${game.xp} XP</span></div>
+<div class="level-bar"><i style="width:${game.pctInLevel}%"></i></div>
+<p class="small">${game.nextName ? `Faltam <b>${game.toNext} XP</b> para o nível ${game.level + 1} — ${esc(game.nextName)}. Cada lição dá XP; combos e a rodada bônus dão extra.` : "Você chegou no nível máximo! 🏆"}</p></section>`
+    : "";
+  const trailItems = rows.slice().reverse();
+  const nextId = rows.find((r) => !r.graded)?.id;
+  const trail = rows.length
+    ? `<section class="card"><h2>🗺️ Sua trilha</h2><div class="trail">${trailItems
+        .map((r, i) => {
+          const st = r.graded ? starsOf(r.graded.score.pct) : 0;
+          const cls = r.graded ? "done" : r.id === nextId ? "next" : "todo";
+          const stars = r.graded ? ["", "⭐", "⭐⭐", "⭐⭐⭐"][st] : r.id === nextId ? "▶" : "🔸";
+          return `<a class="node ${cls}" href="${base}/${r.id}${q}"><span class="dot">${i + 1}</span><span class="nstars">${stars}</span><span class="ndate">${dayMonth(r.date)}</span></a>`;
+        })
+        .join('<span class="link"></span>')}</div></section>`
+    : "";
+  const got = game.badges.filter((b) => b.got).length;
+  const badges = rows.length
+    ? `<section class="card"><h2>🏅 Medalhas <span class="small">${got} de ${game.badges.length}</span></h2><div class="badges">${game.badges
+        .map((b) => `<div class="badge ${b.got ? "got" : ""}" title="${esc(b.desc)}"><span class="bi">${b.got ? b.icon : "🔒"}</span><b>${esc(b.name)}</b><span class="small">${esc(b.desc)}</span></div>`)
+        .join("")}</div></section>`
+    : "";
+
   const graded = rows.filter((r) => r.graded).slice().reverse(); // da mais antiga para a mais nova
   let progress = "";
   if (graded.length) {
@@ -126,7 +153,10 @@ export async function GET(_request: NextRequest, { params }: Params) {
   <header><span class="hand">Hi, ${esc(student.name)}! 👋</span><h1>Minhas lições</h1></header>
   ${hero}
   ${lateBox}
+  ${levelCard}
+  ${trail}
   ${progress}
+  ${badges}
   ${history}
   ${resetBox}
   <footer>Falou, validou! 🚀</footer>

@@ -127,7 +127,7 @@
     step.ptsEl.textContent = pts + "/" + step.max + " pts";
     updateScore();
     var all = steps.every(function (s) { return s.done; });
-    if (att && !VIEW) post("/api/licao/attempt/" + att.id + "/progress", { token: att.token, step: step.key, score: pts, max: step.max, data: step.data });
+    if (att && !VIEW) post("/api/licao/attempt/" + att.id + "/progress", { token: att.token, step: step.key, score: pts, max: step.max, data: step.data }).then(saveCombo);
     var i = steps.indexOf(step);
     // não desce sozinho: o aluno lê o resultado com calma e toca quando quiser seguir
     if (i < steps.length - 1) unlock(steps[i + 1], false);
@@ -296,11 +296,29 @@
       small: function () { seq([523, 659, 784], 0.08, "triangle", 0.1); },
       stage: function () { seq([523, 659, 784, 1047, 0, 784, 1047], 0.085); },
       oops: function () { if (!on) return; tone(330, 0, 0.12, "triangle", 0.09); tone(247, 0.12, 0.22, "triangle", 0.09); },
+      blip: function () { seq([988, 1319], 0.05, "square", 0.05); },
+      combo: function (n) { var b = 523 * Math.pow(1.0595, Math.min(n, 12) * 2); seq([b, b * 1.26, b * 1.5], 0.05, "square", 0.06); },
       win: function () { seq([392, 523, 659, 784, 0, 659, 784, 0, 1047, 1047, 1047], 0.1); },
       isOn: function () { return on; },
       toggle: function () { on = !on; try { localStorage.setItem("licao_som", on ? "1" : "0"); } catch (e) {} if (on) seq([659, 988], 0.07); return on; },
     };
   })();
+  // ---------- combo: acertos seguidos ----------
+  var combo = 0, comboBest = 0, comboBonus = 0, comboDirty = false;
+  function hit(ok) {
+    if (VIEW) return;
+    if (!ok) { combo = 0; return; }
+    combo++; if (combo > comboBest) comboBest = combo;
+    if (combo >= 3) {
+      comboBonus++; comboDirty = true; SFX.combo(combo);
+      var t = el("div", { cls: "combo-toast", text: "🔥 Combo x" + combo + "!  +1 XP" });
+      document.body.append(t); setTimeout(function () { t.remove(); }, 1300);
+    }
+  }
+  function saveCombo() {
+    if (!comboDirty || !att || VIEW) return; comboDirty = false;
+    post("/api/licao/attempt/" + att.id + "/progress", { token: att.token, step: "combo", score: 0, max: 0, data: { best: comboBest, bonus: comboBonus } });
+  }
   function stars(pct) { return pct >= 0.9 ? 3 : pct >= 0.6 ? 2 : 1; }
   function starText(n) { return ["", "⭐☆☆", "⭐⭐☆", "⭐⭐⭐"][n]; }
   // confete na vitória (canvas simples; respeita "reduzir movimento")
@@ -460,8 +478,9 @@
     qs.forEach(function (q) {
       var sel = q.querySelector(".mcq-opt.sel"), right = q.querySelector('.mcq-opt[data-k="' + q.getAttribute("data-answer") + '"]');
       q.classList.add("checked");
-      if (sel === right) { ok++; sel.classList.add("ok"); }
+      if (sel === right) { ok++; sel.classList.add("ok"); hit(true); }
       else {
+        hit(false);
         sel.classList.add("bad"); right.classList.add("ok");
         ws.push({ said: label + ": marcou \"" + sel.textContent + "\"", right: right.textContent, why: q.querySelector(".mcq-q").textContent });
       }
@@ -515,7 +534,7 @@
     var ok = 0, ws = [];
     var m = mcqCheck(box, label) || { ok: 0, total: 0, wrongs: [] };
     ok += m.ok; ws = ws.concat(m.wrongs);
-    qs.filter(function (q) { return q.classList.contains("open"); }).forEach(function (q) { var w = openCheck(q, label); if (w) ws.push(w); else ok++; });
+    qs.filter(function (q) { return q.classList.contains("open"); }).forEach(function (q) { var w = openCheck(q, label); if (w) { ws.push(w); hit(false); } else { ok++; hit(true); } });
     return { ok: ok, total: qs.length, wrongs: ws };
   }
   function unanswered(box) { return [].some.call(box.querySelectorAll("li.mcq, li.open"), function (q) { return !answered(q); }); }
@@ -534,7 +553,7 @@
       var opts = i.getAttribute("data-a").split("|").map(function (x) { return x.trim(); });
       var g = opts.map(norm).indexOf(norm(i.value)) > -1;
       answers.push(i.value.trim());
-      i.classList.add(g ? "ok" : "bad"); i.disabled = true;
+      i.classList.add(g ? "ok" : "bad"); i.disabled = true; hit(g);
       if (g) ok++;
       else {
         i.after(el("span", { cls: "fix", text: " ✓ " + opts[0] }));
@@ -877,7 +896,53 @@
 
   // ---------- concluir ----------
   var concludeSec;
+  // ---------- ⚡ rodada bônus: 30 s, português → inglês, com as palavras da lição ----------
+  function bonusPairs() {
+    var v = (C.story.vocab || []).filter(function (x) { return x[0] && x[1]; }).map(function (x) { return { en: x[0], pt: x[1] }; });
+    if (v.length < 3) v = v.concat((C.shadowing || []).filter(function (x) { return x.pt; }).map(function (x) { return { en: x.en, pt: x.pt }; }));
+    return v.length >= 3 ? v : [];
+  }
+  function bonusCard() {
+    var pairs = bonusPairs(); if (!pairs.length || VIEW) return null;
+    var card = el("div", { cls: "bonus" }, el("b", { cls: "bonus-title", text: "⚡ Rodada bônus (opcional)" }),
+      el("p", { cls: "small", text: "30 segundos! Aparece em português, toque na opção certa em inglês. Cada acerto vale 2 XP." }));
+    if (saved.bonus && saved.bonus.data) { card.append(el("p", { cls: "msg good", text: "✅ Você fez: acertou " + saved.bonus.data.right + " de " + saved.bonus.data.total + "." })); return card; }
+    var go = el("button", { cls: "btn", type: "button", text: "⚡ Começar" });
+    card.append(go);
+    go.onclick = function () {
+      go.remove();
+      var order = pairs.slice().sort(function () { return Math.random() - 0.5; }).slice(0, 8), qi = 0, right = 0, left = 30, over = false;
+      var bar = el("i"), timeEl = el("span", { text: "30 s" }), q = el("div", { cls: "bonus-q" }), opts = el("div", { cls: "bonus-opts" });
+      card.append(el("div", { cls: "bonus-time" }, el("div", { cls: "level-bar" }, bar), timeEl), q, opts);
+      bar.style.width = "100%";
+      var tmr = setInterval(function () { left--; timeEl.textContent = left + " s"; bar.style.width = Math.max(0, left / 30 * 100) + "%"; if (left <= 0) end(); }, 1000);
+      function next() {
+        if (qi >= order.length) { end(); return; }
+        var it = order[qi], others = pairs.filter(function (x) { return x.en !== it.en; }).sort(function () { return Math.random() - 0.5; }).slice(0, 2);
+        var choices = others.concat([it]).sort(function () { return Math.random() - 0.5; });
+        q.textContent = "🇧🇷 " + it.pt; opts.replaceChildren();
+        choices.forEach(function (c) {
+          opts.append(el("button", { cls: "mcq-opt", type: "button", text: c.en, onclick: function (e) {
+            if (over) return;
+            var good = c.en === it.en;
+            e.currentTarget.classList.add(good ? "ok" : "bad");
+            if (good) { right++; SFX.blip(); } else SFX.oops();
+            hit(good); qi++; setTimeout(next, good ? 250 : 650);
+          } }));
+        });
+      }
+      function end() {
+        if (over) return; over = true; clearInterval(tmr); opts.replaceChildren();
+        q.textContent = (right >= order.length ? "🏆 Gabaritou! " : "⚡ Fim! ") + "Você acertou " + right + " de " + order.length + ". +" + right * 2 + " XP";
+        if (right >= order.length) SFX.stage(); else SFX.small();
+        if (att) post("/api/licao/attempt/" + att.id + "/progress", { token: att.token, step: "bonus", score: 0, max: 0, data: { right: right, total: order.length } }).then(saveCombo);
+      }
+      next();
+    };
+    return card;
+  }
   function showConclude(scroll) {
+    if (!concludeSec.querySelector(".bonus")) { var bc = bonusCard(); if (bc) concludeSec.insertBefore(bc, concludeSec.querySelector("button")); }
     concludeSec.hidden = false;
     if (scroll) scrollTo(concludeSec);
   }
@@ -1051,6 +1116,7 @@
       absorb(s.data);
       s.sec.classList.remove("locked"); s.sec.classList.add("done"); bars[i].classList.add("on");
       s.ptsEl.textContent = p.score + "/" + s.max + " pts";
+      s.sec.querySelector("h2").append(el("span", { cls: "stars", text: starText(stars(s.max ? p.score / s.max : 1)) }));
       [].forEach.call(s.sec.querySelectorAll("input,textarea,button"), function (x) { x.disabled = true; });
       var d = s.data || {}, said = d.answer || d.text || d.transcript;
       if (said) s.sec.append(el("div", { cls: "model" }, el("b", { text: d.transcript !== undefined ? "🎤 O que você falou: " : "✍️ O que você escreveu: " }), said));
@@ -1058,6 +1124,7 @@
       s.sec.append(el("p", { cls: "msg good", text: "✅ Você já fez esta parte." }));
       lastDone = i;
     });
+    if (saved.combo && saved.combo.data) { comboBest = saved.combo.data.best || 0; comboBonus = saved.combo.data.bonus || 0; }
     lastTotal = total(); // sem animação de pontos ao reabrir a lição
     updateScore();
     if (!VIEW && lastDone >= 0 && lastDone < steps.length - 1) { unlock(steps[lastDone + 1], false); scrollTo(steps[lastDone + 1].sec); }

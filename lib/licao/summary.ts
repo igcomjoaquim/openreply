@@ -53,7 +53,7 @@ export type LessonRow = {
   date: string;
   title: string;
   /** Primeira vez que terminou: é a nota que vale. */
-  graded: { score: Score; finishedAt: Date } | null;
+  graded: { score: Score; finishedAt: Date; progress: unknown } | null;
   /** Começou e não terminou (nenhuma tentativa terminada). */
   started: boolean;
 };
@@ -73,7 +73,7 @@ export async function studentLessons(studentId: string): Promise<LessonRow[]> {
       id: l.id,
       date: l.date,
       title: l.title,
-      graded: done ? { score: scoreOf(done.progress), finishedAt: done.finishedAt! } : null,
+      graded: done ? { score: scoreOf(done.progress), finishedAt: done.finishedAt!, progress: done.progress } : null,
       started: l.attempts.some((a) => Object.keys((a.progress as object) ?? {}).length > 0),
     };
   });

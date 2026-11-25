@@ -56,7 +56,11 @@ export type LessonRow = {
   graded: { score: Score; finishedAt: Date; progress: unknown } | null;
   /** Começou e não terminou (nenhuma tentativa terminada). */
   started: boolean;
+  /** Quantas partes já fez na tentativa em andamento (para "continue da fase X"). */
+  partsDone: number;
 };
+
+const EXTRA_KEYS = new Set(["combo", "bonus", "done"]);
 
 /** Lições do aluno, da mais nova para a mais antiga, com a nota que vale. */
 export async function studentLessons(studentId: string): Promise<LessonRow[]> {
@@ -75,6 +79,7 @@ export async function studentLessons(studentId: string): Promise<LessonRow[]> {
       title: l.title,
       graded: done ? { score: scoreOf(done.progress), finishedAt: done.finishedAt!, progress: done.progress } : null,
       started: l.attempts.some((a) => Object.keys((a.progress as object) ?? {}).length > 0),
+      partsDone: Math.max(0, ...l.attempts.filter((a) => !a.finishedAt).map((a) => Object.keys((a.progress as object) ?? {}).filter((k) => !EXTRA_KEYS.has(k)).length)),
     };
   });
 }

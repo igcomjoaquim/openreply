@@ -44,6 +44,15 @@
   function words(s) { return norm(s).split(" ").filter(Boolean); }
   function say(node, txt, good) { node.textContent = txt || ""; node.hidden = !txt; node.className = "msg " + (good ? "good" : "bad"); }
   function speak(t) { try { var u = new SpeechSynthesisUtterance(t); u.lang = "en-US"; u.rate = 0.85; speechSynthesis.cancel(); speechSynthesis.speak(u); } catch (e) {} }
+  // 🔊 que fala a palavra/frase em inglês (voz do celular)
+  function ear(t, label) { return el("button", { cls: "ear", type: "button", "aria-label": "Ouvir " + t, text: label || "🔊", onclick: function (e) { e.stopPropagation(); speak(t); } }); }
+  // controles extras do áudio: voltar 5 s e velocidade 0.75×
+  function audioTools(a) {
+    var slow = false;
+    return el("div", { cls: "a-tools" },
+      el("button", { type: "button", text: "⏪ 5 s", onclick: function () { a.currentTime = Math.max(0, a.currentTime - 5); a.play().catch(function () {}); } }),
+      el("button", { type: "button", text: "🐢 0.75×", onclick: function (e) { slow = !slow; a.playbackRate = slow ? 0.75 : 1; e.currentTarget.textContent = slow ? "🐇 1×" : "🐢 0.75×"; e.currentTarget.classList.toggle("sel", slow); } }));
+  }
   function scrollTo(node) { setTimeout(function () { node.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "center" }); }, 300); }
   function load() { try { return JSON.parse(localStorage.getItem(STORE) || "null"); } catch (e) { return null; } }
   function save(v) { try { localStorage.setItem(STORE, JSON.stringify(v)); } catch (e) {} }
@@ -114,10 +123,38 @@
   var bars = [];
   var review = null;        // correção do professor (servidor)
 
-  function post(url, body) {
-    return fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
-      .then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; });
+  // Internet do celular cai: cada envio tenta de novo (1 s, 3 s, 8 s); o que não
+  // foi fica guardado no aparelho e sai quando a conexão volta. Aviso no topo.
+  var QKEY = STORE + ":fila", netEl = null;
+  function netBanner(on) {
+    if (!netEl) { netEl = el("div", { cls: "net-warn", hidden: "", role: "status" }); document.body.append(netEl); }
+    netEl.textContent = "📡 Sem internet agora. Pode continuar: suas respostas ficam guardadas e vão sozinhas quando a conexão voltar.";
+    netEl.hidden = !on;
   }
+  function rawPost(url, body) {
+    return fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
+      .then(function (r) { if (r.status >= 500) throw new Error("server"); return r.ok ? r.json() : null; });
+  }
+  function post(url, body, tries) {
+    tries = tries == null ? 3 : tries;
+    return rawPost(url, body).then(function (r) { netBanner(false); flushQueue(); return r; }, function () {
+      if (tries < 3) netBanner(true);
+      if (tries > 0) return new Promise(function (res) { setTimeout(res, [8000, 3000, 1000][tries - 1] || 1000); }).then(function () { return post(url, body, tries - 1); });
+      netBanner(true);
+      if (/\/progress$/.test(url)) { var q = queue(); q.push({ url: url, body: body }); setQueue(q); }
+      return null;
+    });
+  }
+  function queue() { try { return JSON.parse(localStorage.getItem(QKEY) || "[]"); } catch (e) { return []; } }
+  function setQueue(q) { try { if (q.length) localStorage.setItem(QKEY, JSON.stringify(q)); else localStorage.removeItem(QKEY); } catch (e) {} }
+  var flushing = false;
+  function flushQueue() {
+    var q = queue(); if (!q.length || flushing) return; flushing = true;
+    var item = q[0];
+    rawPost(item.url, item.body).then(function () { setQueue(queue().slice(1)); flushing = false; netBanner(false); flushQueue(); }, function () { flushing = false; });
+  }
+  window.addEventListener("online", flushQueue);
+  setInterval(flushQueue, 15000);
 
   function finish(step, pts, data) {
     if (step.done) return;
@@ -127,7 +164,7 @@
     step.ptsEl.textContent = pts + "/" + step.max + " pts";
     updateScore();
     var all = steps.every(function (s) { return s.done; });
-    if (att && !VIEW) post("/api/licao/attempt/" + att.id + "/progress", { token: att.token, step: step.key, score: pts, max: step.max, data: step.data }).then(saveCombo);
+    sendStep({ step: step.key, score: pts, max: step.max, data: step.data });
     var i = steps.indexOf(step);
     // não desce sozinho: o aluno lê o resultado com calma e toca quando quiser seguir
     if (i < steps.length - 1) unlock(steps[i + 1], false);
@@ -138,7 +175,7 @@
     step.sec.append(el("div", { cls: "stage-clear s" + st },
       el("b", { text: (st === 3 ? "🎉 Fase " : st === 2 ? "👏 Fase " : "💪 Fase ") + (i + 1) + " de " + steps.length + " completa!" }),
       el("span", { cls: "stars-big", text: starText(st) }),
-      el("span", { cls: "small", text: st === 3 ? "Perfeito!" : st === 2 ? "Muito bom! Dá pra chegar nas 3 estrelas." : "Passou! Treine de novo depois pra ganhar mais estrelas." })));
+      el("span", { cls: "small", text: pick(st === 3 ? CHEER3 : st === 2 ? CHEER2 : CHEER1) })));
     if (!step.holdScroll) {
       var nx = all ? concludeSec : steps.slice(i + 1).filter(function (s) { return !s.done; })[0] || steps.filter(function (s) { return !s.done; })[0];
       if (nx) {
@@ -151,7 +188,27 @@
     }
   }
   var mapEl = null;
+  var delivered = false, hudEl = null, ICON = { review: "🧠", dictation: "✍️", scene: "🎬", gossip: "🕵️", shadowing: "🦜", retell: "🗣️", story: "📖", read: "📢", writing: "📝", realtime: "⚡" };
+  function refreshHud() {
+    if (!hudEl) return;
+    var cur = steps.filter(function (s) { return !s.done && !s.sec.classList.contains("locked"); })[0];
+    var doneN = steps.filter(function (s) { return s.done; }).length;
+    steps.forEach(function (s, i) {
+      var b = bars[i]; if (!b) return;
+      b.className = s.done ? "on done" : s === cur ? "on cur" : s.sec.classList.contains("locked") ? "" : "on";
+      s.sec.classList.toggle("cur", s === cur && !VIEW && !PREVIEW);
+    });
+    hudEl.replaceChildren();
+    if (VIEW || PREVIEW) { hudEl.hidden = true; return; }
+    hudEl.append(cur
+      ? el("span", null, el("b", { text: (ICON[cur.key] || "▶") + " Fase " + (steps.indexOf(cur) + 1) + " de " + steps.length }), " · " + cur.title.replace(/^[^\wÀ-ú]+/, ""))
+      : el("b", { text: delivered ? "🏆 Lição entregue! Veja seu feedback." : doneN === steps.length ? "🏁 Todas as fases feitas! Falta só concluir." : "" }),
+      el("button", { cls: "hud-go", type: "button", text: cur ? "ir ↓" : delivered ? "ver ↓" : "ir ao final ↓", onclick: function () {
+        var t = cur ? cur.sec : delivered ? fbSec : concludeSec; if (t) t.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+      } }));
+  }
   function refreshMap() {
+    refreshHud();
     if (!mapEl) return;
     var left = steps.filter(function (s) { return !s.done; }).reduce(function (a, s) { return a + s.minutes; }, 0);
     mapEl.replaceChildren(el("b", { cls: "map-title", text: "Mapa da lição" }));
@@ -319,6 +376,18 @@
     if (!comboDirty || !att || VIEW) return; comboDirty = false;
     post("/api/licao/attempt/" + att.id + "/progress", { token: att.token, step: "combo", score: 0, max: 0, data: { best: comboBest, bonus: comboBonus } });
   }
+  // envia uma parte feita; se a lição ainda não conectou, guarda e manda quando conectar
+  var pending = [];
+  function sendStep(b) {
+    if (VIEW || PREVIEW) return Promise.resolve(null);
+    if (!att) { pending.push(b); return Promise.resolve(null); }
+    b.token = att.token;
+    return post("/api/licao/attempt/" + att.id + "/progress", b).then(function (r) { saveCombo(); return r; });
+  }
+  var CHEER3 = ["Perfeito! Falou, validou! 🚀", "Brabo demais! 🔥", "Gabaritou! Nativo que lute. 😎", "Isso aqui é nível fofoqueiro profissional. 🕵️", "Mandou muito! Bora pra próxima."];
+  var CHEER2 = ["Muito bom! Dá pra chegar nas 3 estrelas.", "Quase perfeito! Mais um pouquinho e é 3 estrelas.", "Mandou bem! Os errinhos vão pro seu feedback no final.", "Boa! Seu ouvido tá ficando afiado."];
+  var CHEER1 = ["Passou! Treine de novo depois pra ganhar mais estrelas.", "Errar faz parte: é assim que o cérebro aprende. 💪", "Calma, ninguém nasce falando. Bora pra próxima!", "Essa foi difícil mesmo. O feedback no final mostra o caminho."];
+  function pick(a) { return a[Math.floor(Math.random() * a.length)]; }
   function stars(pct) { return pct >= 0.9 ? 3 : pct >= 0.6 ? 2 : 1; }
   function starText(n) { return ["", "⭐☆☆", "⭐⭐☆", "⭐⭐⭐"][n]; }
   // confete na vitória (canvas simples; respeita "reduzir movimento")
@@ -337,7 +406,11 @@
   function upload(stepKey, blob, text, secs) {
     if (!att || !blob || !blob.size) return;
     var url = "/api/licao/attempt/" + att.id + "/recording?token=" + encodeURIComponent(att.token) + "&step=" + encodeURIComponent(stepKey) + "&seconds=" + secs;
-    fetch(url, { method: "POST", headers: { "Content-Type": blob.type || "audio/webm", "X-Transcript": encodeURIComponent(text.slice(0, 1500)) }, body: blob }).catch(function () {});
+    var send = function (n) {
+      fetch(url, { method: "POST", headers: { "Content-Type": blob.type || "audio/webm", "X-Transcript": encodeURIComponent(text.slice(0, 1500)) }, body: blob })
+        .then(function (r) { if (r.status >= 500) throw 0; }).catch(function () { if (n > 0) setTimeout(function () { send(n - 1); }, n === 2 ? 3000 : 10000); });
+    };
+    send(2);
   }
 
   /* Caixa de gravação de uma parte: botão, tempo, texto ao vivo, mensagens. */
@@ -398,10 +471,12 @@
       if (step.done) return;
       if (sess) { btn.disabled = true; sess.stop(); return; }
       if (busy) return;
+      var live = false;
       sess = new Session({
         onText: function (t) {
           render(t);
-          if (opt.unlockLive && !isPortuguese(t) && ok(t, sess.seconds())) { btn.disabled = true; sess.stop(); }
+          // só encerra sozinho depois da contagem (o que falou antes ainda conta no texto)
+          if (live && opt.unlockLive && !isPortuguese(t) && ok(t, sess.seconds())) { btn.disabled = true; sess.stop(); }
         },
         onStop: function (t, secs, blob) {
           clearInterval(timer); busy = null; sess = null; btn.disabled = false; btn.classList.remove("live");
@@ -431,8 +506,10 @@
       });
       busy = sess; say(msg, "");
       btn.disabled = true; btn.textContent = "⏳ Ligando o microfone…";
-      var started = sess.start();
+      var started = sess.start(), mine = sess;
       Promise.all([started, countdown(btn)]).then(function (r) {
+        if (sess !== mine) return; // já terminou
+        live = true;
         var stream = r[0];
         btn.disabled = false;
         startMeter(stream);
@@ -539,6 +616,25 @@
   }
   function unanswered(box) { return [].some.call(box.querySelectorAll("li.mcq, li.open"), function (q) { return !answered(q); }); }
 
+  // Enter numa lacuna: vai pra próxima (na última, confere)
+  document.addEventListener("keydown", function (e) {
+    if (e.key !== "Enter" || !e.target.classList || !e.target.classList.contains("gap")) return;
+    e.preventDefault();
+    var sec = e.target.closest(".step"), all = [].slice.call(sec.querySelectorAll("input.gap:not([disabled])")), i = all.indexOf(e.target);
+    if (all[i + 1]) all[i + 1].focus(); else { e.target.blur(); }
+  });
+  // 💡 dica: mostra a primeira letra das lacunas vazias; lacuna com dica vale meio ponto
+  function hintBtn(box) {
+    var b = el("button", { cls: "ghost hint-btn", type: "button", text: "💡 Dica: ver a primeira letra (vale meio ponto)", onclick: function () {
+      [].forEach.call(box.querySelectorAll("input.gap"), function (i) {
+        if (i.value.trim() || i.disabled) return;
+        var a = i.getAttribute("data-a").split("|")[0].trim();
+        i.placeholder = a.charAt(0) + "…" + (a.indexOf(" ") > 0 ? " (" + a.split(" ").length + " palavras)" : ""); i.setAttribute("data-hint", "1");
+      });
+      b.disabled = true; b.textContent = "💡 Dica na tela: a primeira letra está nas lacunas vazias";
+    } });
+    return b;
+  }
   function gapCheck(step, box, btn, label, extra) {
     var inputs = [].slice.call(box.querySelectorAll("input.gap"));
     var hasMcq = box.querySelector("li.mcq, li.open");
@@ -548,24 +644,27 @@
     if (inputs.some(function (i) { return !i.value.trim(); })) {
       btn.textContent = "Preencha tudo antes de conferir"; setTimeout(function () { btn.textContent = "Conferir"; }, 1800); return;
     }
-    var ok = 0, ws = [], answers = [];
+    var ok = 0, ws = [], answers = [], hinted = 0, right = 0;
+    var hb = box.parentNode && box.parentNode.querySelector(".hint-btn"); if (hb) hb.remove();
     inputs.forEach(function (i) {
       var opts = i.getAttribute("data-a").split("|").map(function (x) { return x.trim(); });
       var g = opts.map(norm).indexOf(norm(i.value)) > -1;
       answers.push(i.value.trim());
       i.classList.add(g ? "ok" : "bad"); i.disabled = true; hit(g);
-      if (g) ok++;
+      if (g) { right++; if (i.getAttribute("data-hint")) { ok += 0.5; hinted++; } else ok++; }
       else {
-        i.after(el("span", { cls: "fix", text: " ✓ " + opts[0] }));
+        i.after(el("span", { cls: "fix", text: " ✓ " + opts[0] + " " }, ear(opts[0])));
         var ctx = (i.closest("li,p") || box).textContent.replace(/✓.*$/, "").replace(/\s+/g, " ").trim().slice(0, 80);
         ws.push({ said: "escreveu \"" + i.value.trim() + "\"", right: opts[0], why: label + ": " + ctx });
       }
     });
     var total = inputs.length;
-    if (hasMcq) { var m = qCheck(box, label); ok += m.ok; total += m.total; ws = ws.concat(m.wrongs); }
-    btn.disabled = true; btn.textContent = "Você acertou " + ok + " de " + total + (extra || "");
-    var gd = ok === total ? [label + ": " + ok + " de " + ok + ". 🎉"] : [];
-    finish(step, Math.round(ok / total * step.max), { answers: answers, wrongs: ws, good: gd });
+    if (hasMcq) { var m = qCheck(box, label); ok += m.ok; right += m.ok; total += m.total; ws = ws.concat(m.wrongs); }
+    btn.disabled = true; btn.textContent = "Você acertou " + right + " de " + total + (hinted ? " (" + hinted + " com dica)" : "") + (extra || "");
+    var gd = ok === total ? [label + ": " + total + " de " + total + ". 🎉"] : [];
+    var pts = Math.round(ok / total * step.max);
+    if (hinted && pts >= step.max) pts = step.max - 1; // dica tira o "perfeito"
+    finish(step, pts, { answers: answers, wrongs: ws, good: gd, hints: hinted });
   }
 
   function ONCE() { return el("p", { cls: "hint", text: "💡 Revise antes de conferir: cada parte você confere uma vez só." }); }
@@ -577,6 +676,8 @@
     var sec = el("section", { cls: "step locked", "data-phase": PHASE[step.key] || "" },
       el("h2", null, el("span", { cls: "n", text: steps.length + 1 }), step.title, el("span", { cls: "time", text: step.minutes + " min" }), ptsEl));
     step.sec = sec; step.ptsEl = ptsEl;
+    var n = steps.length;
+    if (n) sec.append(el("p", { cls: "lock-note", text: "🔒 Abre quando você terminar a fase " + n + "." }));
     if (phase) app.append(el("div", { cls: "phase", "data-phase": PHASE[step.key] || "", text: phase }));
     app.append(sec);
     steps.push(step);
@@ -612,6 +713,11 @@
       if (words(ta.value).length < Math.min(12, words(C.dictation.text).length / 2)) { say(msg, "Escreva todas as frases antes de conferir (pode ouvir de novo)."); return; }
       var r = paint(out, C.dictation.text, ta.value); out.hidden = false;
       var pts = Math.round(r.pct * 5);
+      if (r.miss.length) {
+        var tr = el("div", { cls: "say" }, el("span", { cls: "small", text: "Toque e ouça o que escapou:" }));
+        r.miss.filter(function (w, k, a) { return w && a.indexOf(w) === k; }).slice(0, 8).forEach(function (w) { tr.append(ear(w, "🔊 " + w)); });
+        out.after(tr);
+      }
       say(msg, "Você pegou " + Math.round(r.pct * 100) + "% das palavras. Em vermelho: o que faltou ou ficou diferente.", pts >= 3);
       btn.disabled = true; ta.disabled = true;
       finish(step, pts, {
@@ -621,7 +727,7 @@
       });
     } });
     sec.append(el("p", { cls: "small", text: n + " frases seguidas, no ritmo normal. Ouça quantas vezes quiser, pause quando precisar, e escreva tudo." }),
-      el("audio", { controls: "", preload: "none", src: FILE(C.dictation.audio) }), ta, ONCE(), btn, msg, out);
+      (function () { var a = el("audio", { controls: "", preload: "none", src: FILE(C.dictation.audio) }); return el("div", { cls: "a-wrap" }, a, audioTools(a)); })(), ta, ONCE(), btn, msg, out);
   }
 
   function buildGossip() {
@@ -629,7 +735,7 @@
     var step = { key: "gossip", title: "Fofoca — só ouvir", minutes: 2 + Math.ceil(GQ.length / 2), max: 2 + GQ.length, skill: "ouvir" };
     var sec = section(step, "2. A fofoca 🕵️");
     var qbox = GQ.length ? el.apply(null, ["ol", { cls: "items" }].concat(GQ.map(questionEl))) : null;
-    var inp = el("input", { type: "text", placeholder: "Palavra secreta", autocomplete: "off", autocapitalize: "off" });
+    var inp = el("input", { type: "text", placeholder: "Palavra secreta", autocomplete: "off", autocapitalize: "off", enterkeyhint: "done", onkeydown: function (e) { if (e.key === "Enter") { e.preventDefault(); btn.click(); } } });
     var msg = el("p", { cls: "msg", hidden: "" }), tries = 0;
     var btn = el("button", { cls: "btn", text: GQ.length ? "Conferir" : "Conferir palavra", onclick: function () {
       var v = norm(inp.value);
@@ -644,7 +750,7 @@
     } });
     sec.append(el("p", { cls: "small", html: "Daqui até a leitura em voz alta, <b>tudo é sobre esta fofoca</b>: ouvir, imitar, recontar, completar e ler." }),
       el("p", { html: "🚫 <b>Não escreva a história.</b> Ouça 2 vezes, sem ler nada. 🔑 No fim tem uma <b>palavra secreta</b>." }),
-      el("audio", { controls: "", preload: "none", src: FILE(C.gossip.audio) }),
+      (function () { var a = el("audio", { controls: "", preload: "none", src: FILE(C.gossip.audio) }); return el("div", { cls: "a-wrap" }, a, audioTools(a)); })(),
       qbox ? el("p", { cls: "small", html: LEVEL === "A1" ? "Responda <b>sem ler nada</b>, só com o que você ouviu:" : "Responda <b>com as suas palavras, em inglês</b>, só com o que você ouviu:" }) : "", qbox || "",
       el("p", { cls: "small", text: "🔑 Palavra secreta:" }), inp, btn, msg);
   }
@@ -714,7 +820,7 @@
       if (step.done) { show.hidden = false; scrollTo(show); }
     } });
     sec.append(el("p", { html: rich(S.intro) + " Primeiro <b>só ouça</b>: a imagem fica escondida. Ouça 3 vezes (pode usar 0.75× na 2ª)." }),
-      wrap, timeline, ctrl, el("p", { cls: "small", html: "Responda só com o que você <b>ouviu</b>:" }), box, ONCE(), btn, show, goOn);
+      wrap, timeline, ctrl, el("p", { cls: "small", html: "Responda só com o que você <b>ouviu</b>:" }), box, box.querySelector("input.gap") ? hintBtn(box) : "", ONCE(), btn, show, goOn);
   }
 
   function buildShadowing() {
@@ -768,8 +874,9 @@
       if (rec.textContent.indexOf("🔁") === 0) { render(); return; }
       if (sess) { rec.disabled = true; sess.stop(); return; }
       if (busy) return;
+      var live = false, mine;
       sess = new Session({
-        onText: function (t) { judge(t, false); },
+        onText: function (t) { if (live) judge(t, false); },
         onStop: function (t, secs, blob) {
           busy = null; sess = null; rec.disabled = false; upload("shadowing-" + (si + 1), blob, t, secs);
           if (SR && !t.trim()) {
@@ -782,11 +889,12 @@
         },
       });
       busy = sess; rec.disabled = true; rec.textContent = "⏳ Ligando o microfone…";
-      Promise.all([sess.start(), countdown(rec)]).then(function () { rec.disabled = false; rec.textContent = "🔴 FALE AGORA! (toque para parar)"; rec.classList.add("live"); SFX.go(); if (navigator.vibrate) { try { navigator.vibrate(80); } catch (e) {} } })
+      mine = sess;
+      Promise.all([sess.start(), countdown(rec)]).then(function () { if (sess !== mine) return; live = true; rec.disabled = false; rec.textContent = "🔴 FALE AGORA! (toque para parar)"; rec.classList.add("live"); SFX.go(); if (navigator.vibrate) { try { navigator.vibrate(80); } catch (e) {} } })
         .catch(function () { rec._cancel = true; busy = null; sess = null; rec.disabled = false; rec.textContent = "🎙️ Gravar"; say(msg, "O microfone está bloqueado. Toque no cadeado ao lado do endereço e libere o microfone."); });
     };
     next.onclick = function () {
-      if (si < SH.length - 1) { si++; render(); return; }
+      if (si < SH.length - 1) { si++; render(); playIt(false); return; }
       var pts = res.filter(function (x) { return x >= 0.95; }).length;
       var list = SH.map(function (s, i) { return { en: s.en, pct: Math.round((res[i] || 0) * 100) }; });
       finish(step, pts, { sentences: list, missed: miss, good: pts === SH.length ? ["Shadowing: todas as frases com a pronúncia entendida! 🗣️"] : [] });
@@ -834,9 +942,9 @@
     var S = C.story, step = { key: "story", title: "A fofoca escrita", minutes: 3, max: 10, skill: "ler" };
     var sec = section(step);
     var box = el.apply(null, ["div", { cls: "story" }].concat(S.paragraphs.map(function (p) { return el("p", { html: gapHtml(p) }); })));
-    var voc = el("div", { cls: "vocab" }); S.vocab.forEach(function (v) { voc.append(el("b", { text: v[0] }), el("span", { text: v[1] })); });
+    var voc = el("div", { cls: "vocab" }); S.vocab.forEach(function (v) { voc.append(el("b", { cls: "tap", text: "🔊 " + v[0], onclick: function () { speak(v[0]); } }), el("span", { text: v[1] })); });
     var btn = el("button", { cls: "btn", text: "Conferir", onclick: function () { gapCheck(step, box, btn, "Fofoca escrita"); } });
-    sec.append(el("p", { cls: "small", html: rich(S.intro) }), S.vocab.length ? voc : "", box, ONCE(), btn);
+    sec.append(el("p", { cls: "small", html: rich(S.intro) }), S.vocab.length ? voc : "", box, box.querySelector("input.gap") ? hintBtn(box) : "", ONCE(), btn);
   }
 
   function buildRead() {
@@ -935,7 +1043,8 @@
         if (over) return; over = true; clearInterval(tmr); opts.replaceChildren();
         q.textContent = (right >= order.length ? "🏆 Gabaritou! " : "⚡ Fim! ") + "Você acertou " + right + " de " + order.length + ". +" + right * 2 + " XP";
         if (right >= order.length) SFX.stage(); else SFX.small();
-        if (att) post("/api/licao/attempt/" + att.id + "/progress", { token: att.token, step: "bonus", score: 0, max: 0, data: { right: right, total: order.length } }).then(saveCombo);
+        saved.bonus = { data: { right: right, total: order.length } };
+        sendStep({ step: "bonus", score: 0, max: 0, data: { right: right, total: order.length } });
       }
       next();
     };
@@ -949,9 +1058,19 @@
   function conclude() {
     var b = concludeSec.querySelector("button");
     b.disabled = true; b.textContent = "Enviando…";
-    var done = function () { concludeSec.hidden = true; SFX.win(); confetti(); showResult(true); };
-    if (!att) { done(); return; }
-    post("/api/licao/attempt/" + att.id + "/progress", { token: att.token, step: "done", score: 0, max: 0, data: {}, finished: true }).then(done);
+    var done = function () { concludeSec.hidden = true; delivered = true; refreshHud(); SFX.win(); confetti(); showResult(true); };
+    if (PREVIEW) { done(); return; }
+    if (!att) { fail(); return; }
+    function fail() { b.disabled = false; b.textContent = "📡 Sem internet — toque para tentar de novo"; }
+    // primeiro manda o que ficou guardado sem internet; só então entrega a lição
+    var q = queue();
+    (function drain() {
+      if (!q.length) {
+        post("/api/licao/attempt/" + att.id + "/progress", { token: att.token, step: "done", score: 0, max: 0, data: {}, finished: true }, 2).then(function (r) { if (r) { setQueue([]); done(); } else fail(); });
+        return;
+      }
+      rawPost(q[0].url, q[0].body).then(function () { q.shift(); setQueue(q.slice()); drain(); }, fail);
+    })();
   }
 
   // ---------- resultado + feedback ----------
@@ -968,11 +1087,22 @@
   }
   function showResult(scroll) {
     var T = totalMax(), pct = Math.round(total() / T * 100);
-    resultSec.replaceChildren(el("h2", { text: "🎉 Lição completa!" }), el("div", { cls: "big", text: pct + "%" }));
+    var st = stars(pct / 100), bonusRight = (saved.bonus && saved.bonus.data && Number(saved.bonus.data.right)) || 0;
+    var xp = total() + 10 + comboBonus + bonusRight * 2;
+    var threes = steps.filter(function (s) { return s.done && stars(s.max ? s.score / s.max : 1) === 3; }).length;
+    resultSec.replaceChildren(el("h2", { text: st === 3 ? "🏆 Lição 3 estrelas!" : "🎉 Lição completa!" }),
+      el("div", { cls: "res-stars", text: starText(st) }), el("div", { cls: "big", text: pct + "%" }));
+    if (D.mode !== "practice") resultSec.append(el("div", { cls: "xp-gain" },
+      el("div", null, el("b", { text: "+" + xp + " XP" }), el("span", { text: "nesta lição" })),
+      el("div", null, el("b", { text: threes + "/" + steps.length }), el("span", { text: "fases ⭐⭐⭐" })),
+      el("div", null, el("b", { text: "x" + comboBest }), el("span", { text: "maior combo" }))));
     var rows = el("div", { cls: "rows" });
     steps.forEach(function (s) { rows.append(el("div", null, el("span", { text: s.title.replace(/^[^\wÀ-ú]+/, "") }), el("span", { text: (s.done ? s.score : 0) + " / " + s.max }))); });
     rows.append(el("div", null, el("b", { text: "Total" }), el("b", { text: total() + " / " + T + " pts" })));
-    resultSec.append(rows, el("p", { text: "Seus áudios e respostas já foram para o seu professor. Falou, validou! 🚀" }));
+    resultSec.append(rows, el("p", { text: D.mode === "practice" ? "Treino feito! Este não muda a sua nota (a que vale é a da primeira vez)." : "Seus áudios e respostas já foram para o seu professor. Falou, validou! 🚀" }),
+      el("div", { cls: "res-links" },
+        el("a", { cls: "btn", href: "/licao/" + D.slug + (PQ ? "?" + PQ : ""), text: "🗺️ Ver meu nível e medalhas" }),
+        el("a", { cls: "btn ghost-light", href: "?refazer=1" + (PQ ? "&" + PQ : ""), text: "🔁 Refazer pra treinar" })));
     resultSec.hidden = false;
     buildFeedback();
     if (scroll) scrollTo(resultSec);
@@ -1001,7 +1131,7 @@
       var rv = fbCard("📝 Correção do seu professor", "challenge");
       if (review.summary) rv.append(el("p", { text: review.summary }));
       var fx = el("div", { cls: "forgot" });
-      (review.writing || []).concat(review.speaking || []).forEach(function (w) { fx.append(el("div", null, el("span", { cls: "said", text: w.said }), el("b", { text: w.right }), el("p", { text: w.why }))); });
+      (review.writing || []).concat(review.speaking || []).forEach(function (w) { fx.append(el("div", null, el("span", { cls: "said", text: w.said }), el("b", null, w.right + " ", ear(w.right)), el("p", { text: w.why }))); });
       if (fx.children.length) rv.append(fx);
       (review.pronunciation || []).forEach(function (p) { pron(rv, p.title, "professor", p.tip, p.words); });
     }
@@ -1024,7 +1154,7 @@
     if (P.querySelectorAll(".pron").length === 0) P.append(el("p", { text: SR ? "A página entendeu tudo o que você falou. 🎉" : "Seu navegador não mostra o texto da fala; seu professor vai ouvir os áudios." }));
 
     var F = fbCard("🧠 O que você esqueceu"), fx2 = el("div", { cls: "forgot" });
-    wrongs.slice(0, 6).forEach(function (w) { fx2.append(el("div", null, el("span", { cls: "said", text: w.said }), el("b", { text: w.right }), el("p", { text: w.why }))); });
+    wrongs.slice(0, 6).forEach(function (w) { fx2.append(el("div", null, el("span", { cls: "said", text: w.said }), el("b", null, w.right + " ", /[a-z]/i.test(w.right) && !/[ãçéêáíóú]|ouça/i.test(w.right) ? ear(w.right) : ""), el("p", { text: w.why }))); });
     F.append(fx2.children.length ? fx2 : el("p", { text: "Nada! Você lembrou de tudo. 🎉" }));
 
     var sh = steps.filter(function (s) { return s.key === "shadowing"; })[0];
@@ -1052,6 +1182,9 @@
         el("span", { cls: "said", text: f.said }),
         el("b", { cls: "right", text: f.right }),
         f.why ? el("p", { cls: "small", text: f.why }) : null);
+      var listen = ear(f.right, "🔊 Ouvir");
+      listen.className = "btn mini soft-btn";
+      if (!SR) row.append(el("div", { cls: "prev-act" }, listen));
       if (SR) {
         var msg = el("span", { cls: "small" }), btn = el("button", { cls: "btn mini", type: "button", text: "🎤 Falar" });
         btn.addEventListener("click", function () {
@@ -1069,11 +1202,30 @@
           r.onend = function () { btn.disabled = false; if (/Espere|FALE AGORA/.test(msg.textContent)) msg.textContent = "Não ouvi. Toque e fale de novo."; };
           try { r.start(); } catch (e) { btn.disabled = false; }
         });
-        row.append(el("div", { cls: "prev-act" }, btn, msg));
+        row.append(el("div", { cls: "prev-act" }, listen, btn, msg));
       }
       sec.append(row);
     });
     app.append(sec);
+  }
+
+  // ---------- como jogar (aparece até o aluno tocar em "Entendi") ----------
+  function howTo() {
+    var seen = false; try { seen = localStorage.getItem("licao_comojogar") === "1"; } catch (e) {}
+    if (seen) return;
+    var card = el("section", { cls: "howto" },
+      el("b", { cls: "howto-title", text: "🎮 Como funciona" }),
+      el("ul", null,
+        el("li", { html: "🔓 São <b>fases</b>: terminou uma, abre a próxima. A barrinha lá em cima mostra onde você está." }),
+        el("li", { html: "⭐ Cada fase vale até <b>3 estrelas</b>. Errou? Faz parte: o erro vira seu treino no final." }),
+        el("li", { html: "🔥 Acertos seguidos viram <b>combo</b> e dão XP extra. No fim tem a <b>rodada bônus</b> ⚡." }),
+        el("li", { html: "🎤 Nas fases de fala: toque em Gravar, espere o <b>3, 2, 1</b> e fale quando aparecer 🔴." }),
+        el("li", { html: "💾 Pode parar quando quiser: o site <b>guarda onde você parou</b>." })),
+      el("button", { cls: "btn", type: "button", text: "Entendi, bora! 🚀", onclick: function () {
+        try { localStorage.setItem("licao_comojogar", "1"); } catch (e) {}
+        SFX.go(); card.remove();
+      } }));
+    app.append(card);
   }
 
   // ---------- montar ----------
@@ -1087,14 +1239,16 @@
     if (D.mode === "practice") app.append(el("div", { cls: "viewnote" }, el("b", { text: "🔁 Modo treino." }), " Pode fazer de novo à vontade: a nota que vale é a da primeira vez."));
     app.append(el("header", null, el("span", { cls: "hand", text: "Hi, " + D.student + "! 👋" }), el("h1", { text: D.title }),
       el("p", { html: (C.intro ? rich(C.intro) + " " : "") + "Ouça → a fofoca → escreva → fale. Mais ou menos <b>" + C.minutes + " minutos</b>. Pode parar e continuar depois: o link guarda onde você parou." })));
+    if (!VIEW && !PREVIEW) howTo();
     if (D.prev && D.prev.items && D.prev.items.length && !VIEW) buildPrev();
     if (C.review) buildReview();
     buildDictation(); if (C.scene) buildScene();
     // tudo da fofoca em sequência, pro aluno não esquecer a história
     buildGossip(); buildShadowing(); buildRetell(); buildStory(); buildRead();
     buildWriting(); buildRealtime();
-    steps.forEach(function () { track.append(el("span")); });
+    steps.forEach(function (s) { track.append(el("span", { title: s.title, onclick: function () { if (!s.sec.classList.contains("locked")) s.sec.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" }); } })); });
     bars = [].slice.call(track.children);
+    hudEl = el("div", { cls: "hud" }); track.after(hudEl);
     // mapa da lição (só em tela larga): partes, o que já fez, pontos e tempo
     mapEl = el("aside", { cls: "lesson-map", "aria-label": "Mapa da lição" });
     document.body.append(mapEl);
@@ -1179,10 +1333,14 @@
     return;
   }
   var mine = load() || {};
-  post("/api/licao/" + D.slug + "/attempt", { lessonId: D.lessonId, id: mine.id, token: mine.token }).then(function (r) {
-    if (!r) return;
-    att = { id: r.id, token: r.token }; save(att);
-    saved = r.progress || {}; review = r.review || null;
-    if (Object.keys(saved).length) restore();
-  });
+  (function connect() {
+    post("/api/licao/" + D.slug + "/attempt", { lessonId: D.lessonId, id: mine.id, token: mine.token }, 2).then(function (r) {
+      if (!r) { netBanner(true); setTimeout(connect, 6000); return; }
+      att = { id: r.id, token: r.token }; save(att);
+      saved = r.progress || {}; review = r.review || null;
+      if (pending.length) { pending.splice(0).forEach(sendStep); return; } // fez partes offline: o que está na tela vale
+      if (Object.keys(saved).length) restore();
+      flushQueue();
+    });
+  })();
 })();

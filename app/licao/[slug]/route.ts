@@ -59,11 +59,18 @@ export async function GET(_request: NextRequest, { params }: Params) {
       ? `<span class="pill ok">✅ Feita · ${newest.graded.score.pct}%</span>`
       : newest.started ? `<span class="pill">⏳ Começou</span>` : `<span class="pill new">🆕 Nova</span>`;
     const cta = newest.graded ? "Ver meu feedback →" : newest.started ? "Continuar →" : "Começar →";
-    const minutes = Number(((await getPrisma().lesson.findUnique({ where: { id: newest.id }, select: { content: true } }))?.content as { minutes?: number })?.minutes) || 25;
+    const content = ((await getPrisma().lesson.findUnique({ where: { id: newest.id }, select: { content: true } }))?.content ?? {}) as { minutes?: number; review?: unknown; scene?: unknown };
+    const minutes = Number(content.minutes) || 25;
+    const parts = 8 + (content.review ? 1 : 0) + (content.scene ? 1 : 0);
+    const doneParts = Math.min(parts, newest.partsDone);
+    const where = !newest.graded && newest.started
+      ? `<span class="hero-prog"><span class="small">${doneParts >= parts ? "Todas as fases feitas: falta só tocar em <b>Concluir</b> 🏁" : `Você parou na <b>fase ${doneParts + 1} de ${parts}</b>`}</span><span class="level-bar"><i style="width:${Math.round((doneParts / parts) * 100)}%"></i></span></span>`
+      : "";
     hero = `<a class="hero-card" href="${base}/${newest.id}${q}">
   <span class="hero-top"><span class="eyebrow">📌 Lição mais nova</span>${state}</span>
   <b class="hero-title">${esc(newest.title)}</b>
-  <span class="small">Aula de ${dayMonth(newest.date)} · uns ${minutes} minutos</span>
+  <span class="small">Aula de ${dayMonth(newest.date)} · ${parts} fases · uns ${minutes} minutos</span>
+  ${where}
   <span class="hero-cta">${cta}</span>
 </a>`;
   }

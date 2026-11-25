@@ -309,3 +309,7 @@ h1,.hero-title,.result h2,.fb-head h2{font-family:var(--f-display)!important;fon
 .prev-item.ok .right{color:var(--ok)}
 .prev-act{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .btn.mini{padding:8px 14px;font-size:14px}
+
+.level{display:flex;align-items:center;gap:8px}
+.level-bar{flex:1;height:10px;border-radius:999px;background:var(--line);overflow:hidden}
+.level-bar i{display:block;height:100%;width:0;background:var(--ok);transition:width .08s linear}

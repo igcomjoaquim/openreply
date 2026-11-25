@@ -196,14 +196,10 @@
     var self = this, finals = "", interim = "", chunks = [], mr = null, rec = null, t0 = Date.now(), stopped = false;
     this.text = function () { return (finals + " " + interim).trim(); };
     this.seconds = function () { return Math.round((Date.now() - t0) / 1000); };
+    var srEnded = null, srEndedResolve = null;
     this.start = function () {
       return (canRecord ? getMic() : Promise.resolve(null)).then(function (stream) {
-        if (stream) {
-          var mime = pickMime();
-          mr = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
-          mr.ondataavailable = function (e) { if (e.data && e.data.size) chunks.push(e.data); };
-          mr.start(1000);
-        }
+        var ready = Promise.resolve();
         if (SR) {
           rec = new SR(); rec.lang = "en-US"; rec.continuous = true; rec.interimResults = true;
           rec.onresult = function (e) {
@@ -214,11 +210,20 @@
             }
             cb.onText(self.text());
           };
-          rec.onend = function () { if (!stopped) { try { rec.start(); } catch (e) {} } };
+          srEnded = new Promise(function (r) { srEndedResolve = r; });
+          rec.onend = function () { if (!stopped) { try { rec.start(); } catch (e) {} } else if (srEndedResolve) srEndedResolve(); };
           rec.onerror = function () {};
+          // só diz "pode falar" quando o reconhecimento já está ouvindo (senão o começo se perde)
+          ready = new Promise(function (r) { rec.onstart = function () { r(); }; setTimeout(r, 1500); });
           try { rec.start(); } catch (e) {}
         }
-        t0 = Date.now();
+        if (stream) {
+          var mime = pickMime();
+          mr = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+          mr.ondataavailable = function (e) { if (e.data && e.data.size) chunks.push(e.data); };
+          mr.start(1000);
+        }
+        return ready.then(function () { t0 = Date.now(); return stream; });
       });
     };
     this.stop = function () {
@@ -230,8 +235,9 @@
         mr.onstop = function () { resolve(new Blob(chunks, { type: mr.mimeType || "audio/webm" })); };
         try { mr.stop(); } catch (e) { resolve(null); }
       }).then(function (blob) {
-        // dá um instante pro último pedaço do texto chegar
-        return new Promise(function (r) { setTimeout(r, SR ? 600 : 0); }).then(function () {
+        // espera o celular entregar o último pedaço do texto (até 2,5 s)
+        var wait = SR && srEnded ? Promise.race([srEnded.then(function () { return new Promise(function (r) { setTimeout(r, 250); }); }), new Promise(function (r) { setTimeout(r, 2500); })]) : Promise.resolve();
+        return wait.then(function () {
           interim = interim; cb.onStop(self.text(), secs, blob);
         });
       });
@@ -247,11 +253,28 @@
   function recBox(step, opt) {
     var btn = el("button", { cls: "rec", text: "🎙️ Gravar" });
     var tm = el("span", { text: "0 s" }), wc = el("span", { text: "0 palavras" });
+    var lvl = el("i"), level = el("div", { cls: "level", hidden: "" }, el("span", { text: "🎙️" }), el("div", { cls: "level-bar" }, lvl));
+    var meterStop = null;
+    function startMeter(stream) {
+      if (!stream || !(window.AudioContext || window.webkitAudioContext)) return;
+      try {
+        var ctx = new (window.AudioContext || window.webkitAudioContext)(), an = ctx.createAnalyser(), buf = new Uint8Array(256), raf = 0;
+        an.fftSize = 512; ctx.createMediaStreamSource(stream).connect(an);
+        (function tick() {
+          an.getByteTimeDomainData(buf);
+          var peak = 0; for (var i = 0; i < buf.length; i++) peak = Math.max(peak, Math.abs(buf[i] - 128));
+          lvl.style.width = Math.min(100, Math.round(peak / 128 * 260)) + "%";
+          raf = requestAnimationFrame(tick);
+        })();
+        level.hidden = false;
+        meterStop = function () { cancelAnimationFrame(raf); try { ctx.close(); } catch (e) {} level.hidden = true; lvl.style.width = "0"; };
+      } catch (e) {}
+    }
     var tr = el("div", { cls: "transcript", html: '<span class="small">O que você falar aparece aqui.</span>' });
     var msg = el("p", { cls: "msg", hidden: "" });
     var box = el("div", { style: "display:flex;flex-direction:column;gap:10px" },
-      el("p", { cls: "hint", text: "🎙️ Toque em Gravar, fale em inglês e toque em Parar quando terminar. Se faltar algo, é só gravar mais um pouco." }),
-      btn, el("div", { cls: "meter" }, tm, wc), tr, msg);
+      el("p", { cls: "hint", text: "🎙️ Toque em Gravar e espere aparecer 🔴 Pode falar. Fale em inglês, perto do celular, e toque de novo para parar. Se faltar algo, é só gravar mais um pouco." }),
+      btn, level, el("div", { cls: "meter" }, tm, wc), tr, msg);
     var sess = null, timer = null, taken = "", tries = 0, valve = null;
     function offerValve() {
       if (valve || step.done) return;
@@ -291,6 +314,14 @@
         },
         onStop: function (t, secs, blob) {
           clearInterval(timer); busy = null; sess = null; btn.disabled = false; btn.classList.remove("live");
+          if (meterStop) { meterStop(); meterStop = null; }
+          if (SR && !t.trim()) {
+            upload(step.key, blob, "", secs);
+            btn.textContent = "🎙️ Gravar de novo";
+            say(msg, secs < 2 ? "Muito rápido! Toque em Gravar, espere aparecer 🔴 Pode falar, fale, e só depois toque em Parar." : "Seu áudio foi gravado, mas a página não entendeu as palavras. Fale um pouco mais alto e devagar, com o celular perto da boca, e grave de novo.");
+            if (secs >= 3) { tries++; if (tries >= 3) offerValve(); }
+            return;
+          }
           if (SR && isPortuguese(t)) {
             render(taken);
             btn.textContent = "🎙️ Gravar de novo em inglês";
@@ -308,12 +339,15 @@
         },
       });
       busy = sess; say(msg, "");
-      sess.start().then(function () {
-        btn.textContent = "⏹️ Parar"; btn.classList.add("live");
+      btn.disabled = true; btn.textContent = "⏳ Ligando o microfone…";
+      sess.start().then(function (stream) {
+        btn.disabled = false;
+        startMeter(stream);
+        btn.textContent = "🔴 Pode falar! (toque para parar)"; btn.classList.add("live");
         var base = parseInt(tm.textContent, 10) || 0, t0 = Date.now();
         timer = setInterval(function () { tm.textContent = base + Math.round((Date.now() - t0) / 1000) + " s"; }, 500);
       }).catch(function () {
-        busy = null; sess = null;
+        busy = null; sess = null; btn.disabled = false; btn.textContent = "🎙️ Gravar";
         say(msg, "O microfone está bloqueado. Toque no cadeado ao lado do endereço e libere o microfone.");
       });
     });
@@ -641,11 +675,20 @@
       if (busy) return;
       sess = new Session({
         onText: function (t) { judge(t, false); },
-        onStop: function (t, secs, blob) { busy = null; sess = null; rec.disabled = false; upload("shadowing-" + (si + 1), blob, t, secs); judge(t, true); },
+        onStop: function (t, secs, blob) {
+          busy = null; sess = null; rec.disabled = false; upload("shadowing-" + (si + 1), blob, t, secs);
+          if (SR && !t.trim()) {
+            rec.textContent = "🎙️ Gravar de novo"; rec.classList.remove("live");
+            say(msg, secs < 2 ? "Muito rápido! Espere aparecer 🔴 Pode falar e só depois fale." : "Seu áudio foi gravado, mas a página não entendeu as palavras. Fale um pouco mais alto e devagar, perto do celular.");
+            next.hidden = false; next.textContent = si < SH.length - 1 ? "Pular esta frase →" : "Terminar o shadowing ✅";
+            return;
+          }
+          judge(t, true);
+        },
       });
-      busy = sess;
-      sess.start().then(function () { rec.textContent = "⏹️ Parar"; rec.classList.add("live"); })
-        .catch(function () { busy = null; sess = null; say(msg, "O microfone está bloqueado. Toque no cadeado ao lado do endereço e libere o microfone."); });
+      busy = sess; rec.disabled = true; rec.textContent = "⏳ Ligando o microfone…";
+      sess.start().then(function () { rec.disabled = false; rec.textContent = "🔴 Pode falar! (toque para parar)"; rec.classList.add("live"); })
+        .catch(function () { busy = null; sess = null; rec.disabled = false; rec.textContent = "🎙️ Gravar"; say(msg, "O microfone está bloqueado. Toque no cadeado ao lado do endereço e libere o microfone."); });
     };
     next.onclick = function () {
       if (si < SH.length - 1) { si++; render(); return; }

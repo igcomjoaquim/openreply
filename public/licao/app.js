@@ -454,8 +454,52 @@
   }
 
   /* Caixa de gravação de uma parte: botão, tempo, texto ao vivo, mensagens. */
+  // Gravar igual áudio de WhatsApp (pedido do Thiago 25/11): SEGURE o botão enquanto fala e SOLTE para parar.
+  // Vibra ao apertar e ao soltar. Um toque rápido continua valendo (contagem 3-2-1 e toque de novo para parar),
+  // pra quem prefere ou pra fala longa.
+  function buzz(ms) { if (navigator.vibrate) { try { navigator.vibrate(ms); } catch (e) {} } }
+  function pttWire(btn, h) {
+    var holding = false, phase = "idle", started = null;
+    btn.classList.add("ptt");
+    btn.addEventListener("contextmenu", function (e) { e.preventDefault(); });
+    function tapLive() {
+      var mine = started;
+      Promise.all([mine, countdown(btn)]).then(function () { if (phase !== "starting" || started !== mine) return; phase = "live"; h.live(true); }, function () {});
+    }
+    function begin() {
+      phase = "starting"; started = h.begin();
+      if (!started) { phase = "idle"; return false; }
+      return true;
+    }
+    btn.addEventListener("pointerdown", function (e) {
+      if (e.button > 0) return;
+      if (h.pre && h.pre()) return;
+      if (phase === "live") { phase = "stopping"; buzz(40); h.stop(); return; }
+      if (phase !== "idle") return;
+      try { btn.setPointerCapture(e.pointerId); } catch (x) {}
+      holding = true; buzz(35);
+      if (!begin()) { holding = false; return; }
+      var mine = started;
+      mine.then(function () { if (phase === "starting" && started === mine && holding) { phase = "live"; h.live(false); } }, function () {});
+    });
+    function up() {
+      if (!holding) return;
+      holding = false;
+      if (phase === "live") { phase = "stopping"; buzz([30, 40, 30]); h.stop(); return; }
+      if (phase === "starting") tapLive(); // soltou antes de ligar = foi um toque rápido
+    }
+    btn.addEventListener("pointerup", up);
+    btn.addEventListener("pointercancel", up);
+    btn.addEventListener("click", function (e) {
+      if (e.detail !== 0) return; // teclado (Enter/Espaço)
+      if (h.pre && h.pre()) return;
+      if (phase === "live") { phase = "stopping"; h.stop(); return; }
+      if (phase === "idle" && begin()) tapLive();
+    });
+    return { reset: function () { phase = "idle"; holding = false; started = null; } };
+  }
   function recBox(step, opt) {
-    var btn = el("button", { cls: "rec", text: "🎙️ Gravar" });
+    var btn = el("button", { cls: "rec", type: "button", text: "🎙️ Segure para gravar" });
     var tm = el("span", { text: "0 s" }), wc = el("span", { text: "0 palavras" });
     var lvl = el("i"), level = el("div", { cls: "level", hidden: "" }, el("span", { text: "🎙️" }), el("div", { cls: "level-bar" }, lvl));
     var meterStop = null;
@@ -477,7 +521,7 @@
     var tr = el("div", { cls: "transcript", html: '<span class="small">O que você falar aparece aqui.</span>' });
     var msg = el("p", { cls: "msg", hidden: "" });
     var box = el("div", { style: "display:flex;flex-direction:column;gap:10px" },
-      el("p", { cls: "hint", text: "🎙️ Toque em Gravar e espere a contagem 3, 2, 1. Quando aparecer 🔴 FALE AGORA, fale em inglês, perto do celular, e toque de novo para parar." }),
+      el("p", { cls: "hint", html: "🎙️ <b>Segure o botão</b> (igual áudio de WhatsApp). Quando aparecer 🔴 FALE AGORA, fale em inglês, perto do celular, e <b>solte</b> no fim. Fala comprida? Dê um toque só, espere 3, 2, 1 e toque de novo para parar." }),
       btn, level, el("div", { cls: "meter" }, tm, wc), tr, msg);
     var sess = null, timer = null, taken = "", tries = 0, valve = null;
     function offerValve() {
@@ -507,60 +551,63 @@
       say(msg, r.msg, true);
       finish(step, r.pts, r.data);
     }
-    btn.addEventListener("click", function () {
-      if (step.done) return;
-      if (sess) { btn.disabled = true; sess.stop(); return; }
-      if (busy) return;
-      var live = false;
-      sess = new Session({
-        onText: function (t) {
-          render(t);
-          // só encerra sozinho depois da contagem (o que falou antes ainda conta no texto)
-          if (live && opt.unlockLive && !isPortuguese(t) && ok(t, sess.seconds())) { btn.disabled = true; sess.stop(); }
-        },
-        onStop: function (t, secs, blob) {
-          clearInterval(timer); busy = null; sess = null; btn.disabled = false; btn.classList.remove("live");
-          if (meterStop) { meterStop(); meterStop = null; }
-          if (SR && !t.trim()) {
-            upload(step.key, blob, "", secs);
-            btn.textContent = "🎙️ Gravar de novo";
-            say(msg, secs < 2 ? "Muito rápido! Toque em Gravar, espere a contagem e o 🔴 FALE AGORA, fale, e só depois toque para parar." : "Seu áudio foi gravado, mas a página não entendeu as palavras. Fale um pouco mais alto e devagar, com o celular perto da boca, e grave de novo.");
-            if (secs >= 3) { tries++; if (tries >= 3) offerValve(); }
-            return;
-          }
-          if (SR && isPortuguese(t)) {
-            render(taken);
-            btn.textContent = "🎙️ Gravar de novo em inglês";
-            say(msg, "Parece que você falou em português 🙂 Essa gravação não conta. Fale em inglês, mesmo que errando!");
-            return;
-          }
-          taken = (taken + " " + t).trim(); render(taken);
-          upload(step.key, blob, t, secs);
-          if (ok(taken, secs)) done(taken, secs);
-          else {
-            btn.textContent = "🎙️ Continuar gravando"; say(msg, SR ? opt.hint(taken) : "Grave um pouco mais (pelo menos " + (opt.minSeconds || 20) + " segundos).");
-            if (secs >= 3) tries++;
-            if (tries >= 3) offerValve();
-          }
-        },
-      });
-      busy = sess; say(msg, "");
-      btn.disabled = true; btn.textContent = "⏳ Ligando o microfone…";
-      var started = sess.start(), mine = sess;
-      Promise.all([started, countdown(btn)]).then(function (r) {
-        if (sess !== mine) return; // já terminou
-        live = true;
-        var stream = r[0];
-        btn.disabled = false;
-        startMeter(stream);
-        btn.textContent = "🔴 FALE AGORA! (toque para parar)"; btn.classList.add("live"); SFX.go();
-        if (navigator.vibrate) { try { navigator.vibrate(80); } catch (e) {} }
+    var stream0 = null, live = false, ptt;
+    ptt = pttWire(btn, {
+      pre: function () { return step.done; },
+      stop: function () { btn.disabled = true; if (sess) sess.stop(); },
+      begin: function () {
+        if (busy || sess) return null;
+        live = false;
+        sess = new Session({
+          onText: function (t) {
+            render(t);
+            // só encerra sozinho depois da contagem (o que falou antes ainda conta no texto)
+            if (live && opt.unlockLive && !isPortuguese(t) && ok(t, sess.seconds())) { btn.disabled = true; sess.stop(); }
+          },
+          onStop: function (t, secs, blob) {
+            clearInterval(timer); busy = null; sess = null; live = false; ptt.reset(); btn.disabled = false; btn.classList.remove("live");
+            if (meterStop) { meterStop(); meterStop = null; }
+            if (SR && !t.trim()) {
+              upload(step.key, blob, "", secs);
+              btn.textContent = "🎙️ Gravar de novo (segure)";
+              say(msg, secs < 2 ? "Muito rápido! Segure o botão, espere o 🔴 FALE AGORA, fale e só depois solte." : "Seu áudio foi gravado, mas a página não entendeu as palavras. Fale um pouco mais alto e devagar, com o celular perto da boca, e grave de novo.");
+              if (secs >= 3) { tries++; if (tries >= 3) offerValve(); }
+              return;
+            }
+            if (SR && isPortuguese(t)) {
+              render(taken);
+              btn.textContent = "🎙️ Gravar de novo em inglês";
+              say(msg, "Parece que você falou em português 🙂 Essa gravação não conta. Fale em inglês, mesmo que errando!");
+              return;
+            }
+            taken = (taken + " " + t).trim(); render(taken);
+            upload(step.key, blob, t, secs);
+            if (ok(taken, secs)) done(taken, secs);
+            else {
+              btn.textContent = "🎙️ Continuar gravando (segure)"; say(msg, SR ? opt.hint(taken) : "Grave um pouco mais (pelo menos " + (opt.minSeconds || 20) + " segundos).");
+              if (secs >= 3) tries++;
+              if (tries >= 3) offerValve();
+            }
+          },
+        });
+        busy = sess; say(msg, "");
+        btn.textContent = "⏳ Ligando o microfone…";
+        var p = sess.start(), mine = sess;
+        p.then(function (s) { stream0 = s; }, function () {
+          if (sess !== mine) return;
+          btn._cancel = true; busy = null; sess = null; ptt.reset(); btn.disabled = false; btn.textContent = "🎙️ Gravar";
+          say(msg, "O microfone está bloqueado. Toque no cadeado ao lado do endereço e libere o microfone.");
+        });
+        return p;
+      },
+      live: function (tap) {
+        live = true; btn._cancel = true; btn.classList.remove("counting");
+        startMeter(stream0);
+        btn.textContent = tap ? "🔴 FALE AGORA! (toque para parar)" : "🔴 FALE AGORA! (solte para parar)"; btn.classList.add("live"); SFX.go();
+        buzz(80);
         var base = parseInt(tm.textContent, 10) || 0, t0 = Date.now();
         timer = setInterval(function () { tm.textContent = base + Math.round((Date.now() - t0) / 1000) + " s"; }, 500);
-      }).catch(function () {
-        btn._cancel = true; busy = null; sess = null; btn.disabled = false; btn.textContent = "🎙️ Gravar";
-        say(msg, "O microfone está bloqueado. Toque no cadeado ao lado do endereço e libere o microfone.");
-      });
+      },
     });
     return box;
   }
@@ -870,13 +917,13 @@
     var count = el("span"), dots = el("div", { cls: "sh-dots" }), text = el("div", { cls: "sh-text" }), pt = el("div", { cls: "sh-pt" });
     var msg = el("p", { cls: "msg", hidden: "" });
     var play = el("button", { cls: "btn", text: "🔊 Ouvir" }), slowB = el("button", { cls: "soft", text: "🐢 Devagar" });
-    var rec = el("button", { cls: "rec sh-rec", text: "🎤 Agora você" }), next = el("button", { cls: "btn", hidden: "", text: "Próxima frase →" });
+    var rec = el("button", { cls: "rec sh-rec", text: "🎤 Segure e fale" }), next = el("button", { cls: "btn", hidden: "", text: "Próxima frase →" });
     SH.forEach(function () { dots.append(el("span")); });
     function render() {
       count.textContent = "Frase " + (si + 1) + " de " + SH.length; pt.textContent = SH[si].pt ? "🇧🇷 " + SH[si].pt : "";
       text.replaceChildren(); SH[si].en.split(" ").forEach(function (w, i) { if (i) text.append(" "); text.append(el("span", { text: w })); });
       [].forEach.call(dots.children, function (d, i) { d.className = i === si ? "cur" : res[i] === undefined ? "" : res[i] >= 0.95 ? "ok" : "meh"; });
-      rec.disabled = false; rec.textContent = "🎤 Agora você"; next.hidden = true; say(msg, "");
+      rec.disabled = false; rec.textContent = "🎤 Segure e fale"; next.hidden = true; say(msg, "");
     }
     function playIt(isSlow) {
       var spans = [].slice.call(text.children), lens = spans.map(function (s) { return s.textContent.length + 1; });
@@ -892,7 +939,7 @@
     }
     function judge(said, final) {
       if (final && SR && isPortuguese(said)) {
-        rec.textContent = "🎤 Agora você"; rec.classList.remove("live");
+        rec.textContent = "🎤 Segure e fale"; rec.classList.remove("live");
         say(msg, "Parece que você falou em português 🙂 Repita a frase em inglês.");
         return;
       }
@@ -909,30 +956,40 @@
       next.hidden = false; next.textContent = si < SH.length - 1 ? "Próxima frase →" : "Terminar o shadowing ✅";
     }
     play.onclick = function () { playIt(false); }; slowB.onclick = function () { playIt(true); };
-    rec.onclick = function () {
-      if (step.done) return;
-      if (rec.textContent.indexOf("🔁") === 0) { render(); return; }
-      if (sess) { rec.disabled = true; sess.stop(); return; }
-      if (busy) return;
-      var live = false, mine;
-      sess = new Session({
-        onText: function (t) { if (live) judge(t, false); },
-        onStop: function (t, secs, blob) {
-          busy = null; sess = null; rec.disabled = false; upload("shadowing-" + (si + 1), blob, t, secs);
-          if (SR && !t.trim()) {
-            rec.textContent = "🎙️ Gravar de novo"; rec.classList.remove("live");
-            say(msg, secs < 2 ? "Muito rápido! Espere a contagem e o 🔴 FALE AGORA, e só depois fale." : "Seu áudio foi gravado, mas a página não entendeu as palavras. Fale um pouco mais alto e devagar, perto do celular.");
-            next.hidden = false; next.textContent = si < SH.length - 1 ? "Pular esta frase →" : "Terminar o shadowing ✅";
-            return;
-          }
-          judge(t, true);
-        },
-      });
-      busy = sess; rec.disabled = true; rec.textContent = "⏳ Ligando o microfone…";
-      mine = sess;
-      Promise.all([sess.start(), countdown(rec)]).then(function () { if (sess !== mine) return; live = true; rec.disabled = false; rec.textContent = "🔴 FALE AGORA! (toque para parar)"; rec.classList.add("live"); SFX.go(); if (navigator.vibrate) { try { navigator.vibrate(80); } catch (e) {} } })
-        .catch(function () { rec._cancel = true; busy = null; sess = null; rec.disabled = false; rec.textContent = "🎙️ Gravar"; say(msg, "O microfone está bloqueado. Toque no cadeado ao lado do endereço e libere o microfone."); });
-    };
+    var shLive = false, shPtt;
+    shPtt = pttWire(rec, {
+      pre: function () {
+        if (step.done) return true;
+        if (rec.textContent.indexOf("🔁") === 0) { render(); return true; }
+        return false;
+      },
+      stop: function () { rec.disabled = true; if (sess) sess.stop(); },
+      begin: function () {
+        if (busy || sess) return null;
+        shLive = false;
+        sess = new Session({
+          onText: function (t) { if (shLive) judge(t, false); },
+          onStop: function (t, secs, blob) {
+            busy = null; sess = null; shLive = false; shPtt.reset(); rec.disabled = false; upload("shadowing-" + (si + 1), blob, t, secs);
+            if (SR && !t.trim()) {
+              rec.textContent = "🎙️ Gravar de novo (segure)"; rec.classList.remove("live");
+              say(msg, secs < 2 ? "Muito rápido! Segure o botão, espere o 🔴 FALE AGORA, fale e só depois solte." : "Seu áudio foi gravado, mas a página não entendeu as palavras. Fale um pouco mais alto e devagar, perto do celular.");
+              next.hidden = false; next.textContent = si < SH.length - 1 ? "Pular esta frase →" : "Terminar o shadowing ✅";
+              return;
+            }
+            judge(t, true);
+          },
+        });
+        busy = sess; rec.textContent = "⏳ Ligando o microfone…";
+        var p = sess.start(), mine = sess;
+        p.then(null, function () { if (sess !== mine) return; rec._cancel = true; busy = null; sess = null; shPtt.reset(); rec.disabled = false; rec.textContent = "🎙️ Gravar"; say(msg, "O microfone está bloqueado. Toque no cadeado ao lado do endereço e libere o microfone."); });
+        return p;
+      },
+      live: function (tap) {
+        shLive = true; rec._cancel = true; rec.classList.remove("counting");
+        rec.textContent = tap ? "🔴 FALE AGORA! (toque para parar)" : "🔴 FALE AGORA! (solte para parar)"; rec.classList.add("live"); SFX.go(); buzz(80);
+      },
+    });
     next.onclick = function () {
       if (si < SH.length - 1) { si++; render(); playIt(false); return; }
       var pts = res.filter(function (x) { return x >= 0.95; }).length;
@@ -940,7 +997,7 @@
       finish(step, pts, { sentences: list, missed: miss, good: pts === SH.length ? ["Shadowing: todas as frases com a pronúncia entendida! 🗣️"] : [] });
       next.hidden = true; rec.disabled = true;
     };
-    sec.append(el("div", { cls: "sh-how", html: "<span><b>1.</b> 🔊 Ouça a frase</span><span><b>2.</b> 🎤 Repita igualzinho, no mesmo ritmo</span><span><b>3.</b> ✅ Verde = entendeu você</span>" }),
+    sec.append(el("div", { cls: "sh-how", html: "<span><b>1.</b> 🔊 Ouça a frase</span><span><b>2.</b> 🎤 Segure o botão e repita igualzinho; solte no fim</span><span><b>3.</b> ✅ Verde = entendeu você</span>" }),
       el("div", { cls: "sh" }, el("div", { cls: "sh-count" }, count, dots), text, pt, el("div", { cls: "sh-btns" }, play, slowB, rec), msg, next));
     if (!SR && !canRecord) sec.append(el("button", { cls: "ghost", text: "Não consigo gravar — pular esta parte", onclick: function () { finish(step, 0, { skipped: true }); } }));
     render();
@@ -984,7 +1041,17 @@
     var box = el.apply(null, ["div", { cls: "story" }].concat(S.paragraphs.map(function (p) { return el("p", { html: gapHtml(p) }); })));
     var voc = el("div", { cls: "vocab" }); S.vocab.forEach(function (v) { voc.append(el("b", { cls: "tap", text: "🔊 " + v[0], onclick: function () { speak(v[0]); } }), el("span", { text: v[1] })); });
     var btn = el("button", { cls: "btn", text: "Conferir", onclick: function () { gapCheck(step, box, btn, "Fofoca escrita"); } });
-    sec.append(el("p", { cls: "small", html: rich(S.intro) }), S.vocab.length ? voc : "", box, box.querySelector("input.gap") ? hintBtn(box) : "", ONCE(), btn);
+    // 🎧 ouvir a fofoca de novo aqui mesmo (pedido do Thiago 25/11: senão o aluno esquece a história)
+    var again = null;
+    if (C.gossip && C.gossip.audio) {
+      var ga = el("audio", { controls: "", preload: "none", src: FILE(C.gossip.audio) }), gw = el("div", { cls: "a-wrap relisten-box", hidden: "" }, ga, audioTools(ga));
+      var gb = el("button", { cls: "relisten", type: "button", text: "🎧 Ouvir a fofoca de novo", onclick: function () {
+        gw.hidden = !gw.hidden; gb.textContent = gw.hidden ? "🎧 Ouvir a fofoca de novo" : "🎧 Esconder o áudio";
+        if (!gw.hidden) ga.play().catch(function () {}); else ga.pause();
+      } });
+      again = el("div", { cls: "relisten-wrap" }, gb, gw);
+    }
+    sec.append(el("p", { cls: "small", html: rich(S.intro) }), again || "", S.vocab.length ? voc : "", box, box.querySelector("input.gap") ? hintBtn(box) : "", ONCE(), btn);
   }
 
   function buildRead() {

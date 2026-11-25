@@ -424,3 +424,10 @@ h1,.hero-title,.result h2,.fb-head h2,.login h1{font-family:var(--f-display)!imp
 .toast{position:fixed;left:50%;top:calc(70px + env(safe-area-inset-top,0px));transform:translateX(-50%);background:#1d1b18;color:#FFF8EC;padding:12px 18px;border-radius:14px;font-weight:700;z-index:210;box-shadow:0 6px 20px rgba(0,0,0,.25);max-width:calc(100vw - 32px);text-align:center;transition:opacity .5s}
 .toast.out{opacity:0}
 .hud>span,.hud>b{flex:1;min-width:0}
+
+/* v23 — 25/11: segurar pra gravar (WhatsApp) + ouvir a fofoca de novo na fofoca escrita */
+.ptt{touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.relisten-wrap{display:flex;flex-direction:column;gap:8px;margin:4px 0 10px}
+.relisten{align-self:flex-start;background:#FFF8EC;border:2px solid var(--marsala);color:var(--marsala);border-radius:999px;padding:8px 14px;font-weight:700;font-size:15px;cursor:pointer}
+.relisten:active{transform:scale(.97)}
+.relisten-box[hidden]{display:none}

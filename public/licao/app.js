@@ -950,10 +950,10 @@
       var tl = el("div", { cls: "tr-lines" });
       S.transcript.forEach(function (x) {
         var row = el("div", { cls: "tr-line", role: "button", tabindex: "0", onclick: function () { withPlayer(function (p) { p.seekTo(x.t, true); p.playVideo(); }); } },
-          el("span", { cls: "tr-en", html: markChunks(x.en) }), x.pt ? el("span", { cls: "tr-pt", text: x.pt }) : "");
+          el("span", { cls: "tr-en", html: markChunks(x.en) })); // só inglês (Thiago 25/11: tradução frase a frase vira muleta)
         tlines.push({ t: x.t, el: row }); tl.append(row);
       });
-      var hasPt = S.transcript.some(function (x) { return x.pt; });
+      var hasPt = false;
       var ptBtn = hasPt ? el("button", { cls: "relisten", type: "button", text: "🇧🇷 Mostrar tradução", onclick: function () { tl.classList.toggle("show-pt"); ptBtn.textContent = tl.classList.contains("show-pt") ? "🇧🇷 Esconder tradução" : "🇧🇷 Mostrar tradução"; } }) : null;
       tbox = el("div", { cls: "scene-tr", hidden: "" },
         el("p", { cls: "scene-vocab-t", html: "📝 <b>O que foi falado</b> — acompanhe enquanto o vídeo toca. Toque numa frase pra voltar nela." }),

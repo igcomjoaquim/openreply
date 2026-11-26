@@ -65,6 +65,11 @@
   function bestOverlap(targets, said) { return Math.max.apply(null, targets.map(function (t) { return overlap(t, said); })); }
   function has(said, x) { var n = " " + canon(said) + " ", c = canon(x); return n.indexOf(" " + c + " ") > -1 || (c.length > 3 && n.indexOf(c) > -1); }
   function shuffle(a) { a = a.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+  // embaralha sempre igual no mesmo dia (pra pausar/continuar cair no mesmo item)
+  function dayShuffle(a, salt) {
+    var seed = 0, k = today() + salt; for (var z = 0; z < k.length; z++) seed = (seed * 31 + k.charCodeAt(z)) >>> 0;
+    a = a.slice(); for (var i = a.length - 1; i > 0; i--) { seed = (seed * 1103515245 + 12345) >>> 0; var j = seed % (i + 1); var t = a[i]; a[i] = a[j]; a[j] = t; } return a;
+  }
   function today() { var d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
   function buzz(p) { try { if (navigator.vibrate) navigator.vibrate(p); } catch (e) {} }
 
@@ -150,6 +155,7 @@
     var play = el("button", { cls: "pbtn", type: "button", "aria-label": "Tocar", text: "▶" });
     a.addEventListener("timeupdate", function () { if (a.duration) fill.style.width = (a.currentTime / a.duration * 100) + "%"; if (opts.onProgress && a.duration) opts.onProgress(a.currentTime / a.duration); });
     a.addEventListener("play", function () { play.textContent = "⏸"; });
+    a.addEventListener("error", function () { count.textContent = "⚠️ Não consegui tocar o áudio. Pode seguir."; if (opts.onEnd) opts.onEnd(1); });
     a.addEventListener("pause", function () { play.textContent = "▶"; });
     a.addEventListener("ended", function () {
       plays++; play.textContent = "↺";
@@ -192,7 +198,12 @@
       rec = new SR(); rec.lang = "en-US"; rec.continuous = true; rec.interimResults = true;
       rec.onresult = function (e) { interim = ""; for (var i = e.resultIndex; i < e.results.length; i++) { if (e.results[i].isFinal) finals += " " + e.results[i][0].transcript; else interim += " " + e.results[i][0].transcript; } live.textContent = (finals + " " + interim).trim(); };
       rec.onend = function () { if (state === "live" && rec) { try { rec.start(); } catch (e) {} } };
-      rec.onerror = function (ev) { if (ev.error === "not-allowed" || ev.error === "service-not-allowed") { rec = null; state = "idle"; b.classList.remove("live"); b.textContent = "🎤 Libere o microfone e tente de novo"; } };
+      rec.onerror = function (ev) {
+        if (["not-allowed", "service-not-allowed", "audio-capture", "network"].indexOf(ev.error) < 0) return;
+        rec = null; state = "idle"; b.classList.remove("live");
+        b.textContent = ev.error === "network" ? "🎤 Sem internet pro microfone — tente de novo" : "🎤 Libere o microfone e tente de novo";
+        if (!wrap.querySelector(".mic-fallback")) wrap.append(el("button", { cls: "btn ghost mic-fallback", type: "button", text: "Não consigo usar o microfone: falei em voz alta →", onclick: function () { onDone("", true); } }));
+      };
       try { rec.start(); } catch (e) {}
       state = "live"; b.classList.add("live"); b.textContent = latch ? "🔴 Falando… toque pra parar" : "🔴 Falando… solte pra terminar"; buzz(35);
     }
@@ -275,11 +286,12 @@
     ];
     var SV = S.testSave && S.testSave.res ? S.testSave : null;
     var res = SV ? SV.res : { entender: [], repetir: [], reagir: [], recontar: [] };
-    var pi = SV ? SV.pi : 0, items = [], ii = 0, missStreak = 0;
+    var pi = SV ? SV.pi : 0, items = [], ii = 0, missStreak = 0, scored = false, base = null;
     function nextPart() {
       if (pi >= parts.length) return finish();
       var P = parts[pi];
       items = (T[P.key] || []).slice().sort(function (a, b) { return a.band - b.band; }); ii = 0; missStreak = 0;
+      base = JSON.parse(JSON.stringify(res)); // ao pausar, guarda só as partes já terminadas
       var w = screen();
       w.append(testHead(P, 0, items.length), el("div", { cls: "card intro" }, el("h2", { text: P.title.replace(/ · /, " — ") }), el("p", { text: P.tip })),
         el("button", { cls: "btn big", type: "button", text: "Vamos →", onclick: nextItem }));
@@ -288,7 +300,7 @@
       var total = parts.length, pct = Math.round(((pi + (n ? i / n : 0)) / total) * 100);
       return el("div", { cls: "thead" }, el("header", { cls: "top" }, el("span", { cls: "brand", text: "🏋️ Academia" }),
           el("button", { cls: "pause", type: "button", text: "☕ Pausar", onclick: function () {
-            stopAll(); S.testSave = { res: res, pi: pi, date: today() }; persist();
+            stopAll(); S.testSave = { res: base || res, pi: pi, date: today() }; persist();
             var w2 = screen();
             w2.append(el("section", { cls: "hero center rest" }, el("div", { cls: "big-emoji", text: "☕" }), el("h1", { text: "Teste pausado." }),
               el("p", { text: "Tudo salvo. Quando voltar, você continua na parte " + (pi + 1) + " de 4 (ela recomeça do início)." })),
@@ -300,6 +312,7 @@
         n && i > 0 ? steps(Math.min(i, n), n, "Pergunta") : (n ? el("p", { cls: "small", text: "Até " + n + " perguntas nesta parte. Se ficar difícil demais, ela acaba antes." }) : null));
     }
     function score(ok, band) {
+      if (scored) return; scored = true;
       res[parts[pi].skill].push({ band: band, ok: ok });
       missStreak = ok >= 0.6 ? 0 : missStreak + 1;
       ii++;
@@ -307,6 +320,7 @@
       if (missStreak >= 2 || ii >= items.length) { pi++; setTimeout(nextPart, 350); } else setTimeout(nextItem, 350);
     }
     function nextItem() {
+      scored = false;
       var P = parts[pi], it = items[ii], w = screen();
       w.append(testHead(P, ii + 1, items.length));
       var url = AUD + it.file;
@@ -385,7 +399,7 @@
     w.append(bars, el("div", { cls: "card plan" },
       el("span", { cls: "eyebrow", text: "🎯 Seu plano" }),
       el("h2", { text: "Seu foco: " + PROB[focusProb()].emoji + " " + PROB[focusProb()].name.toLowerCase() }),
-      el("p", { html: "Todo dia a academia monta um treino de ~10 min com <b>" + ST[SKILLS[wk].st].emoji + " " + ST[SKILLS[wk].st].name + "</b> em dobro, porque é o que mais trava você. Você começa no tema <b>" + (S.theme + 1) + " · " + esc(INDEX[S.theme].title) + "</b>." }),
+      el("p", { html: "Todo dia a academia monta um treino de ~15 min, em fases curtas, com um exercício a mais de <b>" + PROB[focusProb()].emoji + " " + esc(PROB[focusProb()].name.toLowerCase()) + "</b>, porque é o que mais trava você. Você começa no tema <b>" + (S.theme + 1) + " · " + esc(INDEX[S.theme].title) + "</b>." }),
       el("p", { cls: "small", text: "A nota da fala é automática (reconhecimento de voz): é uma estimativa, não um certificado." })),
       el("button", { cls: "btn big", type: "button", text: "Começar meu treino →", onclick: home }));
   }
@@ -415,17 +429,17 @@
   function home() {
     if (!S.test) return welcome();
     var w = screen(), t = curTheme(), I = INDEX[t];
-    var D = todayPlan(), plan = D.plan, doneToday = (S.dailyDone === today()), resume = !doneToday && D.i > 0;
+    var D = todayPlan(), plan = D.plan, doneToday = (S.dailyDone === today()), roundOver = D.i >= plan.length, resume = D.i > 0 && !roundOver;
     w.append(topBar(),
       el("section", { cls: "hello" }, el("p", { cls: "hand", text: "Bora treinar" + (S.name ? ", " + S.name : "") + "!" }),
         el("div", { cls: "lvl" }, el("span", { cls: "lvl-badge", text: BANDS[S.test.band] }), S.test.skipped ? el("button", { cls: "linkish", type: "button", text: "Fazer o teste de nível", onclick: runTest }) : el("span", { cls: "small", text: "foco: " + PROB[focusProb()].emoji + " " + PROB[focusProb()].name.toLowerCase() }))),
       streakCard(),
       S.paused ? el("button", { cls: "paused-card", type: "button", onclick: resumePaused }, el("span", { cls: "pe", text: "☕" }),
-        el("span", { cls: "tt" }, el("b", { text: "Você pausou: " + ST[S.paused.st].emoji + " " + ST[S.paused.st].name }), el("span", { cls: "small", text: "Parou na frase " + (S.paused.i + 1) + ". Toque pra continuar de onde parou." })), el("span", { cls: "go", text: "Continuar →" })) : "",
-      el("button", { cls: "daily" + (doneToday ? " done" : ""), type: "button", onclick: function () { if (doneToday) { S.daily = { date: today(), plan: dailyPlan(), i: 0 }; persist(); } runDaily(); } },
-        el("span", { cls: "eyebrow", text: doneToday ? "✅ Treino de hoje feito · quer mais?" : "🏋️ Treino do dia · ~15 min" }),
+        el("span", { cls: "tt" }, el("b", { text: "Você pausou: " + ST[S.paused.st].emoji + " " + ST[S.paused.st].name }), el("span", { cls: "small", text: ["erros", "cena", "fofoca"].indexOf(S.paused.st) > -1 ? "Toque pra continuar de onde parou." : "Parou na frase " + (S.paused.i + 1) + ". Toque pra continuar de onde parou." })), el("span", { cls: "go", text: "Continuar →" })) : "",
+      el("button", { cls: "daily" + (doneToday ? " done" : ""), type: "button", onclick: function () { if (roundOver) { S.daily = { date: today(), plan: dailyPlan(), i: 0 }; persist(); } runDaily(); } },
+        el("span", { cls: "eyebrow", text: doneToday && !resume ? "✅ Treino de hoje feito · quer mais?" : doneToday ? "➕ Treino extra" : "🏋️ Treino do dia · ~15 min" }),
         el("b", { text: I.emoji + " Tema " + (t + 1) + " · " + I.title }),
-        el("span", { cls: "dlist" }, plan.map(function (x, k) { return el("span", { cls: k < D.i && !doneToday ? "dn" : "", text: ST[x.st].emoji }); })),
+        el("span", { cls: "dlist" }, plan.map(function (x, k) { return el("span", { cls: k < D.i && !roundOver ? "dn" : "", text: ST[x.st].emoji }); })),
         resume ? el("span", { cls: "small", text: "⏸️ Você parou na fase " + (D.i + 1) + " de " + plan.length }) : null,
         el("span", { cls: "go", text: resume ? "Continuar →" : "Começar →" })));
     // treino livre por problema
@@ -453,7 +467,7 @@
       if (i < INDEX.length - 1) tl.append(el("span", { cls: "tline" + (done ? " done" : "") , style: "--x:" + ((XS[i % XS.length] + XS[(i + 1) % XS.length]) / 2) }));
     });
     tl.append(el("div", { cls: "tgoal" }, el("span", { cls: "disc" }, "🏆"), el("b", { text: "A1 completo!" }), el("span", { cls: "small", text: "Depois: A2" })));
-    w.append(el("h2", { cls: "sec", text: "🗺️ Sua trilha do A1" }), el("div", { cls: "trail-head" }, steps(Math.min(nDone + 1, INDEX.length), INDEX.length, "Tema"), el("p", { cls: "small", text: nDone + " de " + INDEX.length + " temas dominados. O próximo abre quando você manda bem (70%+) em 2 Real Times do tema." })), tl,
+    w.append(el("h2", { cls: "sec", text: "🗺️ Sua trilha do A1" }), el("div", { cls: "trail-head" }, steps(t + 1, INDEX.length, "Tema"), el("p", { cls: "small", text: nDone + " de " + INDEX.length + " temas dominados. O próximo abre quando você manda bem (70%+) em 2 Real Times do tema." })), tl,
       el("button", { cls: "linkish", type: "button", text: "Refazer o teste de nível", onclick: runTest }));
   }
   function themePage(i) {
@@ -471,20 +485,20 @@
   }
   function probPage(k, ti) {
     var P = PROB[k], w = screen(), I = INDEX[ti];
-    w.append(topBar(home), el("span", { cls: "eyebrow", text: "Treino livre · Tema " + (ti + 1) + " · " + I.title }), el("h1", { text: P.emoji + " " + P.name }), el("p", { cls: "small", text: P.pt + " Cada exercício tem 3 variações: errou ou quer mais, faz a próxima." }),
+    w.append(topBar(home), el("span", { cls: "eyebrow", text: "Treino livre · Tema " + (ti + 1) + " · " + I.title }), el("h1", { text: P.emoji + " " + P.name }), el("p", { cls: "small", text: P.pt + " Cada exercício tem 5 variações: errou ou quer mais, faz a próxima." }),
       stationGrid(k, ti), el("p", { cls: "small", text: "Quer outro tema? Escolha lá embaixo no início." }));
   }
   function getUnit(uid) { return Promise.all([loadOuv(), loadSeven()]).then(function () { return uid === "geral" ? GERAL : loadUnit(uid); }); }
   function pickVar(st, uid) {
     var w = screen(); w.append(topBar(home), el("p", { cls: "boot", text: "Carregando…" }));
-    getUnit(uid).then(function (u) {
+    getUnit(uid).catch(function () { netError(); return Promise.reject(); }).then(function (u) {
       w.innerHTML = ""; var X = ST[st], i = uidx(uid);
       w.append(topBar(home), el("span", { cls: "eyebrow", text: X.emoji + " " + X.name + (uid === "geral" ? "" : " · Tema " + (i + 1) + " · " + u.title) }), el("h1", { text: "Escolha a variação" }),
         el("p", { cls: "small", text: "Mesmo assunto, situação diferente. Precisa treinar mais? Faça a próxima." }));
       var list = el("div", { cls: "vars" });
       variations(u, st).forEach(function (x, v) {
         var r = S.done[dkey(st, uid, v)], ok = playable(x);
-        list.append(el("button", { cls: "var" + (ok ? "" : " off"), type: "button", disabled: !ok, onclick: function () { runStation(st, u, v, home); } },
+        list.append(el("button", { cls: "var" + (ok ? "" : " off"), type: "button", disabled: !ok, onclick: function () { runStation(st, u, v, function () { pickVar(st, uid); }); } },
           el("span", { cls: "vn", text: String(v + 1) }),
           el("span", { cls: "vt" }, el("b", { text: x.label || "Variação " + (v + 1) }), el("span", { cls: "small", text: ok ? (r ? "feito " + r.n + "x · melhor " + Math.round(r.best * 100) + "%" : "nova") : "vídeo chegando" }))));
       });
@@ -515,18 +529,21 @@
       if (!first) { first = true; return restScreen(D, function () { first = false; go(); }); }
       first = false; go();
     }
+    // fase que não dá pra fazer (sem erros, sem variação): pula sem mostrar "fase concluída"
+    function skip() { D.i++; persist(); if (D.i >= plan.length) { S.dailyDone = today(); persist(); return celebrate(); } go(); }
     function go() {
       var i = D.i + 1, x = plan[D.i];
-      if (x.st === "erros") { if (!S.errors.length) return next(); return runErrors(next, i, plan.length); }
+      if (S.paused && S.paused.daily) { S.paused = null; persist(); }
+      if (x.st === "erros") { if (!S.errors.length) return skip(); return runErrors(next, i, plan.length); }
       var R0 = RESUME && RESUME.st === x.st ? RESUME : null; RESUME = null;
-      getUnit(R0 ? R0.uid : x.uid).then(function (u) { var v = R0 ? R0.v : nextVar(x.st, u); if (v < 0) return next(); runStation(x.st, u, v, next, { i: i, n: plan.length, review: x.review, startAt: R0 ? R0.i : 0, acc: R0 ? R0.acc : 0 }); });
+      getUnit(R0 ? R0.uid : x.uid).then(function (u) { var v = R0 ? R0.v : nextVar(x.st, u); if (v < 0) return skip(); runStation(x.st, u, v, next, { i: i, n: plan.length, review: x.review, startAt: R0 ? R0.i : 0, acc: R0 ? R0.acc : 0 }); }, netError);
     }
     next();
   }
   function celebrate() {
     var w = screen();
     w.append(topBar(), el("section", { cls: "hero center" }, el("div", { cls: "big-emoji", text: "🏆" }), el("h1", { text: "Treino de hoje feito!" }),
-      el("p", { text: "🔥 " + streak() + (streak() === 1 ? " dia" : " dias") + " seguidos. Amanhã tem mais, com outras variações." }), el("p", { cls: "hand", text: "Falou, validou! 🚀" })),
+      el("p", { text: "🔥 Ofensiva de " + streak() + (streak() === 1 ? " dia" : " dias") + ". Amanhã tem mais, com outras variações — volta pra manter o fogo aceso!" }), el("p", { cls: "hand", text: "Falou, validou! 🚀" })),
       el("button", { cls: "btn big", type: "button", text: "Voltar pro início", onclick: home }));
   }
 
@@ -538,7 +555,7 @@
       el("button", { cls: "back", type: "button", text: "← Sair", onclick: function () { if (onExit === home || confirm("Sair sem salvar? (Pra continuar depois, use ☕ Pausar)")) { CUR = null; home(); } } }),
       el("button", { cls: "pause", type: "button", text: "☕ Pausar", onclick: pauseNow })));
     w.append(el("div", { cls: "thead" },
-      el("span", { cls: "eyebrow", text: (ctx && ctx.n ? "Treino do dia · " + ctx.i + " de " + ctx.n + " · " : "") + X.emoji + " " + X.name + (u.id === "geral" ? "" : " · Tema " + (i + 1) + (ctx && ctx.review ? " (revisão)" : "")) + " · variação " + (v + 1) }),
+      el("span", { cls: "eyebrow", text: (ctx && ctx.n ? "Treino do dia · " : "") + X.emoji + " " + X.name + (u.id === "geral" ? "" : " · Tema " + (i + 1) + (ctx && ctx.review ? " (revisão)" : "")) + " · variação " + (v + 1) }),
       ctx && ctx.n && S.daily ? steps(ctx.i, ctx.n, "Fase", S.daily.plan.map(function (x) { return ST[x.st].emoji; })) : null));
     return w;
   }
@@ -579,11 +596,19 @@
   function resumePaused() {
     var P = S.paused; if (!P) return home();
     S.paused = null; persist();
-    if (P.daily) { RESUME = P; return runDaily(); }
+    var D = S.daily, cur = D && D.date === today() && D.plan[D.i];
+    if (P.daily && cur && cur.st === P.st) { RESUME = P; return runDaily(); }
     if (P.st === "erros") return runErrors();
-    getUnit(P.uid).then(function (u) { runStation(P.st, u, P.v, home, { startAt: P.i, acc: P.acc }); });
+    getUnit(P.uid).then(function (u) { runStation(P.st, u, P.v, function () { pickVar(P.st, P.uid); }, { startAt: P.i, acc: P.acc }); }, netError);
   }
   var RESUME = null;
+  function netError() {
+    var w = screen();
+    w.append(topBar(home), el("section", { cls: "hero center" }, el("div", { cls: "big-emoji", text: "📶" }), el("h1", { text: "Ops, não carregou." }),
+      el("p", { text: "Confira a internet e tente de novo. Seu progresso está salvo." })),
+      el("button", { cls: "btn big", type: "button", text: "Tentar de novo", onclick: function () { location.reload(); } }),
+      el("button", { cls: "linkish", type: "button", text: "Ir pro início", onclick: home }));
+  }
   // progresso bonito: bolinhas (feito / agora / falta) + "2 de 5"
   function steps(cur, n, label, emojis) {
     var row = el("div", { cls: "steps" + (emojis ? " emo" : "") });
@@ -594,13 +619,16 @@
   function clearStage(w, keep) { keep = keep == null ? 2 : keep; while (w.children.length > keep) w.lastChild.remove(); stopAll(); window.scrollTo(0, 0); }
   function finishBox(w, st, u, v, pct, next, msg, extra) {
     record(st, u.id, v, pct); clearStage(w); streakToast(w);
+    CUR = null; var pbtn = w.querySelector(".top .pause"); if (pbtn) pbtn.remove();
     var good = pct >= 0.7;
     w.append(el("div", { cls: "sheet " + (good ? "good" : "bad") }, el("b", { text: good ? "Mandou bem! " + Math.round(pct * 100) + "%" : "Treino é isso: " + Math.round(pct * 100) + "%" }),
-      el("p", { text: msg || (good ? "Bora pra próxima." : "O que você errou foi pra 🧠 Meus erros e volta outro dia numa situação nova.") })));
+      el("p", { text: msg || (good ? "Bora pra próxima." : ["cena", "fofoca", "contar"].indexOf(st) > -1 ? "Treino é repetição: ouça de novo amanhã ou faça outra variação." : "O que você errou foi pra 🧠 Meus erros e volta outro dia numa situação nova.") })));
     (extra || []).forEach(function (x) { if (x) w.append(x); });
     w.append(el("button", { cls: "btn big", type: "button", text: next === home ? "Voltar pro início" : "Próximo →", onclick: function () { next(); } }));
   }
   function runStation(st, u, v, next, ctx) {
+    var vx = variations(u, st)[v];
+    if (st !== "cena" && !vx || st === "cena" && !playable(vx)) return next();
     if (st === "cena") return stCena(u, v, next, ctx);
     if (st === "fofoca") return stFofoca(u, v, next, ctx);
     if (st === "shadow") return stShadow(u, v, next, ctx);
@@ -687,7 +715,7 @@
     w.querySelector(".yt").after(el("div", { cls: "player" }, el("div", { cls: "prow" }, pb, bar), el("div", { cls: "ptools" }, el("span", { cls: "small", text: "🎬 Trecho de " + fmt(dur) }), time)));
     loadYT().then(function (YT) { p = new YT.Player(holder, { videoId: V.youtubeId, playerVars: { start: T0, end: T1, controls: 0, disablekb: 1, fs: 0, rel: 0, playsinline: 1, modestbranding: 1, cc_load_policy: 0, iv_load_policy: 3 }, events: {
       onReady: function () { ready = true; try { p.mute && p.unMute(); } catch (e) {} },
-      onStateChange: function (e) { pb.textContent = e.data === 1 ? "⏸" : (plays ? "↺" : "▶"); if (e.data === 1 && !poll) poll = setInterval(tick, 250); if (e.data === 0) { tick(); } } } }); });
+      onStateChange: function (e) { pb.textContent = e.data === 1 ? "⏸" : (plays ? "↺" : "▶"); if (e.data === 1 && !poll) poll = setInterval(tick, 250); if (e.data === 0) { if (p.getCurrentTime() < T1) { plays++; pb.textContent = "↺"; time.textContent = "✅ Assistiu " + plays + (plays === 1 ? " vez" : " vezes"); fill.style.width = "100%"; open(); } else tick(); } } } }); });
   }
 
   // 🕵️ Fofoca: ouvir → perguntas → recontar falando
@@ -737,8 +765,8 @@
       t.classList.add("locked");
       var nx = el("button", { cls: "btn", type: "button", text: "Próxima frase →", disabled: true, onclick: function () { total += nx._o || 0; i++; clearStage(w); one(); } });
       var card = el("div", { cls: "card sh" }, steps(i + 1, B.list.length, "Frase"), line, pt,
-        el("div", { cls: "ptools" }, el("button", { cls: "pbtn sm", type: "button", text: "▶", onclick: function () { var a = playUrl(url); a.onended = function () { heard = true; t.classList.remove("locked"); }; } }),
-          el("button", { type: "button", text: "🐢", onclick: function () { var a = playUrl(url, 0.75); a.onended = function () { heard = true; t.classList.remove("locked"); }; } }),
+        el("div", { cls: "ptools" }, el("button", { cls: "pbtn sm", type: "button", text: "▶", onclick: function () { var a = playUrl(url); a.onended = a.onerror = function () { heard = true; t.classList.remove("locked"); }; } }),
+          el("button", { type: "button", text: "🐢", onclick: function () { var a = playUrl(url, 0.75); a.onended = a.onerror = function () { heard = true; t.classList.remove("locked"); }; } }),
           el("span", { cls: "plays", text: "ouça antes de falar" })), t, score, nx);
       w.append(card); window.scrollTo(0, 0);
     }
@@ -827,11 +855,13 @@
   function ears(url, onHeard, opts) {
     opts = opts || {};
     var heard = false;
-    function go(rate) { var a = playUrl(url, rate); a.onended = function () { if (!heard) { heard = true; onHeard && onHeard(); } }; }
+    var warn = el("span", { cls: "small" });
+    function unlock() { if (!heard) { heard = true; onHeard && onHeard(); } }
+    function go(rate) { var a = playUrl(url, rate); a.onended = unlock; a.onerror = function () { warn.textContent = "⚠️ Não consegui tocar o áudio. Pode seguir."; unlock(); }; }
     var row = el("div", { cls: "ears" },
       el("button", { cls: "pbtn sm", type: "button", "aria-label": "Ouvir", text: "▶", onclick: function () { go(opts.rate || 1); } }),
       el("button", { cls: "ear", type: "button", text: "🐢 devagar", onclick: function () { go(0.75); } }),
-      opts.fast === false ? null : el("button", { cls: "ear", type: "button", text: "🐇 rápido", onclick: function () { go(1.25); } }));
+      opts.fast === false ? null : el("button", { cls: "ear", type: "button", text: "🐇 rápido", onclick: function () { go(1.25); } }), warn);
     setTimeout(function () { go(opts.rate || 1); }, 350);
     return row;
   }
@@ -850,7 +880,7 @@
       var star = t.charAt(0) === "§", w = core(t.replace(/^§/, "")), lw = w.toLowerCase();
       if (!w || /^\d/.test(w) || STOP[lw] && !star) return;
       var name = i > 0 && /^[A-Z]/.test(w) && lw !== "i" && lw.indexOf("i'") !== 0;
-      if (name) return;
+      if (name && !star) return;
       cand.push({ i: i, w: w, sc: (star ? 5 : 0) + (CONF[lw] ? 3 : 0) + Math.random() * 2 + (w.length > 2 ? 1 : 0) });
     });
     cand.sort(function (a, b) { return b.sc - a.sc; });
@@ -864,7 +894,7 @@
     if (/^[A-Z]/.test(w)) out = out.map(function (x) { return x.charAt(0).toUpperCase() + x.slice(1); });
     return out.slice(0, 2);
   }
-  var LV = [{ k: 1, name: "🟢 Fácil", tip: "1 lacuna, 3 opções" }, { k: 2, name: "🟡 Médio", tip: "2 lacunas, banco com pegadinhas" }, { k: 3, name: "🔴 Difícil", tip: "você escreve o que ouviu" }];
+  var LV = [{ k: 1, name: "🟢 Fácil", tip: "1 lacuna, 3 opções" }, { k: 2, name: "🟡 Médio", tip: "até 2 lacunas, banco com pegadinhas" }, { k: 3, name: "🔴 Difícil", tip: "você escreve o que ouviu" }];
   function lacLevel() { return S.lacLevel || [1, 1, 2, 3][(S.test && S.test.band) || 0]; }
   function eq(a, b) { return canon(a) === canon(b); }
   function joinS(a, m, b) { return [a, m, b].filter(Boolean).join(" ").replace(/ ([.?!,])/g, "$1"); }
@@ -986,7 +1016,7 @@
 
   // 🎯 Qual você ouviu?
   function stPares(u, v, next, ctx) {
-    var B = variations(GERAL, "pares")[v], w = frame("pares", u, v, ctx, next), list = shuffle(B.list), i = startAt(ctx), ok = startAcc(ctx);
+    var B = variations(GERAL, "pares")[v], w = frame("pares", u, v, ctx, next), list = dayShuffle(B.list, "pares" + v), i = startAt(ctx), ok = startAcc(ctx);
     w.append(el("div", { cls: "card" }, el("h2", { text: B.label }), el("p", { cls: "small", text: "Duas palavras quase iguais. O nativo fala uma delas: qual foi?" })));
     function one() { mark("pares", u, v, ctx, i, ok);
       if (i >= list.length) return finishBox(w, "pares", u, v, ok / list.length, next);
@@ -1012,14 +1042,14 @@
   // 🧠 Meus erros: refaz o que errou (shadowing e real time)
   function runErrors(next, ci, cn) {
     next = next || home;
-    var w = screen(), list = S.errors.slice(0, 6), i = 0, fixed = 0;
+    var w = screen(), list = S.errors.slice(-6).reverse(), i = 0, fixed = 0;
     CUR = { st: "erros", uid: "geral", v: 0, i: 0, acc: 0, daily: !!cn };
     w.append(el("header", { cls: "top" }, el("button", { cls: "back", type: "button", text: "← Sair", onclick: function () { CUR = null; home(); } }), el("button", { cls: "pause", type: "button", text: "☕ Pausar", onclick: pauseNow })),
-      el("div", { cls: "thead" }, el("span", { cls: "eyebrow", text: (cn ? "Treino do dia · " + ci + " de " + cn + " · " : "") + "🧠 Meus erros" })),
+      el("div", { cls: "thead" }, el("span", { cls: "eyebrow", text: (cn ? "Treino do dia · " : "") + "🧠 Meus erros" }), cn && S.daily ? steps(ci, cn, "Fase", S.daily.plan.map(function (x) { return ST[x.st].emoji; })) : null),
       el("h1", { text: "O que você errou volta aqui" }), el("p", { cls: "small", text: "Acertou? Sai da lista. Errou de novo? Volta outro dia." }));
     function one() {
       if (i >= list.length) {
-        markDay(); persist(); clearStage(w);
+        markDay(); persist(); clearStage(w); CUR = null; var pb2 = w.querySelector(".top .pause"); if (pb2) pb2.remove();
         w.append(el("div", { cls: "sheet good" }, el("b", { text: "Revisão feita: " + fixed + " de " + list.length + " saíram da lista" }), el("button", { cls: "btn", type: "button", text: next === home ? "Voltar pro início" : "Próximo →", onclick: function () { next(); } })));
         return;
       }

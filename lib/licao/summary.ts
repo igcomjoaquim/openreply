@@ -60,7 +60,7 @@ export type LessonRow = {
   partsDone: number;
 };
 
-const EXTRA_KEYS = new Set(["combo", "bonus", "done"]);
+const EXTRA_KEYS = new Set(["combo", "bonus", "done", "_days"]);
 
 /** Lições do aluno, da mais nova para a mais antiga, com a nota que vale. */
 export async function studentLessons(studentId: string): Promise<LessonRow[]> {
@@ -79,7 +79,7 @@ export async function studentLessons(studentId: string): Promise<LessonRow[]> {
       title: l.title,
       graded: done ? { score: scoreOf(done.progress), finishedAt: done.finishedAt!, progress: done.progress } : null,
       started: l.attempts.some((a) => Object.keys((a.progress as object) ?? {}).length > 0),
-      partsDone: Math.max(0, ...l.attempts.filter((a) => !a.finishedAt).map((a) => Object.keys((a.progress as object) ?? {}).filter((k) => !EXTRA_KEYS.has(k)).length)),
+      partsDone: Math.max(0, ...l.attempts.filter((a) => !a.finishedAt).map((a) => Object.keys((a.progress as object) ?? {}).filter((k) => !EXTRA_KEYS.has(k) && !/^(treino|extra)\d/.test(k)).length)),
     };
   });
 }

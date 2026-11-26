@@ -3,6 +3,7 @@ import { autoResetDemo, isDemoStudent } from "@/lib/licao/demo";
 import { getPrisma } from "@/lib/db/client";
 import { HTML_HEADERS, dayMonth, page } from "@/lib/licao/html";
 import { gradedAttempt } from "@/lib/licao/summary";
+import { studentStreak } from "@/lib/licao/streak";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -39,11 +40,12 @@ export async function GET(request: NextRequest, { params }: Params) {
     preview: request.nextUrl.searchParams.get("professor") === "1",
     view: graded ? { progress: graded.progress, review: graded.review } : null,
     prev,
+    streak: await studentStreak(lesson.studentId),
   };
   const json = JSON.stringify(data).replace(/</g, "\\u003c");
   const body = `<div class="wrap" id="app"><p class="loading">Carregando a sua lição…</p></div>
 <script id="lesson-data" type="application/json">${json}</script>
-<script src="/licao/app.js?v=44"></script>`;
+<script src="/licao/app.js?v=45"></script>`;
   return new NextResponse(page(`${lesson.title} — ${lesson.student.name}`, body), { headers: HTML_HEADERS });
 }
 

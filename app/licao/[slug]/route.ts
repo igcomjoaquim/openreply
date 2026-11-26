@@ -4,6 +4,7 @@ import { getPrisma } from "@/lib/db/client";
 import { HTML_HEADERS, cookieHeader, dayMonth, esc, monthLabel, page } from "@/lib/licao/html";
 import { SKILLS, type Skill, studentLessons } from "@/lib/licao/summary";
 import { gameOf, starsOf } from "@/lib/licao/game";
+import { studentStreak } from "@/lib/licao/streak";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -85,6 +86,11 @@ export async function GET(_request: NextRequest, { params }: Params) {
 
   // ---- jeito de jogo: nível, trilha de fases e medalhas ----
   const game = gameOf(rows);
+  // 🔥 ofensiva: dias seguidos estudando (lição, treino dos erros ou extra)
+  const st = await studentStreak(student.id);
+  const streakCard = rows.length
+    ? `<section class="streak-card${st.today ? " on" : ""}"><span class="streak-fire">🔥</span><span class="streak-txt"><b>${st.days} ${st.days === 1 ? "dia seguido" : "dias seguidos"}</b><span class="small">${st.days === 0 ? "Comece hoje: faça uma fase, um treino ou uma extra." : st.today ? "Hoje já contou! Volte amanhã pra não perder a ofensiva." : "Faça qualquer coisa hoje (uma fase, um treino ou uma extra) pra não perder!"}${st.best > st.days ? ` · recorde: ${st.best}` : ""}</span></span></section>`
+    : "";
   const levelCard = rows.length
     ? `<section class="lvl-card"><div class="lvl-top"><span class="lvl-badge">Nível ${game.level}</span><b>${esc(game.levelName)}</b><span class="xp">${game.xp} XP</span></div>
 <div class="level-bar"><i style="width:${game.pctInLevel}%"></i></div>
@@ -160,6 +166,7 @@ export async function GET(_request: NextRequest, { params }: Params) {
   <header><span class="hand">Hi, ${esc(student.name)}! 👋</span><h1>Minhas lições</h1></header>
   ${hero}
   ${lateBox}
+  ${streakCard}
   ${levelCard}
   ${trail}
   ${progress}

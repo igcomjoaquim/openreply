@@ -168,6 +168,7 @@
     updateScore();
     var all = steps.every(function (s) { return s.done; });
     sendStep({ step: step.key, score: pts, max: step.max, data: step.data });
+    if (!VIEW) bumpStreak();
     var i = steps.indexOf(step);
     // não desce sozinho: o aluno lê o resultado com calma e toca quando quiser seguir
     if (i < steps.length - 1) unlock(steps[i + 1], false);
@@ -237,6 +238,27 @@
       fieldsOf(s.sec).forEach(function (x, k) { var v = d[s.key][k]; if (v && !x.disabled && !x.value) { x.value = v; n++; x.dispatchEvent(new Event("input", { bubbles: true })); } });
     });
     if (n) pauseToast("✍️ Voltou o que você tinha escrito. Continue de onde parou!");
+  }
+  // 🔥 ofensiva: dias seguidos estudando (lição, treino dos erros ou extra) — Thiago 26/11
+  var STREAK = D.streak || { days: 0, today: false, best: 0 }, streakEl = null, streakBusy = false;
+  function paintStreak() {
+    if (!streakEl) return;
+    streakEl.textContent = "🔥 " + (STREAK.days || 0);
+    streakEl.classList.toggle("off", !STREAK.today);
+  }
+  function bumpStreak() {
+    if (PREVIEW || STREAK.today || streakBusy) return;
+    streakBusy = true;
+    post("/api/licao/" + D.slug + "/activity", { lessonId: D.lessonId }, 2).then(function (r) {
+      streakBusy = false;
+      if (!r || !r.streak) return;
+      var before = STREAK.days || 0; STREAK = r.streak; paintStreak();
+      if (STREAK.today) {
+        if (streakEl && !reduce) { streakEl.classList.remove("bump"); void streakEl.offsetWidth; streakEl.classList.add("bump"); }
+        pauseToast(STREAK.days > 1 ? "🔥 Ofensiva: " + STREAK.days + " dias seguidos! Volte amanhã pra não perder." : "🔥 Ofensiva começou! Estude amanhã também pra ela crescer.");
+        if (STREAK.days > before) SFX.small();
+      }
+    });
   }
   function pauseToast(t) { var d = el("div", { cls: "toast", role: "status", text: t }); document.body.append(d); setTimeout(function () { d.classList.add("out"); }, 3200); setTimeout(function () { d.remove(); }, 3800); }
   document.addEventListener("input", function (e) { var sec = e.target.closest && e.target.closest("section"); if (!sec) return; var st = steps.filter(function (s) { return s.sec === sec; })[0]; if (st) saveDraft(st); });
@@ -1544,6 +1566,7 @@
   function doneSet() { try { return JSON.parse(localStorage.getItem(TKEY) || "{}"); } catch (e) { return {}; } }
   function markDone(k) {
     var d = doneSet(); d[k] = Date.now(); try { localStorage.setItem(TKEY, JSON.stringify(d)); } catch (e) {}
+    bumpStreak();
     if (att && !PREVIEW) post("/api/licao/attempt/" + att.id + "/progress", { token: att.token, step: k, score: 0, max: 0, data: { at: new Date().toISOString() } });
   }
   function rng(seed) { var s = seed % 2147483647; if (s <= 0) s += 2147483646; return function () { s = s * 16807 % 2147483647; return (s - 1) / 2147483646; }; }
@@ -1619,6 +1642,7 @@
     return { sents: sents, miss: miss, fix: fix, chunk: chunk };
   }
   // lacunas da fofoca: as palavras que ele errou/não falou vêm primeiro; cada treino usa outras
+  var NT = 5; // treinos dos erros (Thiago 26/11: quem quer mais tem mais)
   function storyBlanks(W) {
     var text = (C.story.paragraphs || []).map(function (p) { return p.replace(/\[\[([^\]]+)\]\]/g, function (_, a) { return a.split("|")[0]; }).replace(/\*\*?/g, ""); }).join(" ");
     var toks = text.split(/\s+/), r = rng(hashStr(D.lessonId + ":lacunas"));
@@ -1629,7 +1653,7 @@
     });
     cand.sort(function (a, b) { return b.pr - a.pr || a.rnd - b.rnd; });
     var used = {}, sets = [];
-    for (var v = 0; v < 3; v++) {
+    for (var v = 0; v < NT; v++) {
       var pick = [], take = function (allowUsed) {
         cand.forEach(function (c) {
           if (pick.length >= 6 || (used[c.i] && !allowUsed)) return;
@@ -1669,7 +1693,7 @@
       markDone("treino" + (v + 1)); SFX.stage(); confetti();
       fin.hidden = false;
       fin.replaceChildren(el("b", { text: "🎉 Treino " + (v + 1) + " feito!" }),
-        el("p", { text: v < 2 ? "Amanhã faça o Treino " + (v + 2) + ": são outras frases e outras palavras, do que você mais precisa." : "Você fez os 3 treinos. Na próxima aula você vai sentir a diferença. Falou, validou! 🚀" }));
+        el("p", { text: v < NT - 1 ? "Quando quiser, faça o Treino " + (v + 2) + ": são outras frases e outras palavras, do que você mais precisa. E tem as lições extras aqui embaixo." : "Você fez os " + NT + " treinos! Quer mais? Faça as lições extras aqui embaixo. Falou, validou! 🚀" }));
       paintTrainingButtons();
     }
     // 1. 🎧 ouça e escreva (2 frases que a página menos entendeu)
@@ -1742,15 +1766,15 @@
     [].forEach.call(trButtons.children, function (b, v) {
       var ok = !!d["treino" + (v + 1)];
       b.classList.toggle("tr-done", ok);
-      b.textContent = (ok ? "✅ " : "▶ ") + "Treino " + (v + 1) + (v === 0 ? " · hoje" : v === 1 ? " · amanhã" : " · depois");
+      b.textContent = (ok ? "✅ " : "▶ ") + "Treino " + (v + 1) + (v === 0 ? " · hoje" : v === 1 ? " · amanhã" : " · dia " + (v + 1));
     });
   }
   function trainingCard() {
     var tr = fbCard("🔁 Treine os seus erros (opcional)", "challenge");
     var holder = el("div", { cls: "tr-holder" });
     trButtons = el("div", { cls: "tr-buttons" });
-    for (var v = 0; v < 3; v++) (function (v) { trButtons.append(el("button", { cls: "btn", type: "button", onclick: function () { buildTrainingRun(v, holder); } })); })(v);
-    tr.append(el("p", { html: "Feito <b>só com o que você errou</b> nesta lição: ouvir e escrever, completar a fofoca, falar do jeito certo e repetir. São <b>3 treinos diferentes</b>, com 4 exercícios cada: faça um por dia até a próxima aula." }), trButtons, holder);
+    for (var v = 0; v < NT; v++) (function (v) { trButtons.append(el("button", { cls: "btn", type: "button", onclick: function () { buildTrainingRun(v, holder); } })); })(v);
+    tr.append(el("p", { html: "Feito <b>só com o que você errou</b> nesta lição: ouvir e escrever, completar a fofoca, falar do jeito certo e repetir. São <b>" + NT + " treinos diferentes</b>, com 4 exercícios cada: faça um por dia até a próxima aula (e, se quiser mais, faça mais de um no mesmo dia)." }), trButtons, holder);
     paintTrainingButtons();
   }
 
@@ -1765,7 +1789,7 @@
     var d = doneSet();
     X.forEach(function (x, xi) {
       var k = "extra" + (xi + 1);
-      var card = el("div", { cls: "fb-card ex-card" + (d[k] ? " good" : "") }, el("h3", { text: (d[k] ? "✅ " : "🎧 ") + "Extra " + (xi + 1) + " · " + x.title }), x.focus ? el("p", { cls: "small", text: x.focus }) : null);
+      var card = el("div", { cls: "fb-card ex-card" + (d[k] ? " good" : "") }, el("h3", { text: (d[k] ? "✅ " : "🎧 ") + "Extra " + (xi + 1) + " · " + x.title }), x.source ? el("span", { cls: "ex-src", text: x.source }) : null, x.focus ? el("p", { cls: "small", text: x.focus }) : null);
       var body = el("div", { cls: "ex-body", hidden: "" });
       var open = el("button", { cls: "btn", type: "button", text: d[k] ? "🔁 Fazer de novo" : "▶ Começar", onclick: function () { open.remove(); body.hidden = false; extraRun(x, xi, body, card); } });
       card.append(open, body); extrasSec.append(card);
@@ -1895,9 +1919,10 @@
   function build() {
     app.replaceChildren();
     scoreEl = el("span", { cls: "score", text: "⭐ 0 pts" });
+    streakEl = el("span", { cls: "streak-chip", title: "Ofensiva: dias seguidos estudando" }); paintStreak();
     var soundBtn = el("button", { cls: "sound", type: "button", "aria-label": "Som", text: SFX.isOn() ? "🔊" : "🔇", onclick: function () { soundBtn.textContent = SFX.toggle() ? "🔊" : "🔇"; } });
     var track = el("div", { cls: "track", "aria-hidden": "true" });
-    app.append(el("div", { cls: "bar" }, el("div", { cls: "bar-row" }, el("a", { cls: "back", href: "/licao/" + D.slug + (PQ ? "?" + PQ : ""), text: "← Minhas lições" }), el("span", { cls: "bar-right" }, soundBtn, scoreEl)), track));
+    app.append(el("div", { cls: "bar" }, el("div", { cls: "bar-row" }, el("a", { cls: "back", href: "/licao/" + D.slug + (PQ ? "?" + PQ : ""), text: "← Minhas lições" }), el("span", { cls: "bar-right" }, streakEl, soundBtn, scoreEl)), track));
     if (VIEW) app.append(el("div", { cls: "viewnote" }, el("b", { text: "✅ Você já fez esta lição." }), " Aqui estão as suas respostas e o seu feedback. ", el("a", { href: "?refazer=1" + (PQ ? "&" + PQ : ""), text: "🔁 Refazer para treinar" })));
     if (D.mode === "practice") app.append(el("div", { cls: "viewnote" }, el("b", { text: "🔁 Modo treino." }), " Pode fazer de novo à vontade: a nota que vale é a da primeira vez."));
     app.append(el("header", null, el("span", { cls: "hand", text: "Hi, " + D.student + "! 👋" }), el("h1", { text: D.title }),

@@ -499,3 +499,15 @@ h1,.hero-title,.result h2,.fb-head h2,.login h1{font-family:var(--f-display)!imp
 .paged .hud-go:empty{display:none}
 .conclude[hidden]{display:none}
 .rest-btn[hidden]{display:none}
+/* 🔥 ofensiva */
+.streak-chip{display:inline-flex;align-items:center;gap:2px;font-weight:800;font-size:15px;padding:6px 10px;border-radius:999px;background:#ffe3c2;border:2px solid var(--ink);color:var(--ink);white-space:nowrap}
+.streak-chip.off{filter:grayscale(.85);opacity:.75}
+.streak-chip.bump{animation:stkBump .7s ease-out}
+@keyframes stkBump{0%{transform:scale(1)}35%{transform:scale(1.35) rotate(-6deg)}100%{transform:scale(1)}}
+@media (prefers-reduced-motion:reduce){.streak-chip.bump{animation:none}}
+.streak-card{display:flex;align-items:center;gap:12px;background:#fff3e0;border:2px solid var(--ink);box-shadow:4px 4px 0 #f08a24;border-radius:14px;padding:12px 16px}
+.streak-card:not(.on) .streak-fire{filter:grayscale(.85);opacity:.7}
+.streak-fire{font-size:34px;line-height:1}
+.streak-txt{display:flex;flex-direction:column;gap:2px}
+.streak-txt b{font-family:var(--f-display);font-size:20px}
+.ex-src{align-self:flex-start;font-size:12px;font-weight:700;padding:3px 9px;border-radius:999px;background:var(--ink);color:#fff}

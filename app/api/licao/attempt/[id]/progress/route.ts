@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getPrisma } from "@/lib/db/client";
 import { attemptForToken } from "@/lib/licao/attempts";
+import { markActiveDay } from "@/lib/licao/streak";
 
 export const runtime = "nodejs";
 
@@ -35,6 +36,7 @@ export async function POST(request: NextRequest, { params }: Params) {
   // Junta no banco (jsonb ||) para duas partes salvas ao mesmo tempo não se apagarem.
   const entry = JSON.stringify({ [step]: { score, max, data: data ?? null } });
   await getPrisma().$executeRaw`UPDATE "LessonAttempt" SET "progress" = "progress" || ${entry}::jsonb, "updatedAt" = ${new Date()} WHERE "id" = ${id}`;
+  await markActiveDay(id); // 🔥 ofensiva: hoje estudou
   if (finished && !attempt.finishedAt) {
     await getPrisma().lessonAttempt.update({ where: { id }, data: { finishedAt: new Date() } });
   }

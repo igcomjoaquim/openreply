@@ -114,9 +114,11 @@ export const lessonContentSchema = z.object({
           )
           .min(2)
           .max(12),
+        /** De onde é o trecho (vlog, filme, série, influencer, entrevista na rua…). */
+        source: z.string().max(60).optional(),
       }),
     )
-    .max(3)
+    .max(8)
     .default([]),
   realtime: z.object({
     vocab: z.string().default(""),

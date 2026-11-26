@@ -255,6 +255,9 @@ function card(r: Row) {
               )}
 
               <div className="mt-3 flex flex-wrap gap-3 text-xs">
+                <a href={`/alunos/${r.slug}`} className="rounded-lg bg-accent px-3 py-1.5 font-semibold text-white hover:opacity-90">
+                  🎧 Ver todas as respostas e áudios
+                </a>
                 <a href={`/licao/${r.slug}?professor=1`} target="_blank" rel="noopener noreferrer" className="font-semibold text-accent hover:underline">
                   Ver como o aluno vê →
                 </a>

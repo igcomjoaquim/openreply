@@ -522,3 +522,8 @@ h1,.hero-title,.result h2,.fb-head h2,.login h1{font-family:var(--f-display)!imp
 .take.sent{border-style:solid;border-color:#2E7D4F;background:#E1F0E3}
 .take audio{width:100%}
 .take-btns{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end}
+.mine-player{display:flex;align-items:center;gap:10px}
+.mine-player .play-mine{min-width:150px;font-size:17px}
+.mine-track{flex:1;display:flex;flex-direction:column;gap:4px}
+.mine-bar{height:8px;border-radius:99px;background:#E6D3BC;overflow:hidden}
+.mine-bar i{display:block;height:100%;width:0;background:#7A2E3A;transition:width .2s linear}

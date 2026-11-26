@@ -494,7 +494,18 @@
   }
   /* O áudio tinha voz mas a página não entendeu nenhuma palavra: neste celular o reconhecimento
      não funciona junto com a gravação. Passa a só gravar (o professor ouve), em vez de repetir sem fim. */
-  function srFailed(t, info) { return SR && !String(t || "").trim() && info && info.voiceS >= 1.2 && info.bytes > 800; }
+  // Conserto 26/11 (Thiago e Carla: grava mas "não reconhece"): o medidor de voz nem sempre funciona
+  // (iPhone), então não dá pra depender só dele. Agora também desliga a leitura quando: o reconhecimento
+  // deu erro de serviço/microfone, ou é a 2ª gravação seguida com áudio (2 s ou mais) e nenhuma palavra.
+  var emptyStreak = 0;
+  function srFailed(t, info) {
+    if (!SR) return false;
+    if (String(t || "").trim()) { emptyStreak = 0; return false; }
+    if (!info || !(info.bytes > 800)) return false;
+    var hardErr = /not-allowed|service-not-allowed|audio-capture|network|language-not-supported/.test(info.srError || "");
+    if ((info.secs || 0) >= 2) emptyStreak++;
+    return info.voiceS >= 1.2 || hardErr || emptyStreak >= 2;
+  }
   // contagem 3-2-1 enquanto o microfone liga: o aluno só fala quando já está gravando
   function countdown(b) {
     return new Promise(function (resolve) {

@@ -86,7 +86,7 @@
     S.theme = B.theme || 0; S.daily = B.daily || null; S.dailyDone = B.dailyDone || null; S.paused = B.paused || null;
     S.level = lv; persist(); location.reload();
   }
-  var A2_READY = false; // liga quando o conteúdo do A2 estiver publicado
+  var A2_READY = true; // liga quando o conteúdo do A2 estiver publicado
   function a2Open() { return A2_READY && (ALL || S.level === "a2" || (S.test && S.test.band >= 3) || S.a1Done); }
   S.done = S.done || {};     // "est:uid:v" -> {n, best, last}
   S.errors = S.errors || []; // [{uid, kind, en, pt, file}]
@@ -109,6 +109,7 @@
     if (S.errors.some(function (x) { return x.en === e.en; })) return;
     S.errors.push(e); S.errors = S.errors.slice(-60); persist();
   }
+  function myErrors() { var a2 = LVL === "a2"; return S.errors.filter(function (e) { return /^(a2u|geral2)/.test(e.uid || "") === a2; }); }
   function fixError(en) { S.errors = S.errors.filter(function (x) { return x.en !== en; }); persist(); }
 
   // ---------- conteúdo ----------
@@ -438,7 +439,7 @@
     var list = [{ st: "cena", uid: uid }, { st: "lacuna", uid: uid }, { st: "rt", uid: uid }, { st: ear2, uid: GERAL.id }, { st: "fofoca", uid: uid }, { st: "shadow", uid: uid }];
     if (focusProb() === "ouvir") list.push({ st: d % 2 ? "contar" : "lacuna", uid: t > 0 ? INDEX[Math.floor(Math.random() * t)].id : uid, review: t > 0 });
     else list.push({ st: "rt", uid: t > 0 ? INDEX[Math.floor(Math.random() * t)].id : uid, review: t > 0 });
-    if (S.errors.length) list.push({ st: "erros" });
+    if (myErrors().length) list.push({ st: "erros" });
     return list;
   }
   function home() {
@@ -466,8 +467,8 @@
           el("span", { cls: "pl", text: P.list.map(function (st) { return ST[st].emoji; }).join(" ") + "  ·  " + P.list.length + " exercícios" })),
         k === fp ? el("span", { cls: "ptag", text: "seu foco" }) : null));
     });
-    var er = el("button", { cls: "station errs" + (S.errors.length ? "" : " off"), type: "button", disabled: !S.errors.length, onclick: function () { runErrors(); } },
-      el("span", { cls: "se", text: "🧠" }), el("span", { cls: "tt" }, el("b", { text: "Meus erros" }), el("span", { cls: "small", text: S.errors.length ? S.errors.length + " pra revisar" : "nada por enquanto 🎉" })));
+    var er = el("button", { cls: "station errs" + (myErrors().length ? "" : " off"), type: "button", disabled: !myErrors().length, onclick: function () { runErrors(); } },
+      el("span", { cls: "se", text: "🧠" }), el("span", { cls: "tt" }, el("b", { text: "Meus erros" }), el("span", { cls: "small", text: myErrors().length ? myErrors().length + " pra revisar" : "nada por enquanto 🎉" })));
     w.append(el("h2", { cls: "sec", text: "O que mais trava você?" }), probs, er);
     // temas
     var nDone = 0; INDEX.forEach(function (x) { if (themeMastery(x.id) >= 2) nDone++; });
@@ -556,7 +557,7 @@
     function go() {
       var i = D.i + 1, x = plan[D.i];
       if (S.paused && S.paused.daily) { S.paused = null; persist(); }
-      if (x.st === "erros") { if (!S.errors.length) return skip(); return runErrors(next, i, plan.length); }
+      if (x.st === "erros") { if (!myErrors().length) return skip(); return runErrors(next, i, plan.length); }
       var R0 = RESUME && RESUME.st === x.st ? RESUME : null; RESUME = null;
       getUnit(R0 ? R0.uid : x.uid).then(function (u) { var v = R0 ? R0.v : nextVar(x.st, u); if (v < 0) return skip(); runStation(x.st, u, v, next, { i: i, n: plan.length, review: x.review, startAt: R0 ? R0.i : 0, acc: R0 ? R0.acc : 0 }); }, netError);
     }
@@ -1064,7 +1065,7 @@
   // 🧠 Meus erros: refaz o que errou (shadowing e real time)
   function runErrors(next, ci, cn) {
     next = next || home;
-    var w = screen(), list = S.errors.slice(-6).reverse(), i = 0, fixed = 0;
+    var w = screen(), list = myErrors().slice(-6).reverse(), i = 0, fixed = 0;
     CUR = { st: "erros", uid: GERAL.id, v: 0, i: 0, acc: 0, daily: !!cn };
     w.append(el("header", { cls: "top" }, el("button", { cls: "back", type: "button", text: "← Sair", onclick: function () { CUR = null; home(); } }), el("button", { cls: "pause", type: "button", text: "☕ Pausar", onclick: pauseNow })),
       el("div", { cls: "thead" }, el("span", { cls: "eyebrow", text: (cn ? "Treino do dia · " : "") + "🧠 Meus erros" }), cn && S.daily ? steps(ci, cn, "Fase", S.daily.plan.map(function (x) { return ST[x.st].emoji; })) : null),

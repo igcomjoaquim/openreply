@@ -190,3 +190,12 @@
 .lvs b{font-family:var(--f-display);font-size:20px}
 .lvs.sel{border-color:var(--ink);background:var(--yellow);box-shadow:3px 3px 0 var(--ink)}
 .lvs.locked{opacity:.6}
+/* teste final A1 -> A2 */
+.final-text{white-space:pre-wrap;font-family:var(--f-display),system-ui,sans-serif;font-size:18px;line-height:1.45;background:#FFFDF6;border:2px dashed var(--ink);border-radius:14px;padding:14px 16px;margin:8px 0 12px}
+.final-in{width:100%;font-size:18px;padding:12px 14px;border:2px solid var(--ink);border-radius:12px;background:var(--card);margin:4px 0 10px;box-sizing:border-box}
+.final-ta{width:100%;font-size:17px;line-height:1.4;padding:12px 14px;border:2px solid var(--ink);border-radius:12px;background:var(--card);margin:8px 0 6px;box-sizing:border-box;resize:vertical}
+.flabel{display:block;font-weight:700;font-size:14px;margin-top:6px}
+.final-scene{font-size:44px;text-align:center;letter-spacing:6px;margin:6px 0 10px}
+.fbody.locked{opacity:.35;pointer-events:none}
+.tgoal.final{background:none;border:0;cursor:pointer;font:inherit;color:inherit;width:100%}
+.tgoal.final b{background:var(--yellow);border:2px solid var(--ink);border-radius:999px;padding:6px 14px;box-shadow:3px 3px 0 var(--ink)}

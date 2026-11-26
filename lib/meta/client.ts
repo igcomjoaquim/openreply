@@ -499,6 +499,25 @@ export async function getMediaComments(
  * returned by the Graph API at all. Disable that filter on the account to widen
  * results.
  */
+type CommentPage = { data: InstagramComment[]; paging?: { next?: string } };
+
+/** Busca uma página de comentários; se a Meta pedir menos dados, tenta de novo com páginas menores (50 → 25 → 10 → 5). */
+async function fetchCommentPage(url: string): Promise<CommentPage> {
+  let current = new URL(url);
+  for (;;) {
+    try {
+      return await handleResponse<CommentPage>(await fetch(current.toString()));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      const limit = Number(current.searchParams.get("limit") || 50);
+      if (!/reduce the amount of data/i.test(message) || limit <= 5) throw error;
+      const smaller = limit > 25 ? 25 : limit > 10 ? 10 : 5;
+      current = new URL(current.toString());
+      current.searchParams.set("limit", String(smaller));
+    }
+  }
+}
+
 export async function getRecentMediaComments(
   accessToken: string,
   mediaId: string,
@@ -508,7 +527,9 @@ export async function getRecentMediaComments(
   const results: InstagramComment[] = [];
 
   const first = new URL(`${instagramGraphBase()}/${mediaId}/comments`);
-  first.searchParams.set("fields", "id,text,timestamp,from,replies{from}");
+  // replies limitado: post com muitos comentários e respostas fazia a Meta
+  // recusar a página inteira ("Please reduce the amount of data", code 1).
+  first.searchParams.set("fields", "id,text,timestamp,from,replies.limit(25){from}");
   first.searchParams.set("order", "reverse_chronological");
   first.searchParams.set("limit", "50");
   first.searchParams.set("access_token", accessToken);
@@ -516,11 +537,7 @@ export async function getRecentMediaComments(
   let nextUrl: string | null = first.toString();
 
   while (nextUrl !== null && results.length < max) {
-    const response: Response = await fetch(nextUrl);
-    const page = await handleResponse<{
-      data: InstagramComment[];
-      paging?: { next?: string };
-    }>(response);
+    const page = await fetchCommentPage(nextUrl);
     const data = page.data ?? [];
     results.push(...data);
 

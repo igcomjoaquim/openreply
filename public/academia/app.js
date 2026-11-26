@@ -9,7 +9,7 @@
 (function () {
   "use strict";
   var root = document.getElementById("app");
-  var DATA = "/aprender/data/", AUD = "/aprender/audio/";
+  var DATA = "/aprender/data/", AUD = "/aprender/audio/", LVL = "a1";
   var KEY = "academia:v1";
   var Q = new URLSearchParams(location.search);
   var ALL = Q.get("tudo") === "1"; // modo professor: tudo aberto
@@ -75,6 +75,19 @@
 
   // ---------- progresso ----------
   var S = (function () { try { return JSON.parse(localStorage.getItem(KEY) || "null"); } catch (e) { return null; } })() || {};
+  // nível (A1 / A2): cada nível tem o seu conteúdo e o seu ponto na trilha
+  LVL = S.level === "a2" ? "a2" : "a1";
+  if (LVL === "a2") { DATA = "/aprender/a2/data/"; AUD = "/aprender/a2/audio/"; }
+  S.byLevel = S.byLevel || {};
+  function setLevel(lv) {
+    if (lv === LVL) return;
+    S.byLevel[LVL] = { theme: S.theme, daily: S.daily, dailyDone: S.dailyDone, paused: S.paused };
+    var B = S.byLevel[lv] || {};
+    S.theme = B.theme || 0; S.daily = B.daily || null; S.dailyDone = B.dailyDone || null; S.paused = B.paused || null;
+    S.level = lv; persist(); location.reload();
+  }
+  var A2_READY = false; // liga quando o conteúdo do A2 estiver publicado
+  function a2Open() { return A2_READY && (ALL || S.level === "a2" || (S.test && S.test.band >= 3) || S.a1Done); }
   S.done = S.done || {};     // "est:uid:v" -> {n, best, last}
   S.errors = S.errors || []; // [{uid, kind, en, pt, file}]
   S.days = S.days || []; S.xp = S.xp || 0;
@@ -106,7 +119,7 @@
   function loadTest() { if (TEST) return Promise.resolve(TEST); return j(DATA + "teste.json?v=" + (window.__v || 1)).then(function (x) { TEST = x; return x; }); }
   var OUV = null;
   function loadOuv() { if (OUV) return Promise.resolve(OUV); return j(DATA + "ouvido.json?v=" + (window.__v || 1)).then(function (x) { OUV = x; return x; }, function () { OUV = {}; return OUV; }); }
-  var GERAL = { id: "geral", title: "Geral" }; // exercícios que não dependem do tema
+  var GERAL = { id: LVL === "a2" ? "geral2" : "geral", title: "Geral" }; // exercícios que não dependem do tema
   var GLOBAL_ST = { grudada: 1, pares: 1 };
   function af(u, key) { var f = u.audio && u.audio[key]; return f ? AUD + f : null; }
   function uidx(uid) { for (var i = 0; i < INDEX.length; i++) if (INDEX[i].id === uid) return i; return 0; }
@@ -377,6 +390,7 @@
       bands.sort(); var band = Math.max(0, bands[1] != null ? bands[1] : 0); // 2ª menor: não deixa uma habilidade só puxar o nível
       S.test = { band: band, skills: skills, at: today() }; S.testSave = null;
       S.theme = [0, 3, 8, 12][band] || 0;
+      if (band >= 3 && A2_READY) { S.byLevel.a1 = { theme: 12 }; S.level = "a2"; S.theme = 0; S.daily = null; S.dailyDone = null; S.paused = null; S.goA2 = true; }
       markDay(); persist(); result();
     }
     nextPart();
@@ -400,9 +414,9 @@
     w.append(bars, el("div", { cls: "card plan" },
       el("span", { cls: "eyebrow", text: "🎯 Seu plano" }),
       el("h2", { text: "Seu foco: " + PROB[focusProb()].emoji + " " + PROB[focusProb()].name.toLowerCase() }),
-      el("p", { html: "Todo dia a academia monta um treino de ~15 min, em fases curtas, com um exercício a mais de <b>" + PROB[focusProb()].emoji + " " + esc(PROB[focusProb()].name.toLowerCase()) + "</b>, porque é o que mais trava você. Você começa no tema <b>" + (S.theme + 1) + " · " + esc(INDEX[S.theme].title) + "</b>." }),
+      el("p", { html: "Todo dia a academia monta um treino de ~15 min, em fases curtas, com um exercício a mais de <b>" + PROB[focusProb()].emoji + " " + esc(PROB[focusProb()].name.toLowerCase()) + "</b>, porque é o que mais trava você. " + (S.goA2 ? "Você já passou do A1: <b>você começa no A2!</b> 🚀" : "Você começa no tema <b>" + (S.theme + 1) + " · " + esc(INDEX[S.theme].title) + "</b>.") }),
       el("p", { cls: "small", text: "A nota da fala é automática (reconhecimento de voz): é uma estimativa, não um certificado." })),
-      el("button", { cls: "btn big", type: "button", text: "Começar meu treino →", onclick: home }));
+      el("button", { cls: "btn big", type: "button", text: "Começar meu treino →", onclick: function () { if (S.goA2) { S.goA2 = false; persist(); location.reload(); } else home(); } }));
   }
 
   // ===== início =====
@@ -421,7 +435,7 @@
     var t = curTheme(), uid = INDEX[t].id, wk = weakest(), extra = SKILLS[wk].st;
     // ouvido e fala se alternando; o problema principal ganha um exercício a mais no fim
     var d = new Date().getDate(), ear2 = d % 2 ? "grudada" : "pares";
-    var list = [{ st: "cena", uid: uid }, { st: "lacuna", uid: uid }, { st: "rt", uid: uid }, { st: ear2, uid: "geral" }, { st: "fofoca", uid: uid }, { st: "shadow", uid: uid }];
+    var list = [{ st: "cena", uid: uid }, { st: "lacuna", uid: uid }, { st: "rt", uid: uid }, { st: ear2, uid: GERAL.id }, { st: "fofoca", uid: uid }, { st: "shadow", uid: uid }];
     if (focusProb() === "ouvir") list.push({ st: d % 2 ? "contar" : "lacuna", uid: t > 0 ? INDEX[Math.floor(Math.random() * t)].id : uid, review: t > 0 });
     else list.push({ st: "rt", uid: t > 0 ? INDEX[Math.floor(Math.random() * t)].id : uid, review: t > 0 });
     if (S.errors.length) list.push({ st: "erros" });
@@ -433,7 +447,7 @@
     var D = todayPlan(), plan = D.plan, doneToday = (S.dailyDone === today()), roundOver = D.i >= plan.length, resume = D.i > 0 && !roundOver;
     w.append(topBar(),
       el("section", { cls: "hello" }, el("p", { cls: "hand", text: "Bora treinar" + (S.name ? ", " + S.name : "") + "!" }),
-        el("div", { cls: "lvl" }, el("span", { cls: "lvl-badge", text: BANDS[S.test.band] }), S.test.skipped ? el("button", { cls: "linkish", type: "button", text: "Fazer o teste de nível", onclick: runTest }) : el("span", { cls: "small", text: "foco: " + PROB[focusProb()].emoji + " " + PROB[focusProb()].name.toLowerCase() }))),
+        el("div", { cls: "lvl" }, el("span", { cls: "lvl-badge", text: LVL === "a2" ? "A2 · pré-intermediário" : BANDS[S.test.band] }), S.test.skipped ? el("button", { cls: "linkish", type: "button", text: "Fazer o teste de nível", onclick: runTest }) : el("span", { cls: "small", text: "foco: " + PROB[focusProb()].emoji + " " + PROB[focusProb()].name.toLowerCase() }))),
       streakCard(),
       S.paused ? el("button", { cls: "paused-card", type: "button", onclick: resumePaused }, el("span", { cls: "pe", text: "☕" }),
         el("span", { cls: "tt" }, el("b", { text: "Você pausou: " + ST[S.paused.st].emoji + " " + ST[S.paused.st].name }), el("span", { cls: "small", text: ["erros", "cena", "fofoca"].indexOf(S.paused.st) > -1 ? "Toque pra continuar de onde parou." : "Parou na frase " + (S.paused.i + 1) + ". Toque pra continuar de onde parou." })), el("span", { cls: "go", text: "Continuar →" })) : "",
@@ -467,8 +481,15 @@
       tl.append(node);
       if (i < INDEX.length - 1) tl.append(el("span", { cls: "tline" + (done ? " done" : "") , style: "--x:" + ((XS[i % XS.length] + XS[(i + 1) % XS.length]) / 2) }));
     });
-    tl.append(el("div", { cls: "tgoal" }, el("span", { cls: "disc" }, "🏆"), el("b", { text: "A1 completo!" }), el("span", { cls: "small", text: "Depois: A2" })));
-    w.append(el("h2", { cls: "sec", text: "🗺️ Sua trilha do A1" }), el("div", { cls: "trail-head" }, steps(t + 1, INDEX.length, "Tema"), el("p", { cls: "small", text: nDone + " de " + INDEX.length + " temas dominados. O próximo abre quando você manda bem (70%+) em 2 Real Times do tema." })), tl,
+    if (nDone >= INDEX.length && LVL === "a1" && !S.a1Done) { S.a1Done = true; persist(); }
+    tl.append(el("div", { cls: "tgoal" }, el("span", { cls: "disc" }, "🏆"), el("b", { text: LVL.toUpperCase() + " completo!" }), el("span", { cls: "small", text: LVL === "a1" ? "Depois: A2" : "Depois: B1 (em breve)" })));
+    var lvSw = el("div", { cls: "lvsw" });
+    [["a1", "A1", "Básico"], ["a2", "A2", "Pré-intermediário"]].forEach(function (L) {
+      var locked = L[0] === "a2" && !a2Open();
+      lvSw.append(el("button", { cls: "lvs" + (L[0] === LVL ? " sel" : "") + (locked ? " locked" : ""), type: "button", disabled: locked && L[0] !== LVL,
+        onclick: function () { setLevel(L[0]); } }, el("b", { text: (locked ? "🔒 " : "") + L[1] }), el("span", { cls: "small", text: locked ? "termine o A1" : L[2] })));
+    });
+    w.append(el("h2", { cls: "sec", text: "🗺️ Sua trilha do " + LVL.toUpperCase() }), lvSw, el("div", { cls: "trail-head" }, steps(t + 1, INDEX.length, "Tema"), el("p", { cls: "small", text: nDone + " de " + INDEX.length + " temas dominados. O próximo abre quando você manda bem (70%+) em 2 Real Times do tema." })), tl,
       el("button", { cls: "linkish", type: "button", text: "Refazer o teste de nível", onclick: runTest }));
   }
   function themePage(i) {
@@ -479,7 +500,7 @@
   function stationGrid(k, ti) {
     var box = el("div", { cls: "stations" });
     PROB[k].list.forEach(function (st) {
-      var X = ST[st], uid = GLOBAL_ST[st] ? "geral" : INDEX[ti].id;
+      var X = ST[st], uid = GLOBAL_ST[st] ? GERAL.id : INDEX[ti].id;
       box.append(el("button", { cls: "station", type: "button", onclick: function () { pickVar(st, uid, ti); } }, el("span", { cls: "se", text: X.emoji }), el("b", { text: X.name }), el("span", { cls: "small", text: X.pt })));
     });
     return box;
@@ -489,12 +510,12 @@
     w.append(topBar(home), el("span", { cls: "eyebrow", text: "Treino livre · Tema " + (ti + 1) + " · " + I.title }), el("h1", { text: P.emoji + " " + P.name }), el("p", { cls: "small", text: P.pt + " Cada exercício tem 5 variações: errou ou quer mais, faz a próxima." }),
       stationGrid(k, ti), el("p", { cls: "small", text: "Quer outro tema? Escolha lá embaixo no início." }));
   }
-  function getUnit(uid) { return Promise.all([loadOuv(), loadSeven()]).then(function () { return uid === "geral" ? GERAL : loadUnit(uid); }); }
+  function getUnit(uid) { return Promise.all([loadOuv(), loadSeven()]).then(function () { return uid === GERAL.id ? GERAL : loadUnit(uid); }); }
   function pickVar(st, uid) {
     var w = screen(); w.append(topBar(home), el("p", { cls: "boot", text: "Carregando…" }));
     getUnit(uid).catch(function () { netError(); return Promise.reject(); }).then(function (u) {
       w.innerHTML = ""; var X = ST[st], i = uidx(uid);
-      w.append(topBar(home), el("span", { cls: "eyebrow", text: X.emoji + " " + X.name + (uid === "geral" ? "" : " · Tema " + (i + 1) + " · " + u.title) }), el("h1", { text: "Escolha a variação" }),
+      w.append(topBar(home), el("span", { cls: "eyebrow", text: X.emoji + " " + X.name + (uid === GERAL.id ? "" : " · Tema " + (i + 1) + " · " + u.title) }), el("h1", { text: "Escolha a variação" }),
         el("p", { cls: "small", text: "Mesmo assunto, situação diferente. Precisa treinar mais? Faça a próxima." }));
       var list = el("div", { cls: "vars" });
       variations(u, st).forEach(function (x, v) {
@@ -556,7 +577,7 @@
       el("button", { cls: "back", type: "button", text: "← Sair", onclick: function () { if (onExit === home || confirm("Sair sem salvar? (Pra continuar depois, use ☕ Pausar)")) { CUR = null; home(); } } }),
       el("button", { cls: "pause", type: "button", text: "☕ Pausar", onclick: pauseNow })));
     w.append(el("div", { cls: "thead" },
-      el("span", { cls: "eyebrow", text: (ctx && ctx.n ? "Treino do dia · " : "") + X.emoji + " " + X.name + (u.id === "geral" ? "" : " · Tema " + (i + 1) + (ctx && ctx.review ? " (revisão)" : "")) + " · variação " + (v + 1) }),
+      el("span", { cls: "eyebrow", text: (ctx && ctx.n ? "Treino do dia · " : "") + X.emoji + " " + X.name + (u.id === GERAL.id ? "" : " · Tema " + (i + 1) + (ctx && ctx.review ? " (revisão)" : "")) + " · variação " + (v + 1) }),
       ctx && ctx.n && S.daily ? steps(ctx.i, ctx.n, "Fase", S.daily.plan.map(function (x) { return ST[x.st].emoji; })) : null));
     return w;
   }
@@ -1003,7 +1024,7 @@
       shuffle(it.options.map(function (o, k) { return k; })).forEach(function (k) {
         opts.append(el("button", { cls: "opt", type: "button", text: it.options[k], onclick: function (e) {
           if (done) return; done = true; var good = k === it.answer; if (good) ok++; e.currentTarget.classList.add(good ? "ok" : "bad"); buzz(good ? 20 : [40, 30, 40]);
-          if (!good) { [].forEach.call(opts.children, function (b) { if (b.textContent === it.options[it.answer]) b.classList.add("ok"); }); addError({ uid: "geral", kind: "ouvir", en: it.options[it.answer], pt: it.pt, file: url, prompt: "🔗 O que ele quis dizer?", choices: it.options.slice(), answer: it.options[it.answer] }); }
+          if (!good) { [].forEach.call(opts.children, function (b) { if (b.textContent === it.options[it.answer]) b.classList.add("ok"); }); addError({ uid: GERAL.id, kind: "ouvir", en: it.options[it.answer], pt: it.pt, file: url, prompt: "🔗 O que ele quis dizer?", choices: it.options.slice(), answer: it.options[it.answer] }); }
           res.append(el("p", { cls: "model" }, el("span", { text: "🔗 " + it.tip })), el("span", { cls: "small", text: "\"" + it.tts + "\" = " + it.pt }));
           nx.disabled = false;
         } }));
@@ -1026,7 +1047,7 @@
       it.words.forEach(function (wd, wk) {
         opts.append(el("button", { cls: "opt pair", type: "button", onclick: function (e) {
           if (done) return; done = true; var good = wk === k; if (good) ok++; e.currentTarget.classList.add(good ? "ok" : "bad"); buzz(good ? 20 : [40, 30, 40]);
-          if (!good) { opts.children[k].classList.add("ok"); addError({ uid: "geral", kind: "ouvir", en: joinS(it.before, it.words[k], it.after), pt: it.pt[k], file: url, prompt: joinS(it.before, "____", it.after), choices: it.words.slice(), answer: it.words[k] }); }
+          if (!good) { opts.children[k].classList.add("ok"); addError({ uid: GERAL.id, kind: "ouvir", en: joinS(it.before, it.words[k], it.after), pt: it.pt[k], file: url, prompt: joinS(it.before, "____", it.after), choices: it.words.slice(), answer: it.words[k] }); }
           res.append(el("b", { text: good ? "✅ Isso! \"" + it.words[k] + "\"" : "🔴 Era \"" + it.words[k] + "\"" }),
             el("div", { cls: "ears" }, el("button", { cls: "ear", type: "button", text: "🔊 " + it.words[0], onclick: function () { playUrl(AUD + it.files[0]); } }), el("button", { cls: "ear", type: "button", text: "🔊 " + it.words[1], onclick: function () { playUrl(AUD + it.files[1]); } })),
             el("span", { cls: "small", text: "Ouça as duas e sinta a diferença." }));
@@ -1044,7 +1065,7 @@
   function runErrors(next, ci, cn) {
     next = next || home;
     var w = screen(), list = S.errors.slice(-6).reverse(), i = 0, fixed = 0;
-    CUR = { st: "erros", uid: "geral", v: 0, i: 0, acc: 0, daily: !!cn };
+    CUR = { st: "erros", uid: GERAL.id, v: 0, i: 0, acc: 0, daily: !!cn };
     w.append(el("header", { cls: "top" }, el("button", { cls: "back", type: "button", text: "← Sair", onclick: function () { CUR = null; home(); } }), el("button", { cls: "pause", type: "button", text: "☕ Pausar", onclick: pauseNow })),
       el("div", { cls: "thead" }, el("span", { cls: "eyebrow", text: (cn ? "Treino do dia · " : "") + "🧠 Meus erros" }), cn && S.daily ? steps(ci, cn, "Fase", S.daily.plan.map(function (x) { return ST[x.st].emoji; })) : null),
       el("h1", { text: "O que você errou volta aqui" }), el("p", { cls: "small", text: "Acertou? Sai da lista. Errou de novo? Volta outro dia." }));

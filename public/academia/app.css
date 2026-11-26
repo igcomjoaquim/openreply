@@ -183,3 +183,10 @@
 .tgoal{display:flex;flex-direction:column;align-items:center;gap:2px;margin-top:14px}
 .tgoal .disc{width:74px;height:74px;border-radius:50%;display:grid;place-items:center;font-size:34px;background:#FDEBD9;border:3px dashed #E8731A}
 @media (prefers-reduced-motion:reduce){.tnode.here .disc,.toast-streak{animation:none}}
+
+/* A1 / A2 */
+.lvsw{display:flex;gap:8px}
+.lvs{flex:1;display:flex;flex-direction:column;align-items:center;gap:0;background:var(--card);border:2px solid var(--line);border-radius:14px;padding:8px}
+.lvs b{font-family:var(--f-display);font-size:20px}
+.lvs.sel{border-color:var(--ink);background:var(--yellow);box-shadow:3px 3px 0 var(--ink)}
+.lvs.locked{opacity:.6}

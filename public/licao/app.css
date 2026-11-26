@@ -511,3 +511,9 @@ h1,.hero-title,.result h2,.fb-head h2,.login h1{font-family:var(--f-display)!imp
 .streak-txt{display:flex;flex-direction:column;gap:2px}
 .streak-txt b{font-family:var(--f-display);font-size:20px}
 .ex-src{align-self:flex-start;font-size:12px;font-weight:700;padding:3px 9px;border-radius:999px;background:var(--ink);color:#fff}
+/* 👀 revisão da lição feita: o que o aluno respondeu x o certo */
+.mine{margin:10px 0 0;padding:10px 12px;border-radius:12px;background:#E1F0E3;border:2px solid #2E7D4F;font-size:15px;line-height:1.45}
+.mine.bad{background:#F4DADB;border-color:#7A2E3A}
+.mine p{margin:6px 0 0}
+.mine .said{text-decoration:line-through;opacity:.8}
+.dict-out{margin:6px 0 0}

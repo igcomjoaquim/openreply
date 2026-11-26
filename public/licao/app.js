@@ -1951,6 +1951,51 @@
     unlock(steps[0], false);
     if (PAGED) { document.body.classList.add("paged"); nav(steps[0].sec, true); }
   }
+  // 👀 Revisão da lição feita (Thiago 26/11): em cada parte o aluno VÊ o que respondeu, o que errou e o certo (sem poder mudar)
+  function showMine(s, d) {
+    if (!d || d.skipped) { if (d && d.skipped) s.sec.append(el("p", { cls: "msg bad", text: "⏭️ Você pulou esta parte. Dá pra fazer em 🔁 Refazer para treinar." })); return; }
+    var sec = s.sec, inputs = [].slice.call(sec.querySelectorAll("input.gap"));
+    // lacunas: devolve o que ele escreveu em cada uma, verde/vermelho + a resposta certa
+    if (d.answers && inputs.length) {
+      inputs.forEach(function (i, k) {
+        var v = d.answers[k]; if (v == null) return;
+        var opts = (i.getAttribute("data-a") || "").split("|").map(function (x) { return x.trim(); });
+        var g = opts.map(norm).indexOf(norm(v)) > -1;
+        i.value = v; i.disabled = true; i.classList.add(g ? "ok" : "bad");
+        if (!g && !(i.nextSibling && i.nextSibling.classList && i.nextSibling.classList.contains("fix"))) i.after(el("span", { cls: "fix", text: " ✓ " + opts[0] + " " }, ear(opts[0])));
+      });
+    }
+    // perguntas: mostra a resposta certa de cada uma e o que ele marcou/escreveu quando errou
+    var Q = s.key === "scene" && C.scene ? C.scene.questions : s.key === "gossip" ? (C.gossip.questions || []) : null;
+    var lis = [].slice.call(sec.querySelectorAll("li.mcq, li.open"));
+    if (Q && lis.length) {
+      var objs = Q.filter(function (q) { return typeof q !== "string"; }), wr = d.wrongs || [];
+      lis.forEach(function (li, k) {
+        var q = objs[k]; if (!q) return;
+        var o = li.querySelector(".mcq-opts"); if (o) o.hidden = false;
+        [].forEach.call(li.querySelectorAll(".reveal, .hint"), function (x) { x.remove(); });
+        var miss = wr.filter(function (w) { return w.why && w.why.indexOf(q.q) > -1; })[0];
+        var right = q.model || (q.options && q.options[q.answer]);
+        li.append(el("div", { cls: "mine " + (miss ? "bad" : "ok") },
+          miss ? el("span", { text: "❌ " + String(miss.said || "").replace(/^\w+: /, "") + " " }) : el("span", { text: "✅ Você acertou. " }),
+          el("b", { text: "Certo: " }), right || ""));
+      });
+    }
+    // ditado: o texto certo, pintado com o que ele pegou (verde) e o que faltou (vermelho)
+    if (s.key === "dictation" && d.answer && C.dictation) {
+      var o2 = el("p", { cls: "dict-out" }); paint(o2, C.dictation.text, d.answer);
+      sec.append(el("div", { cls: "mine" }, el("b", { text: "✅ O texto certo (vermelho = o que faltou ou ficou diferente):" }), o2));
+    }
+    // falas e escrita: cada erro com o jeito certo e o porquê
+    var list = (d.wrongs || []).filter(function () { return !d.answers && !Q; });
+    if (list.length) {
+      sec.append(el.apply(null, ["div", { cls: "mine bad" }, el("b", { text: "❌ O que dá pra melhorar:" })].concat(list.map(function (w) {
+        return el("p", null, el("span", { cls: "said", text: w.said || "" }), w.right ? el("span", { text: " → ✅ " + w.right }) : "", w.why ? el("span", { cls: "small", text: " · " + w.why }) : "");
+      }))));
+    }
+    if (s.key === "realtime" && C.realtime && C.realtime.model) sec.append(el("div", { cls: "mine" }, el("b", { text: "✅ Um jeito certo de falar: " }), C.realtime.model));
+    if (s.key === "retell" && C.story && C.story.paragraphs) sec.append(el("div", { cls: "mine" }, el("b", { text: "📜 A história completa: " }), C.story.paragraphs.map(plain).join(" ")));
+  }
   function restore() {
     var lastDone = -1;
     steps.forEach(function (s, i) {
@@ -1965,6 +2010,7 @@
       var d = s.data || {}, said = d.answer || d.text || d.transcript;
       if (said) s.sec.append(el("div", { cls: "model" }, el("b", { text: d.transcript !== undefined ? "🎤 O que você falou: " : "✍️ O que você escreveu: " }), said));
       if (d.sentences) s.sec.append(el.apply(null, ["ol", { cls: "items" }].concat(d.sentences.map(function (x) { return el("li", null, x.en + " ", el("span", { cls: "small", text: (x.pct >= 95 ? "✅ " : "🔁 ") + x.pct + "%" })); }))));
+      showMine(s, d);
       s.sec.append(el("p", { cls: "msg good", text: "✅ Você já fez esta parte." }));
       lastDone = i;
     });

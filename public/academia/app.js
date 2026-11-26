@@ -507,14 +507,14 @@
       el("h1", { html: "Pronto pro <mark>A2</mark>?" }),
       el("p", { text: "São 4 partes, uns 25 minutos: " + F.parts.map(function (P) { return P.emoji + " " + P.title; }).join(" · ") + ". Dá pra pausar e continuar depois." }),
       el("p", { cls: "small", text: "Pra passar: " + F.passTotal + " de 100 pontos e pelo menos metade em cada parte. Quem passa libera o A2." })),
-      S.finalLast ? el("div", { cls: "card" }, el("b", { text: "Última tentativa: " + S.finalLast.total + "/100 " + (S.finalLast.pass ? "✅" : "") }), el("p", { cls: "small", text: S.finalLast.date })) : null,
+      S.finalLast ? el("div", { cls: "card" }, el("b", { text: "Última tentativa: " + S.finalLast.total + "/100 " + (S.finalLast.pass ? "✅" : "") }), el("p", { cls: "small", text: S.finalLast.date })) : "",
       el("button", { cls: "btn big", type: "button", text: SV ? "Continuar da parte " + (SV.pi + 1) + " →" : "Começar o teste →", onclick: function () { finalFlow(F); } }),
-      SV ? el("button", { cls: "linkish", type: "button", text: "Recomeçar do zero", onclick: function () { S.finalSave = null; persist(); finalFlow(F); } }) : null);
+      SV ? el("button", { cls: "linkish", type: "button", text: "Recomeçar do zero", onclick: function () { S.finalSave = null; persist(); finalFlow(F); } }) : "");
   }
   function finalFlow(F) {
     var SV = S.finalSave, res = SV ? SV.res : {}, pi = SV ? SV.pi : 0, ii = 0, got = [];
     var A = "/aprender/audio/";
-    function head(P) {
+    function head(P, intro) {
       return el("div", { cls: "thead" }, el("header", { cls: "top" }, el("span", { cls: "brand", text: "🎓 Teste final" }),
         el("button", { cls: "pause", type: "button", text: "☕ Pausar", onclick: function () {
           stopAll(); S.finalSave = { res: res, pi: pi, date: today() }; persist();
@@ -526,13 +526,13 @@
         } })),
         el("span", { cls: "eyebrow", text: "Teste final · " + P.emoji + " " + P.title }),
         steps(pi + 1, F.parts.length, "Parte", F.parts.map(function (x) { return x.emoji; })),
-        ii < P.items.length ? steps(ii + 1, P.items.length, "Questão") : null);
+        !intro && ii < P.items.length ? steps(ii + 1, P.items.length, "Questão") : el("p", { cls: "small", text: P.items.length + " questões nesta parte" }));
     }
     function nextPart() {
       if (pi >= F.parts.length) return finish();
       var P = F.parts[pi]; ii = 0; got = [];
       var w = screen();
-      w.append(head(P), el("div", { cls: "card intro" }, el("h2", { text: P.emoji + " Parte " + (pi + 1) + " de " + F.parts.length + " — " + P.title }), el("p", { text: P.tip })),
+      w.append(head(P, true), el("div", { cls: "card intro" }, el("h2", { text: P.emoji + " Parte " + (pi + 1) + " de " + F.parts.length + " — " + P.title }), el("p", { text: P.tip })),
         el("button", { cls: "btn big", type: "button", text: "Vamos →", onclick: nextItem }));
     }
     function score(v) {

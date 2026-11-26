@@ -11,6 +11,21 @@ function hasSessionCookie(request: NextRequest): boolean {
   );
 }
 
+const DESTRAVANDO = "https://destravando.inglescomjoaquim.com";
+/** Caminho antigo no aprender. → caminho no destravando. (raiz antiga = trilha; /academia = raiz nova). */
+const DESTRAVANDO_PATHS: Record<string, string> = {
+  "/": "/aprender/",
+  "/aprender": "/aprender/",
+  "/aprender/": "/aprender/",
+  "/academia": "/",
+  "/academia/": "/",
+};
+
+function migrationPage(target: string): string {
+  const dest = JSON.stringify(DESTRAVANDO + target);
+  return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Destravando — Inglês com Joaquim</title><meta name="robots" content="noindex"></head><body style="font-family:system-ui,sans-serif;background:#E6D3BC;color:#3b2a1a;display:grid;place-items:center;min-height:100vh;margin:0;text-align:center"><p>Mudamos de endereço: agora é <b>destravando.inglescomjoaquim.com</b><br>Levando o seu progresso…</p><script>(function(){var d={},u=${dest};try{for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(/^(aprender|academia):/.test(k))d[k]=localStorage.getItem(k);}}catch(e){}var s=JSON.stringify(d);if(s!=="{}"){try{u+="#migrar="+btoa(unescape(encodeURIComponent(s)));}catch(e){}}location.replace(u);})();</script><noscript><a href=${dest}>Abrir o Destravando</a></noscript></body></html>`;
+}
+
 export function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
@@ -19,9 +34,12 @@ export function proxy(request: NextRequest) {
   if (pathname === "/" && host.toLowerCase().startsWith("homework.")) {
     return NextResponse.rewrite(new URL("/licao", request.url));
   }
-  // aprender.inglescomjoaquim.com: a raiz é a trilha A1 para estudar sozinho.
-  if (pathname === "/" && host.toLowerCase().startsWith("aprender.")) {
-    return NextResponse.rewrite(new URL("/aprender", request.url));
+  // aprender.inglescomjoaquim.com mudou pra destravando.inglescomjoaquim.com (Cloudflare Pages, 26/11/2026).
+  // A página leva o progresso salvo no aparelho (localStorage é por endereço) e redireciona.
+  if (host.toLowerCase().startsWith("aprender.") && DESTRAVANDO_PATHS[pathname] !== undefined) {
+    return new NextResponse(migrationPage(DESTRAVANDO_PATHS[pathname] + request.nextUrl.search), {
+      headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" },
+    });
   }
   const isProtected = PROTECTED_PREFIXES.some(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
@@ -45,6 +63,8 @@ export function proxy(request: NextRequest) {
 export const config = {
   matcher: [
     "/",
+    "/aprender",
+    "/academia",
     "/dashboard/:path*",
     "/automations/:path*",
     "/logs/:path*",

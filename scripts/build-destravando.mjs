@@ -8,11 +8,15 @@ import { fileURLToPath } from "node:url";
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const out = join(root, "dist-destravando");
 
+// Progresso vindo do endereço antigo (aprender.inglescomjoaquim.com manda em #migrar=<base64 JSON>).
+// Só grava o que ainda não existe aqui, pra nunca apagar progresso novo.
+const MIGRAR = `<script>(function(){var h=location.hash;if(h.indexOf("#migrar=")!==0)return;try{var d=JSON.parse(decodeURIComponent(escape(atob(h.slice(8)))));for(var k in d){if(/^(aprender|academia):/.test(k)&&localStorage.getItem(k)===null)localStorage.setItem(k,d[k]);}}catch(e){}history.replaceState(null,"",location.pathname+location.search);})();</script>`;
+
 function html(routeFile) {
   const src = readFileSync(join(root, routeFile), "utf8");
   const m = src.match(/const HTML = `([\s\S]*?)`;/);
   if (!m) throw new Error(`HTML não achado em ${routeFile}`);
-  return m[1];
+  return m[1].replace("<script", MIGRAR + "<script");
 }
 
 rmSync(out, { recursive: true, force: true });

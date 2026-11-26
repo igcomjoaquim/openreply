@@ -18,7 +18,7 @@ const HTML = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
 <link rel="stylesheet" href="/aprender/app.css?v=3">
 <link rel="stylesheet" href="/academia/app.css?v=7">
 </head><body><div id="app"><p class="boot">Carregando…</p></div>
-<script>window.__v=13</script><script src="/academia/app.js?v=10"></script></body></html>`;
+<script>window.__v=14</script><script src="/academia/app.js?v=10"></script></body></html>`;
 
 export function GET() {
   return new NextResponse(HTML, { headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "public, max-age=60" } });

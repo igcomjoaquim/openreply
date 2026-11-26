@@ -15,6 +15,8 @@
   // modo professor (link do painel): mostra tudo igual, mas não cria tentativa nem salva nada
   var PREVIEW = !!D.preview;
   var PQ = PREVIEW ? "professor=1" : "";
+  // 📄 uma fase por tela (Thiago 26/11): em teste só no Aluno Teste; ?paginas=0/1 força
+  var PAGED = !VIEW && (/[?&]paginas=1/.test(location.search) || (/^aluno teste$/i.test(D.student || "") && !/[?&]paginas=0/.test(location.search)));
   var reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   // ---------- helpers ----------
@@ -180,10 +182,10 @@
     if (!step.holdScroll) {
       var nx = all ? concludeSec : steps.slice(i + 1).filter(function (s) { return !s.done; })[0] || steps.filter(function (s) { return !s.done; })[0];
       if (nx) {
-        var label = all ? "Ir para o final 🏁" : "Próxima parte: " + (nx.title || "").replace(/^[^\wÀ-ú]+/, "") + " ↓";
+        var label = all ? "Ir para o final 🏁" : (PAGED ? "Próxima fase: " : "Próxima parte: ") + (nx.title || "").replace(/^[^\wÀ-ú]+/, "") + (PAGED ? " →" : " ↓");
         var rest = null;
         var go = el("button", { cls: "btn next-part", type: "button", text: label, onclick: function () {
-          go.remove(); if (rest) rest.remove(); (nx.sec || nx).scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+          go.remove(); if (rest) rest.remove(); nav(nx.sec || nx);
         } });
         step.sec.append(go);
         // regra do Thiago (25/11): a cada fase, o aluno pode descansar e continuar outro dia
@@ -210,8 +212,8 @@
     hudEl.append(cur
       ? el("span", null, el("b", { text: (ICON[cur.key] || "▶") + " Fase " + (steps.indexOf(cur) + 1) + " de " + steps.length }), " · " + cur.title.replace(/^[^\wÀ-ú]+/, ""))
       : el("b", { text: delivered ? "🏆 Lição entregue! Veja seu feedback." : doneN === steps.length ? "🏁 Todas as fases feitas! Falta só concluir." : "" }),
-      el("button", { cls: "hud-go", type: "button", text: cur ? "ir ↓" : delivered ? "ver ↓" : "ir ao final ↓", onclick: function () {
-        var t = cur ? cur.sec : delivered ? fbSec : concludeSec; if (t) t.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+      el("button", { cls: "hud-go", type: "button", text: PAGED ? (cur && pgCur === cur.sec ? "" : cur ? "voltar →" : delivered ? "ver →" : "ir ao final →") : cur ? "ir ↓" : delivered ? "ver ↓" : "ir ao final ↓", onclick: function () {
+        var t = cur ? cur.sec : delivered ? resultSec : concludeSec; if (t) nav(t);
       } }),
       !delivered ? el("button", { cls: "hud-pause", type: "button", text: "⏸ Pausar", onclick: pauseBox } ) : null);
   }
@@ -255,6 +257,35 @@
     document.body.append(ov);
   }
   window.addEventListener("pagehide", function () { steps.forEach(saveDraft); });
+  // ---------- navegação: rolar (lição em página única) ou trocar de tela (uma fase por tela) ----------
+  var pgCur = null;
+  function nav(node, instant) {
+    if (!node) return;
+    if (!PAGED) { node.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" }); return; }
+    var stepOf = steps.filter(function (s) { return s.sec === node || s.sec.contains(node); })[0];
+    var endEls = [concludeSec, resultSec, fbSec, extrasSec];
+    var isEnd = !stepOf && endEls.some(function (e) { return e && (e === node || e.contains(node)); });
+    if (!stepOf && !isEnd) { node.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" }); return; }
+    try { document.querySelectorAll("audio,video").forEach(function (a) { a.pause(); }); } catch (e) {}
+    var first = stepOf && stepOf === steps[0];
+    [].forEach.call(app.querySelectorAll(":scope > header, :scope > .howto, :scope > .prev-fix, :scope > .viewnote"), function (e) { e.classList.toggle("pg-off", !first); });
+    steps.forEach(function (s) { s.sec.classList.toggle("pg-off", s !== stepOf); });
+    endEls.forEach(function (e) { if (e) e.classList.toggle("pg-off", !isEnd); });
+    var page = stepOf ? stepOf.sec : concludeSec;
+    if (pgCur !== page) {
+      pgCur = page;
+      var anim = stepOf ? stepOf.sec : app;
+      if (!reduce && !instant) { anim.classList.remove("pg-in"); void anim.offsetWidth; anim.classList.add("pg-in"); }
+      window.scrollTo(0, 0);
+    }
+    refreshHud();
+  }
+  // tela em que a lição abre: a 1ª fase que falta (ou o fim, se já fez tudo)
+  function pagedStart() {
+    if (!PAGED) return;
+    var cur = steps.filter(function (s) { return !s.done; })[0];
+    if (cur) { unlock(cur, false); nav(cur.sec, true); } else nav(delivered || saved.done ? resultSec : concludeSec, true);
+  }
   function refreshMap() {
     refreshHud();
     if (!mapEl) return;
@@ -263,7 +294,7 @@
     var ol = el("ol");
     steps.forEach(function (s) {
       var state = s.done ? "done" : s.sec.classList.contains("locked") ? "locked" : "open";
-      ol.append(el("li", { cls: "map-" + state, "data-phase": PHASE[s.key] || "", onclick: function () { if (state !== "locked") s.sec.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" }); } },
+      ol.append(el("li", { cls: "map-" + state, "data-phase": PHASE[s.key] || "", onclick: function () { if (state !== "locked") nav(s.sec); } },
         el("span", { cls: "map-dot", text: s.done ? "✓" : state === "locked" ? "🔒" : "•" }),
         el("span", { cls: "map-name", text: s.title.replace(/^[^\wÀ-ú]+/, "") }),
         el("span", { cls: "map-pts", text: s.done ? s.score + "/" + s.max : s.minutes + "′" })));
@@ -1035,7 +1066,7 @@
     var nextIdx = function () { return steps.indexOf(step) + 1; };
     var goOn = el("button", { cls: "btn", hidden: "", text: "Pronto, vamos para a fofoca →", onclick: function () {
       withPlayer(function (p) { p.pauseVideo(); });
-      var nx = steps[nextIdx()]; if (nx) scrollTo(nx.sec); else if (concludeSec) scrollTo(concludeSec);
+      var nx = steps[nextIdx()]; if (PAGED) nav(nx ? nx.sec : concludeSec); else if (nx) scrollTo(nx.sec); else if (concludeSec) scrollTo(concludeSec);
     } });
     var show = el("button", { cls: "btn yt watch-now", hidden: "", text: "👀 Agora toque aqui e assista COM imagem", onclick: function () {
       cover.remove(); show.hidden = true; goOn.hidden = false; showTranscript();
@@ -1370,7 +1401,8 @@
   function showConclude(scroll) {
     if (!concludeSec.querySelector(".bonus")) { var bc = bonusCard(); if (bc) concludeSec.insertBefore(bc, concludeSec.querySelector("button")); }
     concludeSec.hidden = false;
-    if (scroll) scrollTo(concludeSec);
+    if (PAGED) { if (scroll) nav(concludeSec); else if (pgCur === concludeSec) nav(concludeSec, true); else concludeSec.classList.add("pg-off"); }
+    else if (scroll) scrollTo(concludeSec);
   }
   function conclude() {
     var b = concludeSec.querySelector("button");
@@ -1423,7 +1455,7 @@
     resultSec.hidden = false;
     buildFeedback();
     buildExtras();
-    if (scroll) scrollTo(resultSec);
+    if (PAGED) nav(resultSec, !scroll); else if (scroll) scrollTo(resultSec);
   }
   function fbCard(title, cls) { var c = el("div", { cls: "fb-card" + (cls ? " " + cls : "") }, el("h3", { text: title })); fbSec.append(c); return c; }
   function buildFeedback() {
@@ -1858,7 +1890,7 @@
     // tudo da fofoca em sequência, pro aluno não esquecer a história
     buildGossip(); buildShadowing(); buildRetell(); buildStory(); buildRead();
     buildWriting(); buildRealtime();
-    steps.forEach(function (s) { track.append(el("span", { title: s.title, onclick: function () { if (!s.sec.classList.contains("locked")) s.sec.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" }); } })); });
+    steps.forEach(function (s) { track.append(el("span", { title: s.title, onclick: function () { if (!s.sec.classList.contains("locked")) nav(s.sec); } })); });
     bars = [].slice.call(track.children);
     hudEl = el("div", { cls: "hud" }); track.after(hudEl);
     // mapa da lição (só em tela larga): partes, o que já fez, pontos e tempo
@@ -1873,6 +1905,7 @@
     extrasSec = el("section", { cls: "extras", hidden: "" });
     app.append(concludeSec, resultSec, fbSec, extrasSec, el("footer", { text: "Falou, validou! 🚀" }));
     unlock(steps[0], false);
+    if (PAGED) { document.body.classList.add("paged"); nav(steps[0].sec, true); }
   }
   function restore() {
     var lastDone = -1;
@@ -1958,7 +1991,7 @@
       att = { id: r.id, token: r.token }; save(att);
       saved = r.progress || {}; review = r.review || null;
       if (pending.length) { pending.splice(0).forEach(sendStep); return; } // fez partes offline: o que está na tela vale
-      if (Object.keys(saved).length) restore();
+      if (Object.keys(saved).length) { restore(); pagedStart(); }
       loadDrafts();
       flushQueue();
     });

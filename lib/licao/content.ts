@@ -88,6 +88,36 @@ export const lessonContentSchema = z.object({
     minWords: z.number().int().positive().default(15),
     mistakes: z.array(mistake).default([]),
   }),
+  /**
+   * Lições EXTRAS opcionais (regra do Thiago 25/11/2026): abrem depois que o aluno entrega a lição
+   * principal, focadas em OUVIR e COMPLETAR fala (e repetir), sempre no que o aluno tem mais dificuldade.
+   * Cada frase tem lacunas [[resposta|outra]] e toca sozinha: áudio próprio (audio/slow) ou um
+   * trecho de vídeo do YouTube (youtubeId da extra + t/end da frase, em segundos).
+   */
+  extras: z
+    .array(
+      z.object({
+        title: z.string().min(1),
+        /** Por que esta extra (o que ela treina, em português, curto). */
+        focus: z.string().default(""),
+        youtubeId: z.string().regex(/^[\w-]{6,20}$/).optional(),
+        lines: z
+          .array(
+            z.object({
+              en: z.string().min(1),
+              pt: z.string().optional(),
+              audio: audio.optional(),
+              slow: audio.optional(),
+              t: z.number().min(0).optional(),
+              end: z.number().positive().optional(),
+            }),
+          )
+          .min(2)
+          .max(12),
+      }),
+    )
+    .max(3)
+    .default([]),
   realtime: z.object({
     vocab: z.string().default(""),
     pt: z.string().min(1),
@@ -106,6 +136,7 @@ export function lessonAudioNames(content: LessonContent): string[] {
     content.dictation.audio,
     content.gossip.audio,
     ...content.shadowing.flatMap((s) => [s.audio, s.slow]),
+    ...content.extras.flatMap((x) => x.lines.flatMap((l) => [l.audio, l.slow].filter((n): n is string => !!n))),
   ];
 }
 

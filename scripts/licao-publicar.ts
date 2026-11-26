@@ -66,6 +66,12 @@ async function main() {
     s.audio = await up(s.audio);
     s.slow = await up(s.slow);
   }
+  for (const x of content.extras ?? []) {
+    for (const l of x.lines ?? []) {
+      if (l.audio) l.audio = await up(l.audio);
+      if (l.slow) l.slow = await up(l.slow);
+    }
+  }
 
   if (a.substituir) {
     const r = await fetch(`${baseUrl}/api/licao-admin/lessons/${encodeURIComponent(a.substituir)}`, {

@@ -461,3 +461,27 @@ h1,.hero-title,.result h2,.fb-head h2,.login h1{font-family:var(--f-display)!imp
 .tr-en mark.nat,.tr-legend mark.nat{background:#BFE0F7}
 .tr-legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px;color:#6b5a4c;margin:0 0 4px}
 .tr-legend mark{background:#F5D76E;border-radius:4px;padding:0 4px;color:#2B211B}
+
+/* ☕ descansar entre as fases · 🔁 treino dos erros · 🎧 lições extras (25/11) */
+.rest-btn{align-self:center;margin-top:4px;font-size:15px}
+.tr-buttons{display:flex;flex-wrap:wrap;gap:8px}
+.tr-buttons .btn{flex:1 1 150px}
+.tr-buttons .btn.tr-done{background:var(--ok);border-color:var(--ok)}
+.tr-run{display:flex;flex-direction:column;gap:14px;margin-top:4px}
+.tr-ex{border:1px dashed var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:10px;background:#fffdf7}
+.tr-ex-head{display:flex;align-items:center;gap:8px}
+.tr-ex-head b{font-family:var(--f-display);font-size:19px}
+.tr-n{align-self:flex-start;background:var(--yellow);color:#2B211B;border-radius:999px;padding:1px 9px;font-size:13px;font-weight:700;white-space:nowrap}
+.tr-item{display:flex;flex-direction:column;gap:8px;border-top:1px dashed var(--line);padding-top:10px}
+.tr-ex .tr-item:first-of-type{border-top:0;padding-top:0}
+.tr-play{display:flex;gap:8px;flex-wrap:wrap}
+.tr-story{line-height:2.1}
+.tr-fin{background:var(--okbg);border-radius:12px;padding:12px;text-align:center}
+.tr-fin b{font-family:var(--f-hand);font-size:26px}
+.tr-fin p{margin:4px 0 0}
+.extras{display:flex;flex-direction:column;gap:12px}
+.extras h2{font-family:var(--f-display);font-weight:700;margin:0}
+.extras .eyebrow{font-family:var(--f-hand);color:var(--pen);font-size:22px}
+.ex-body{display:flex;flex-direction:column;gap:12px}
+.ex-line{line-height:2.1;margin:0}
+.ex-lock{color:var(--muted);margin:0}

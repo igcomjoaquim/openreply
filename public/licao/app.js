@@ -203,10 +203,10 @@
     steps.forEach(function (s, i) {
       var b = bars[i]; if (!b) return;
       b.className = s.done ? "on done" : s === cur ? "on cur" : s.sec.classList.contains("locked") ? "" : "on";
-      s.sec.classList.toggle("cur", s === cur && !VIEW && !PREVIEW);
+      s.sec.classList.toggle("cur", s === cur && !VIEW);
     });
     hudEl.replaceChildren();
-    if (VIEW || PREVIEW) { hudEl.hidden = true; return; }
+    if (VIEW) { hudEl.hidden = true; return; }
     hudEl.append(cur
       ? el("span", null, el("b", { text: (ICON[cur.key] || "▶") + " Fase " + (steps.indexOf(cur) + 1) + " de " + steps.length }), " · " + cur.title.replace(/^[^\wÀ-ú]+/, ""))
       : el("b", { text: delivered ? "🏆 Lição entregue! Veja seu feedback." : doneN === steps.length ? "🏁 Todas as fases feitas! Falta só concluir." : "" }),
@@ -910,7 +910,7 @@
       if (open) return; open = true; lock.remove(); inner.hidden = false; markHeard(key);
       if (scroll) { SFX.blip(); scrollTo(inner); }
     }
-    if (wasHeard(key) || PREVIEW) unlock(false);
+    if (wasHeard(key)) unlock(false);
     return { box: box, unlock: unlock };
   }
   function whenHeard(a, fn) {
@@ -1097,7 +1097,6 @@
     sec.append(el("p", { html: rich(S.intro) + " Primeiro <b>só ouça</b>: a imagem fica escondida. Ouça 3 vezes (pode usar 0.75× na 2ª)." }),
       wrap, timeline, ctrl, sceneGate.box, vbox || "", show, tbox || "", goOn);
     setTimeout(function () { if (step.done) sceneGate.unlock(false); }, 1500);
-    if (PREVIEW) { showVocab(); showTranscript(); }
     setTimeout(function () { if (step.done) { showVocab(); showTranscript(); } }, 1500); // voltou numa lição em que já fez a cena
   }
 
@@ -1113,7 +1112,7 @@
     function render() {
       count.textContent = "Frase " + (si + 1) + " de " + SH.length; pt.textContent = SH[si].pt ? "🇧🇷 " + SH[si].pt : "";
       text.replaceChildren(); SH[si].en.split(" ").forEach(function (w, i) { if (i) text.append(" "); text.append(el("span", { text: w })); });
-      var blind = !shHeard[si] && !PREVIEW;
+      var blind = !shHeard[si];
       text.classList.toggle("sh-blind", blind); pt.hidden = blind;
       text.title = blind ? "Ouça a frase primeiro" : "";
       [].forEach.call(dots.children, function (d, i) { d.className = i === si ? "cur" : res[i] === undefined ? "" : res[i] >= 0.95 ? "ok" : "meh"; });
@@ -1157,7 +1156,7 @@
       pre: function () {
         if (step.done) return true;
         if (rec.textContent.indexOf("🔁") === 0) { render(); return true; }
-        if (!shHeard[si] && !PREVIEW) { say(msg, "🎧 Primeiro ouça a frase (toque em 🔊 Ouvir). Depois você vê ela escrita e repete."); return true; }
+        if (!shHeard[si]) { say(msg, "🎧 Primeiro ouça a frase (toque em 🔊 Ouvir). Depois você vê ela escrita e repete."); return true; }
         return false;
       },
       stop: function () { rec.disabled = true; if (sess) sess.stop(); },
@@ -1708,7 +1707,7 @@
   function buildExtras() {
     if (!extrasSec) return;
     var X = C.extras || [];
-    if (!X.length || !(delivered || VIEW || PREVIEW)) { extrasSec.hidden = true; return; }
+    if (!X.length || !(delivered || VIEW)) { extrasSec.hidden = true; return; }
     extrasSec.replaceChildren(el("span", { cls: "eyebrow", text: "🎧 Lições extras · opcionais" }),
       el("h2", { text: "Quer mais? Treine o ouvido" }),
       el("p", { cls: "small", html: "Trechos novos, de gente falando de verdade, com o que você mais precisa. <b>Ouça cada frase e complete o que falta</b>; depois repita. Faça quando quiser, uma por dia." }));
@@ -1852,7 +1851,7 @@
     if (D.mode === "practice") app.append(el("div", { cls: "viewnote" }, el("b", { text: "🔁 Modo treino." }), " Pode fazer de novo à vontade: a nota que vale é a da primeira vez."));
     app.append(el("header", null, el("span", { cls: "hand", text: "Hi, " + D.student + "! 👋" }), el("h1", { text: D.title }),
       el("p", { html: (C.intro ? rich(C.intro) + " " : "") + "Ouça → a fofoca → escreva → fale. Mais ou menos <b>" + C.minutes + " minutos</b>. Pode parar e continuar depois: o link guarda onde você parou." })));
-    if (!VIEW && !PREVIEW) howTo();
+    if (!VIEW) howTo();
     if (D.prev && D.prev.items && D.prev.items.length && !VIEW) buildPrev();
     if (C.review) buildReview();
     buildDictation(); if (C.scene) buildScene();
@@ -1906,9 +1905,10 @@
     return q.q + " → " + (q.model || q.options[q.answer]) +
       (LEVEL !== "A1" && q.keys ? "  (conta certo se usar: " + q.keys.map(function (g) { return g.join("/"); }).join(" + ") + ")" : "");
   }
+  // modo professor = exatamente o que o aluno vê (fases trancadas, descanso, treino e extras só no fim);
+  // a única diferença: nada é salvo, e o 🔑 gabarito só aparece se o professor tocar no botão
   function teacherView() {
-    steps.forEach(function (s, i) { s.sec.classList.remove("locked"); bars[i].classList.add("on"); });
-    refreshMap();
+    var keyBoxes = [];
     var K = {
       review: C.review && ["Respostas esperadas (estruturas): " + C.review.keys.map(function (k) { return k.name; }).join(" · ")],
       dictation: ["Texto do ditado: " + C.dictation.text],
@@ -1930,14 +1930,14 @@
       var box = el("div", { cls: "teacher-key" }, el("b", { text: "🔑 Gabarito do professor" }));
       lines.forEach(function (t) { box.append(el("p", { text: t })); });
       if (s.key === "scene" && C.scene) box.append(el("a", { href: "https://www.youtube.com/watch?v=" + C.scene.youtubeId + "&t=" + C.scene.start + "s", target: "_blank", rel: "noopener", text: "▶ Abrir a cena no YouTube, já no minuto" }));
+      box.hidden = true; keyBoxes.push(box);
       s.sec.append(box);
     });
-    // modo professor: mostra também o que o aluno vê depois de entregar (treino dos erros + extras)
-    fbSec.replaceChildren(); fbSec.hidden = false;
-    fbSec.append(el("div", { cls: "teacher-key" }, el("b", { text: "👀 Depois que o aluno entrega" }),
-      el("p", { text: "Aqui embaixo aparece o que ele vê no fim: o treino dos erros (3 variações, montadas com o que ELE errou — aqui, sem respostas, sai com as frases da lição) e as lições extras." })));
-    trainingCard();
-    buildExtras();
+    var on = false;
+    var pill = el("button", { cls: "teacher-pill", type: "button", text: "👀 Professor · 🔑 gabarito", title: "Nada aqui é salvo. Toque pra mostrar/esconder o gabarito.", onclick: function () {
+      on = !on; keyBoxes.forEach(function (b) { b.hidden = !on; }); pill.classList.toggle("on", on);
+    } });
+    document.body.append(pill);
   }
 
   build();
@@ -1948,8 +1948,6 @@
     return;
   }
   if (PREVIEW) {
-    app.insertBefore(el("div", { cls: "viewnote" }, el("b", { text: "👀 Modo professor:" }),
-      " tudo aberto e com o 🔑 gabarito em cada parte. Pode testar à vontade — nada do que você fizer aqui é salvo nem conta para o aluno."), app.children[1] || null);
     teacherView();
     return;
   }

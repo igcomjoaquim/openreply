@@ -1987,7 +1987,7 @@
       sec.append(el("div", { cls: "mine" }, el("b", { text: "✅ O texto certo (vermelho = o que faltou ou ficou diferente):" }), o2));
     }
     // falas e escrita: cada erro com o jeito certo e o porquê
-    var list = (d.wrongs || []).filter(function () { return !d.answers && !Q; });
+    var list = (d.wrongs || []).filter(function () { return !d.answers && !Q && s.key !== "dictation"; });
     if (list.length) {
       sec.append(el.apply(null, ["div", { cls: "mine bad" }, el("b", { text: "❌ O que dá pra melhorar:" })].concat(list.map(function (w) {
         return el("p", null, el("span", { cls: "said", text: w.said || "" }), w.right ? el("span", { text: " → ✅ " + w.right }) : "", w.why ? el("span", { cls: "small", text: " · " + w.why }) : "");

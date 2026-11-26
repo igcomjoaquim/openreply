@@ -37,6 +37,8 @@ export const lessonContentSchema = z.object({
   /** Nível da lição: muda como o aluno responde as perguntas de entendimento. */
   level: z.enum(["A1", "A2", "B1", "B2"]).default("A2"),
   intro: z.string().default(""),
+  /** Nome da matéria (Thiago 26/11: "dar nome aos bois"), ex.: "Simple Past (-ED) + phrasal verbs do fim de semana". */
+  subject: z.string().max(140).optional(),
   minutes: z.number().int().positive().default(25),
   review: z
     .object({

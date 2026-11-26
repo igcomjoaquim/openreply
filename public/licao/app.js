@@ -1983,7 +1983,7 @@
     app.append(el("div", { cls: "bar" }, el("div", { cls: "bar-row" }, el("a", { cls: "back", href: "/licao/" + D.slug + (PQ ? "?" + PQ : ""), text: "← Minhas lições" }), el("span", { cls: "bar-right" }, streakEl, soundBtn, scoreEl)), track));
     if (VIEW) app.append(el("div", { cls: "viewnote" }, el("b", { text: "✅ Você já fez esta lição." }), " Aqui estão as suas respostas e o seu feedback. ", el("a", { href: "?refazer=1" + (PQ ? "&" + PQ : ""), text: "🔁 Refazer para treinar" })));
     if (D.mode === "practice") app.append(el("div", { cls: "viewnote" }, el("b", { text: "🔁 Modo treino." }), " Pode fazer de novo à vontade: a nota que vale é a da primeira vez."));
-    app.append(el("header", null, el("span", { cls: "hand", text: "Hi, " + D.student + "! 👋" }), el("h1", { text: D.title }),
+    app.append(el("header", null, el("span", { cls: "hand", text: "Hi, " + D.student + "! 👋" }), el("h1", { text: D.title }), C.subject ? el("p", { cls: "subject" }, el("span", { text: "📚 Matéria" }), el("b", { text: C.subject })) : "",
       el("p", { html: (C.intro ? rich(C.intro) + " " : "") + "Ouça → a fofoca → escreva → fale. Mais ou menos <b>" + C.minutes + " minutos</b>. Pode parar e continuar depois: o link guarda onde você parou." })));
     if (!VIEW) howTo();
     if (D.prev && D.prev.items && D.prev.items.length && !VIEW) buildPrev();

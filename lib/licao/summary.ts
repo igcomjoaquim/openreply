@@ -52,6 +52,8 @@ export type LessonRow = {
   id: string;
   date: string;
   title: string;
+  /** Nome da matéria da lição (content.subject), se tiver. */
+  subject: string | null;
   /** Primeira vez que terminou: é a nota que vale. */
   graded: { score: Score; finishedAt: Date; progress: unknown } | null;
   /** Começou e não terminou (nenhuma tentativa terminada). */
@@ -77,6 +79,7 @@ export async function studentLessons(studentId: string): Promise<LessonRow[]> {
       id: l.id,
       date: l.date,
       title: l.title,
+      subject: typeof (l.content as { subject?: unknown } | null)?.subject === "string" ? ((l.content as { subject: string }).subject) : null,
       graded: done ? { score: scoreOf(done.progress), finishedAt: done.finishedAt!, progress: done.progress } : null,
       started: l.attempts.some((a) => Object.keys((a.progress as object) ?? {}).length > 0),
       partsDone: Math.max(0, ...l.attempts.filter((a) => !a.finishedAt).map((a) => Object.keys((a.progress as object) ?? {}).filter((k) => !EXTRA_KEYS.has(k) && !/^(treino|extra)\d/.test(k)).length)),

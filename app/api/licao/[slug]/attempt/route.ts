@@ -23,6 +23,20 @@ export async function POST(request: NextRequest, { params }: Params) {
       return NextResponse.json({ id: existing.id, token: existing.token, progress: existing.progress, review: existing.review });
     }
   }
+  // O navegador perdeu {id, token} (abriu o link por outro app/navegador, limpou dados…):
+  // retoma a tentativa não terminada com mais partes feitas, em vez de começar do zero.
+  // O link já é o código pessoal do aluno, então quem chega aqui é ele.
+  const open = await prisma.lessonAttempt.findMany({
+    where: { lessonId: lesson.id, finishedAt: null },
+    orderBy: { updatedAt: "desc" },
+    take: 20,
+  });
+  const parts = (p: unknown) =>
+    p && typeof p === "object" ? Object.keys(p as Record<string, unknown>).filter((k) => k !== "combo").length : 0;
+  const best = open.reduce<(typeof open)[number] | null>((acc, a) => (!acc || parts(a.progress) > parts(acc.progress) ? a : acc), null);
+  if (best) {
+    return NextResponse.json({ id: best.id, token: best.token, progress: best.progress, review: best.review });
+  }
   const attempt = await prisma.lessonAttempt.create({
     data: { lessonId: lesson.id, token: randomBytes(24).toString("hex") },
   });

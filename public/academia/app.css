@@ -116,3 +116,16 @@
 .opts.locked,.lac-ans.locked{opacity:.35;pointer-events:none}
 .wbox{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0}
 .wbox span{background:var(--yellow);border:2px solid var(--ink);border-radius:8px;padding:2px 8px;font-weight:700}
+
+/* 💬 fala de nativo */
+.native{display:flex;flex-direction:column;gap:6px;margin-top:4px}
+.nchip{margin:0;background:#EAF1FB;border-left:4px solid #3D6FB6;border-radius:8px;padding:6px 10px;font-size:15px;line-height:1.35}
+.nchip b{color:#2B4F86}
+.native-recap{border-color:#3D6FB6;box-shadow:4px 4px 0 #3D6FB6}
+
+/* fases (uma por tela) */
+.qhead{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.daily .dlist{display:flex;gap:8px}
+.daily .dlist .dn{opacity:.35;filter:grayscale(1)}
+.rest .nextph{display:flex;flex-direction:column;gap:2px;align-items:center;margin-top:8px}
+.rest .nextph b{font-family:var(--f-display);font-size:20px}

@@ -498,6 +498,9 @@
   // (iPhone), então não dá pra depender só dele. Agora também desliga a leitura quando: o reconhecimento
   // deu erro de serviço/microfone, ou é a 2ª gravação seguida com áudio (2 s ou mais) e nenhuma palavra.
   var emptyStreak = 0;
+  // 1ª gravação do aparelho: o celular pede permissão do microfone e a gravação sai vazia (Thiago 26/11, iPhone)
+  var micWarm = false, MIC_FIRST = "🎤 Microfone liberado! Na primeira vez o celular pede permissão e perde a gravação. Agora sim: segure o botão e fale de novo.";
+  function firstMicTry(blob) { var first = !micWarm && !blob; micWarm = true; return first; }
   function srFailed(t, info) {
     if (!SR) return false;
     if (String(t || "").trim()) { emptyStreak = 0; return false; }
@@ -717,7 +720,7 @@
             if (SR && !t.trim()) {
               upload(step.key, blob, "", secs, info);
               btn.textContent = "🎙️ Gravar de novo (segure)";
-              say(msg, secs < 2 ? "Muito rápido! Segure o botão, espere o 🔴 FALE AGORA, fale e só depois solte." : "Seu áudio foi gravado, mas a página não entendeu as palavras. Fale um pouco mais alto e devagar, com o celular perto da boca, e grave de novo.");
+              say(msg, firstMicTry(blob) ? MIC_FIRST : secs < 2 ? "Muito rápido! Segure o botão, espere o 🔴 FALE AGORA, fale e só depois solte." : "Seu áudio foi gravado, mas a página não entendeu as palavras. Fale um pouco mais alto e devagar, com o celular perto da boca, e grave de novo.");
               if (secs >= 3) { tries++; if (tries >= 3) offerValve(); }
               return;
             }
@@ -1216,7 +1219,7 @@
             upload("shadowing-" + (si + 1), blob, t, secs, info);
             if (SR && !t.trim()) {
               rec.textContent = "🎙️ Gravar de novo (segure)"; rec.classList.remove("live");
-              say(msg, secs < 2 ? "Muito rápido! Segure o botão, espere o 🔴 FALE AGORA, fale e só depois solte." : "Seu áudio foi gravado, mas a página não entendeu as palavras. Fale um pouco mais alto e devagar, perto do celular.");
+              say(msg, firstMicTry(blob) ? MIC_FIRST : secs < 2 ? "Muito rápido! Segure o botão, espere o 🔴 FALE AGORA, fale e só depois solte." : "Seu áudio foi gravado, mas a página não entendeu as palavras. Fale um pouco mais alto e devagar, perto do celular.");
               next.hidden = false; next.textContent = si < SH.length - 1 ? "Pular esta frase →" : "Terminar o shadowing ✅";
               return;
             }

@@ -1079,12 +1079,16 @@
     // o botão de assistir com imagem; só segue quando tocar em "Seguir".
     step.holdScroll = true;
     var nextIdx = function () { return steps.indexOf(step) + 1; };
+    // ☕ também aqui (Thiago 26/11: "todas as fases, você pode descansar")
+    var sceneRest = el("button", { cls: "ghost rest-btn", type: "button", hidden: "", text: "☕ Descansar e continuar depois", onclick: function () {
+      withPlayer(function (p) { p.pauseVideo(); }); pauseBox(true);
+    } });
     var goOn = el("button", { cls: "btn", hidden: "", text: "Pronto, vamos para a fofoca →", onclick: function () {
       withPlayer(function (p) { p.pauseVideo(); });
       var nx = steps[nextIdx()]; if (PAGED) nav(nx ? nx.sec : concludeSec); else if (nx) scrollTo(nx.sec); else if (concludeSec) scrollTo(concludeSec);
     } });
     var show = el("button", { cls: "btn yt watch-now", hidden: "", text: "👀 Agora toque aqui e assista COM imagem", onclick: function () {
-      cover.remove(); show.hidden = true; goOn.hidden = false; showTranscript();
+      cover.remove(); show.hidden = true; goOn.hidden = false; sceneRest.hidden = false; showTranscript();
       withPlayer(function (p) { p.seekTo(S.start, true); p.playVideo(); });
       scrollTo(wrap);
     } });
@@ -1141,7 +1145,7 @@
     sceneGate = listenGate("scene", "Primeiro <b>ouça o trecho inteiro</b> (tela coberta, sem ler nada). As perguntas aparecem quando ele terminar.",
       [el("p", { cls: "small", html: "Responda só com o que você <b>ouviu</b>:" }), box, box.querySelector("input.gap") ? hintBtn(box) : "", ONCE(), btn]);
     sec.append(el("p", { html: rich(S.intro) + " Primeiro <b>só ouça</b>: a imagem fica escondida. Ouça 3 vezes (pode usar 0.75× na 2ª)." }),
-      wrap, timeline, ctrl, sceneGate.box, vbox || "", show, tbox || "", goOn);
+      wrap, timeline, ctrl, sceneGate.box, vbox || "", show, tbox || "", goOn, sceneRest);
     setTimeout(function () { if (step.done) sceneGate.unlock(false); }, 1500);
     setTimeout(function () { if (step.done) { showVocab(); showTranscript(); } }, 1500); // voltou numa lição em que já fez a cena
   }

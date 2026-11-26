@@ -498,3 +498,4 @@ h1,.hero-title,.result h2,.fb-head h2,.login h1{font-family:var(--f-display)!imp
 @media (prefers-reduced-motion:reduce){.pg-in{animation:none}}
 .paged .hud-go:empty{display:none}
 .conclude[hidden]{display:none}
+.rest-btn[hidden]{display:none}

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-export const dynamic = "force-static";
+export const dynamic = "force-dynamic";
 
 /**
  * Academia — Inglês com Joaquim: plataforma 100% prática. Teste de nivelamento
@@ -20,6 +20,9 @@ const HTML = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
 </head><body><div id="app"><p class="boot">Carregando…</p></div>
 <script>window.__v=15</script><script src="/academia/app.js?v=10"></script></body></html>`;
 
+// Desde 26/11/2026 a Academia mora no Cloudflare Pages (destravando.inglescomjoaquim.com).
+// O HTML acima continua aqui porque scripts/build-destravando.mjs lê ele pra montar o site.
+void HTML;
 export function GET() {
-  return new NextResponse(HTML, { headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "public, max-age=60" } });
+  return NextResponse.redirect("https://destravando.inglescomjoaquim.com/", 301);
 }

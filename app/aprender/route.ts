@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-export const dynamic = "force-static";
+export const dynamic = "force-dynamic";
 
 /**
  * aprender.inglescomjoaquim.com — a trilha A1 para aprender sozinho, no
@@ -19,6 +19,9 @@ const HTML = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
 </head><body><div id="app"><p class="boot">Carregando…</p></div>
 <script>window.__v=2</script><script src="/aprender/app.js?v=4"></script></body></html>`;
 
+// Desde 26/11/2026 a Academia mora no Cloudflare Pages (destravando.inglescomjoaquim.com).
+// O HTML acima continua aqui porque scripts/build-destravando.mjs lê ele pra montar o site.
+void HTML;
 export function GET() {
-  return new NextResponse(HTML, { headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "public, max-age=60" } });
+  return NextResponse.redirect("https://destravando.inglescomjoaquim.com/aprender/", 301);
 }

@@ -1,0 +1,6 @@
+# Não mandar pro Railway: a Academia mora no Cloudflare Pages (destravando.inglescomjoaquim.com)
+public/aprender/
+public/academia/
+dist-destravando/
+.wrangler/
+.open-next/

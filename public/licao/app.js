@@ -187,7 +187,7 @@
         } });
         step.sec.append(go);
         // regra do Thiago (25/11): a cada fase, o aluno pode descansar e continuar outro dia
-        if (!all && !PREVIEW) {
+        if (!all) {
           rest = el("button", { cls: "ghost rest-btn", type: "button", text: "☕ Descansar e continuar depois", onclick: function () { pauseBox(true); } });
           step.sec.append(rest);
         }

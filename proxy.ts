@@ -36,7 +36,11 @@ export function proxy(request: NextRequest) {
   }
   // aprender.inglescomjoaquim.com mudou pra destravando.inglescomjoaquim.com (Cloudflare Pages, 26/11/2026).
   // A página leva o progresso salvo no aparelho (localStorage é por endereço) e redireciona.
-  if (host.toLowerCase().startsWith("aprender.") && DESTRAVANDO_PATHS[pathname] !== undefined) {
+  const lowerHost = host.toLowerCase();
+  const isOldAcademy =
+    DESTRAVANDO_PATHS[pathname] !== undefined &&
+    (lowerHost.startsWith("aprender.") || (pathname !== "/" && lowerHost.startsWith("homework.")));
+  if (isOldAcademy) {
     return new NextResponse(migrationPage(DESTRAVANDO_PATHS[pathname] + request.nextUrl.search), {
       headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" },
     });

@@ -1,6 +1,8 @@
 /* Academia — Inglês com Joaquim.
  * Plataforma 100% prática: teste de nivelamento só de ouvir e falar → treino.
- * 5 estações (Cenas, Fofoca, Shadowing, Real Time, Meus erros), 13 temas do A1 em ordem,
+ * Organizada por PROBLEMA (26/11): 👂 Entender o nativo e 🗣️ Falar sem travar.
+ * Ouvido: Complete o que ouviu (lacunas, 3 níveis), Fala grudada, Qual você ouviu?, Quantas palavras?, Cenas.
+ * Fala: Fofoca (ouvir e recontar), Shadowing, Real Time. 13 temas do A1 em ordem,
  * 3 variações de cada estação por tema. O treino do dia mistura ~70% do tema atual
  * e ~30% de revisão, com mais exercícios da habilidade mais fraca.
  * Conteúdo e áudios vêm da Aprender (/aprender/data, /aprender/audio). Progresso no aparelho. */
@@ -50,6 +52,9 @@
     return t.replace(/\s+/g, " ").trim();
   }
   function cw(s) { return canon(s).split(" ").filter(Boolean); }
+  // palavras como o aluno vê (contração = 1 palavra), sem pontuação solta
+  function words(s) { return String(s).split(/\s+/).filter(function (t) { return /[A-Za-z0-9]/.test(t); }); }
+  function core(t) { return String(t).replace(/^[^A-Za-z0-9']+|[^A-Za-z0-9']+$/g, "").replace(/[’‘]/g, "'"); }
   // quanto da frase-alvo o aluno falou (0–1), sem ligar pra ordem
   function overlap(target, said) {
     var t = cw(target), s = cw(said || ""), bag = {};
@@ -94,6 +99,10 @@
   function loadIndex() { return j(DATA + "index.json?v=" + (window.__v || 1)).then(function (x) { INDEX = x.units; return x; }); }
   function loadUnit(uid) { if (U[uid]) return Promise.resolve(U[uid]); return j(DATA + uid + ".json?v=" + (window.__v || 1)).then(function (x) { U[uid] = x; return x; }); }
   function loadTest() { if (TEST) return Promise.resolve(TEST); return j(DATA + "teste.json?v=" + (window.__v || 1)).then(function (x) { TEST = x; return x; }); }
+  var OUV = null;
+  function loadOuv() { if (OUV) return Promise.resolve(OUV); return j(DATA + "ouvido.json?v=" + (window.__v || 1)).then(function (x) { OUV = x; return x; }, function () { OUV = {}; return OUV; }); }
+  var GERAL = { id: "geral", title: "Geral" }; // exercícios que não dependem do tema
+  var GLOBAL_ST = { grudada: 1, pares: 1 };
   function af(u, key) { var f = u.audio && u.audio[key]; return f ? AUD + f : null; }
   function uidx(uid) { for (var i = 0; i < INDEX.length; i++) if (INDEX[i].id === uid) return i; return 0; }
 
@@ -114,6 +123,16 @@
       return b.slice(0, 3);
     }
     if (st === "rt") return (u.realtimes || []).slice(0, 3).map(function (r, i) { return { r: r, i: i, label: r.title }; });
+    if (st === "lacuna" || st === "contar") return (u.gossips || []).slice(0, 3).map(function (g, gi) {
+      var lines = g.lines.map(function (l, li) { return { raw: l.text, en: plain(l.text), pt: l.pt, file: af(u, "gl" + gi + "_" + li) }; }).filter(function (l) { var n = words(l.en).length; return l.file && n >= 3 && (st === "lacuna" || n <= 12); });
+      if (st === "contar") {
+        var sh = variations(u, "shadow")[gi];
+        (sh ? sh.list : []).forEach(function (x) { if (lines.length < 8) lines.push({ en: x.en, pt: x.pt, file: af(u, x.key) }); });
+        return { list: lines.slice(0, 8), label: "Fofoca: " + g.title };
+      }
+      return { list: lines, label: "Fofoca: " + g.title };
+    });
+    if (st === "grudada" || st === "pares") return ((OUV && OUV[st]) || []).map(function (b) { return { list: b.items, label: b.title }; });
     return [];
   }
   function playable(x) { return x && x.kind !== "soon"; }
@@ -211,8 +230,17 @@
     fofoca: { emoji: "🕵️", name: "Fofoca", pt: "ouça a história e reconte falando", skill: "recontar" },
     shadow: { emoji: "🔁", name: "Shadowing", pt: "repita colado no nativo", skill: "repetir" },
     rt: { emoji: "⚡", name: "Real Time", pt: "passe pro inglês falando, com tempo", skill: "reagir" },
-    erros: { emoji: "🧠", name: "Meus erros", pt: "só o que você errou", skill: null }
+    erros: { emoji: "🧠", name: "Meus erros", pt: "só o que você errou", skill: null },
+    lacuna: { emoji: "🧩", name: "Complete o que ouviu", pt: "o nativo fala, você toca nas palavras", skill: "entender" },
+    grudada: { emoji: "🔗", name: "Fala grudada", pt: "o que o nativo engole: wanna, whaddaya…", skill: "entender" },
+    pares: { emoji: "🎯", name: "Qual você ouviu?", pt: "13 ou 30? live ou leave?", skill: "entender" },
+    contar: { emoji: "🔢", name: "Quantas palavras?", pt: "ache onde uma palavra acaba", skill: "entender" }
   };
+  var PROB = {
+    ouvir: { emoji: "👂", name: "Não entendo o nativo", pt: "Ele fala rápido, engole palavra, e some tudo.", list: ["lacuna", "grudada", "pares", "contar", "cena"] },
+    falar: { emoji: "🗣️", name: "Travo na hora de falar", pt: "Você sabe, mas na hora a frase não sai.", list: ["rt", "fofoca", "shadow"] }
+  };
+  function focusProb() { var s = (S.test && S.test.skills) || {}; if (S.test && S.test.skipped) return "ouvir"; var f = ((s.repetir || 0) + (s.reagir || 0) + (s.recontar || 0)) / 3; return (s.entender || 0) <= f ? "ouvir" : "falar"; }
 
   // ===== boas-vindas =====
   function welcome() {
@@ -342,7 +370,7 @@
     });
     w.append(bars, el("div", { cls: "card plan" },
       el("span", { cls: "eyebrow", text: "🎯 Seu plano" }),
-      el("h2", { text: "Mais treino de " + SKILLS[wk].name.toLowerCase() }),
+      el("h2", { text: "Seu foco: " + PROB[focusProb()].emoji + " " + PROB[focusProb()].name.toLowerCase() }),
       el("p", { html: "Todo dia a academia monta um treino de ~10 min com <b>" + ST[SKILLS[wk].st].emoji + " " + ST[SKILLS[wk].st].name + "</b> em dobro, porque é o que mais trava você. Você começa no tema <b>" + (S.theme + 1) + " · " + esc(INDEX[S.theme].title) + "</b>." }),
       el("p", { cls: "small", text: "A nota da fala é automática (reconhecimento de voz): é uma estimativa, não um certificado." })),
       el("button", { cls: "btn big", type: "button", text: "Começar meu treino →", onclick: home }));
@@ -362,9 +390,11 @@
   }
   function dailyPlan() {
     var t = curTheme(), uid = INDEX[t].id, wk = weakest(), extra = SKILLS[wk].st;
-    var list = [{ st: "cena", uid: uid }, { st: "fofoca", uid: uid }, { st: "shadow", uid: uid }, { st: "rt", uid: uid }];
-    // habilidade fraca em dobro (no fim, pra não repetir a mesma estação seguida); se já tem tema anterior, vira revisão dele
-    list.push({ st: extra, uid: t > 0 ? INDEX[Math.floor(Math.random() * t)].id : uid, review: t > 0 });
+    // ouvido e fala se alternando; o problema principal ganha um exercício a mais no fim
+    var d = new Date().getDate(), ear2 = d % 2 ? "grudada" : "pares";
+    var list = [{ st: "cena", uid: uid }, { st: "lacuna", uid: uid }, { st: "rt", uid: uid }, { st: ear2, uid: "geral" }, { st: "fofoca", uid: uid }, { st: "shadow", uid: uid }];
+    if (focusProb() === "ouvir") list.push({ st: d % 2 ? "contar" : "lacuna", uid: t > 0 ? INDEX[Math.floor(Math.random() * t)].id : uid, review: t > 0 });
+    else list.push({ st: "rt", uid: t > 0 ? INDEX[Math.floor(Math.random() * t)].id : uid, review: t > 0 });
     if (S.errors.length) list.push({ st: "erros" });
     return list;
   }
@@ -374,20 +404,24 @@
     var plan = dailyPlan(), doneToday = (S.dailyDone === today());
     w.append(topBar(),
       el("section", { cls: "hello" }, el("p", { cls: "hand", text: "Bora treinar" + (S.name ? ", " + S.name : "") + "!" }),
-        el("div", { cls: "lvl" }, el("span", { cls: "lvl-badge", text: BANDS[S.test.band] }), S.test.skipped ? el("button", { cls: "linkish", type: "button", text: "Fazer o teste de nível", onclick: runTest }) : el("span", { cls: "small", text: "foco: " + SKILLS[weakest()].emoji + " " + SKILLS[weakest()].name }))),
+        el("div", { cls: "lvl" }, el("span", { cls: "lvl-badge", text: BANDS[S.test.band] }), S.test.skipped ? el("button", { cls: "linkish", type: "button", text: "Fazer o teste de nível", onclick: runTest }) : el("span", { cls: "small", text: "foco: " + PROB[focusProb()].emoji + " " + PROB[focusProb()].name.toLowerCase() }))),
       el("button", { cls: "daily" + (doneToday ? " done" : ""), type: "button", onclick: function () { runDaily(plan); } },
-        el("span", { cls: "eyebrow", text: doneToday ? "✅ Treino de hoje feito · quer mais?" : "🏋️ Treino do dia · ~10 min" }),
+        el("span", { cls: "eyebrow", text: doneToday ? "✅ Treino de hoje feito · quer mais?" : "🏋️ Treino do dia · ~15 min" }),
         el("b", { text: I.emoji + " Tema " + (t + 1) + " · " + I.title }),
         el("span", { cls: "dlist", text: plan.map(function (x) { return ST[x.st].emoji; }).join("  ") }),
         el("span", { cls: "go", text: "Começar →" })));
-    // treino livre
-    var grid = el("div", { cls: "stations" });
-    ["cena", "fofoca", "shadow", "rt", "erros"].forEach(function (st) {
-      var X = ST[st], dis = st === "erros" && !S.errors.length;
-      grid.append(el("button", { cls: "station" + (dis ? " off" : ""), type: "button", disabled: dis, onclick: function () { st === "erros" ? runErrors() : pickVar(st, I.id); } },
-        el("span", { cls: "se", text: X.emoji }), el("b", { text: X.name }), el("span", { cls: "small", text: st === "erros" ? (S.errors.length ? S.errors.length + " pra revisar" : "nada por enquanto 🎉") : X.pt })));
+    // treino livre por problema
+    var fp = focusProb(), probs = el("div", { cls: "probs" });
+    ["ouvir", "falar"].forEach(function (k) {
+      var P = PROB[k];
+      probs.append(el("button", { cls: "prob" + (k === fp ? " focus" : ""), type: "button", onclick: function () { probPage(k, t); } },
+        el("span", { cls: "pe", text: P.emoji }), el("span", { cls: "pt" }, el("b", { text: P.name }), el("span", { cls: "small", text: P.pt }),
+          el("span", { cls: "pl", text: P.list.map(function (st) { return ST[st].emoji; }).join(" ") + "  ·  " + P.list.length + " exercícios" })),
+        k === fp ? el("span", { cls: "ptag", text: "seu foco" }) : null));
     });
-    w.append(el("h2", { cls: "sec", text: "Treino livre · escolha a estação" }), grid);
+    var er = el("button", { cls: "station errs" + (S.errors.length ? "" : " off"), type: "button", disabled: !S.errors.length, onclick: function () { runErrors(); } },
+      el("span", { cls: "se", text: "🧠" }), el("span", { cls: "tt" }, el("b", { text: "Meus erros" }), el("span", { cls: "small", text: S.errors.length ? S.errors.length + " pra revisar" : "nada por enquanto 🎉" })));
+    w.append(el("h2", { cls: "sec", text: "O que mais trava você?" }), probs, er);
     // temas
     var tl = el("ol", { cls: "themes" });
     INDEX.forEach(function (x, i) {
@@ -403,17 +437,27 @@
   function themePage(i) {
     var I = INDEX[i], w = screen();
     w.append(topBar(home), el("span", { cls: "eyebrow", text: "Tema " + (i + 1) }), el("h1", { text: I.emoji + " " + I.title }), el("p", { cls: "small", text: I.titlePt + " · " + I.grammar }));
-    var box = el("div", { cls: "stations" }); w.append(box);
-    ["cena", "fofoca", "shadow", "rt"].forEach(function (st) {
-      var X = ST[st];
-      box.append(el("button", { cls: "station", type: "button", onclick: function () { pickVar(st, I.id); } }, el("span", { cls: "se", text: X.emoji }), el("b", { text: X.name }), el("span", { cls: "small", text: X.pt })));
-    });
+    ["ouvir", "falar"].forEach(function (k) { w.append(el("h2", { cls: "sec", text: PROB[k].emoji + " " + PROB[k].name }), stationGrid(k, i)); });
   }
+  function stationGrid(k, ti) {
+    var box = el("div", { cls: "stations" });
+    PROB[k].list.forEach(function (st) {
+      var X = ST[st], uid = GLOBAL_ST[st] ? "geral" : INDEX[ti].id;
+      box.append(el("button", { cls: "station", type: "button", onclick: function () { pickVar(st, uid, ti); } }, el("span", { cls: "se", text: X.emoji }), el("b", { text: X.name }), el("span", { cls: "small", text: X.pt })));
+    });
+    return box;
+  }
+  function probPage(k, ti) {
+    var P = PROB[k], w = screen(), I = INDEX[ti];
+    w.append(topBar(home), el("span", { cls: "eyebrow", text: "Treino livre · Tema " + (ti + 1) + " · " + I.title }), el("h1", { text: P.emoji + " " + P.name }), el("p", { cls: "small", text: P.pt + " Cada exercício tem 3 variações: errou ou quer mais, faz a próxima." }),
+      stationGrid(k, ti), el("p", { cls: "small", text: "Quer outro tema? Escolha lá embaixo no início." }));
+  }
+  function getUnit(uid) { return loadOuv().then(function () { return uid === "geral" ? GERAL : loadUnit(uid); }); }
   function pickVar(st, uid) {
     var w = screen(); w.append(topBar(home), el("p", { cls: "boot", text: "Carregando…" }));
-    loadUnit(uid).then(function (u) {
+    getUnit(uid).then(function (u) {
       w.innerHTML = ""; var X = ST[st], i = uidx(uid);
-      w.append(topBar(home), el("span", { cls: "eyebrow", text: X.emoji + " " + X.name + " · Tema " + (i + 1) + " · " + u.title }), el("h1", { text: "Escolha a variação" }),
+      w.append(topBar(home), el("span", { cls: "eyebrow", text: X.emoji + " " + X.name + (uid === "geral" ? "" : " · Tema " + (i + 1) + " · " + u.title) }), el("h1", { text: "Escolha a variação" }),
         el("p", { cls: "small", text: "Mesmo assunto, situação diferente. Precisa treinar mais? Faça a próxima." }));
       var list = el("div", { cls: "vars" });
       variations(u, st).forEach(function (x, v) {
@@ -433,7 +477,7 @@
       if (i >= plan.length) { S.dailyDone = today(); persist(); return celebrate(); }
       var x = plan[i++];
       if (x.st === "erros") return runErrors(next, i, plan.length);
-      loadUnit(x.uid).then(function (u) { var v = nextVar(x.st, u); if (v < 0) return next(); runStation(x.st, u, v, next, { i: i, n: plan.length, review: x.review }); });
+      getUnit(x.uid).then(function (u) { var v = nextVar(x.st, u); if (v < 0) return next(); runStation(x.st, u, v, next, { i: i, n: plan.length, review: x.review }); });
     }
     next();
   }
@@ -449,7 +493,7 @@
     var w = screen(), X = ST[st], i = uidx(u.id);
     w.append(topBar(function () { onExit === home ? home() : (confirm("Sair do treino do dia?") && home()); }));
     w.append(el("div", { cls: "thead" },
-      el("span", { cls: "eyebrow", text: (ctx && ctx.n ? "Treino do dia · " + ctx.i + " de " + ctx.n + " · " : "") + X.emoji + " " + X.name + " · Tema " + (i + 1) + (ctx && ctx.review ? " (revisão)" : "") + " · variação " + (v + 1) }),
+      el("span", { cls: "eyebrow", text: (ctx && ctx.n ? "Treino do dia · " + ctx.i + " de " + ctx.n + " · " : "") + X.emoji + " " + X.name + (u.id === "geral" ? "" : " · Tema " + (i + 1) + (ctx && ctx.review ? " (revisão)" : "")) + " · variação " + (v + 1) }),
       ctx && ctx.n ? el("div", { cls: "pbar2" }, el("i", { style: "width:" + Math.round((ctx.i - 1) / ctx.n * 100) + "%" })) : null));
     return w;
   }
@@ -466,6 +510,10 @@
     if (st === "fofoca") return stFofoca(u, v, next, ctx);
     if (st === "shadow") return stShadow(u, v, next, ctx);
     if (st === "rt") return stRT(u, v, next, ctx);
+    if (st === "lacuna") return stLacuna(u, v, next, ctx);
+    if (st === "contar") return stContar(u, v, next, ctx);
+    if (st === "grudada") return stGrudada(u, v, next, ctx);
+    if (st === "pares") return stPares(u, v, next, ctx);
   }
   // perguntas com alternativas (inglês + botão de ver em PT, porque é A1)
   function mcq(q, onAns) {
@@ -482,7 +530,7 @@
       } }, el("span", { text: q.options[k] }), q.optionsPt ? el("span", { cls: "opt-pt", text: q.optionsPt[k] }) : null));
       opts.lastChild._k = k;
     });
-    box.append(opts, q.pt ? ptBtn : null);
+    box.append(opts); if (q.pt) box.append(ptBtn);
     return box;
   }
   function quiz(w, qs, after) {
@@ -612,6 +660,191 @@
     one();
   }
 
+  // ===== 👂 OUVIDO =====
+  // botões de ouvir: normal, devagar e rápido; destrava a resposta depois da 1ª vez
+  function ears(url, onHeard, opts) {
+    opts = opts || {};
+    var heard = false;
+    function go(rate) { var a = playUrl(url, rate); a.onended = function () { if (!heard) { heard = true; onHeard && onHeard(); } }; }
+    var row = el("div", { cls: "ears" },
+      el("button", { cls: "pbtn sm", type: "button", "aria-label": "Ouvir", text: "▶", onclick: function () { go(opts.rate || 1); } }),
+      el("button", { cls: "ear", type: "button", text: "🐢 devagar", onclick: function () { go(0.75); } }),
+      opts.fast === false ? null : el("button", { cls: "ear", type: "button", text: "🐇 rápido", onclick: function () { go(1.25); } }));
+    setTimeout(function () { go(opts.rate || 1); }, 350);
+    return row;
+  }
+  var CONF = { the: ["a", "that"], a: ["the", "her"], an: ["and", "in"], and: ["an", "in"], "in": ["on", "and"], on: ["in", "at"], at: ["it", "and"], it: ["at", "is"], is: ["it's", "his"], "it's": ["is", "its"],
+    "i'm": ["I", "I've"], "don't": ["do", "doesn't"], "do": ["to", "you"], you: ["your", "do"], your: ["you", "you're"], can: ["can't", "could"], "can't": ["can", "cat"], want: ["won't", "went"],
+    went: ["want", "when"], what: ["want", "watch"], to: ["do", "two"], go: ["going", "goes"], he: ["she", "his"], she: ["he", "see"], his: ["he's", "is"], this: ["these", "that"], there: ["their", "they"],
+    they: ["there", "the"], we: ["were", "with"], was: ["is", "were"], were: ["was", "where"], where: ["were", "wear"], are: ["our", "or"], "for": ["four", "from"], of: ["off", "have"], have: ["has", "of"],
+    has: ["have", "his"], my: ["me", "may"], me: ["my", "we"], "with": ["which", "we"], wake: ["work", "walk"], work: ["walk", "wake"], live: ["leave", "life"], "i": ["I'm", "a"], so: ["say", "go"],
+    no: ["know", "now"], know: ["no", "now"], now: ["no", "know"], here: ["hear", "her"], her: ["here", "his"], up: ["off", "a"], but: ["bad", "both"], not: ["now", "no"], "doesn't": ["don't", "does"],
+    "didn't": ["don't", "did"], "isn't": ["is", "it's"], "i'll": ["I", "all"], "let's": ["let", "less"], "she's": ["she", "sees"], "he's": ["he", "his"], "you're": ["your", "you"], "we're": ["were", "we"] };
+  var STOP = { a: 1, i: 1 };
+  function pickBlanks(line, n) {
+    var toks = line.raw.replace(/\*\*([^*]+)\*\*/g, function (_, x) { return x.split(/\s+/).map(function (y) { return "§" + y; }).join(" "); }).split(/\s+/);
+    var cand = [];
+    toks.forEach(function (t, i) {
+      var star = t.charAt(0) === "§", w = core(t.replace(/^§/, "")), lw = w.toLowerCase();
+      if (!w || /^\d/.test(w) || STOP[lw] && !star) return;
+      var name = i > 0 && /^[A-Z]/.test(w) && lw !== "i" && lw.indexOf("i'") !== 0;
+      if (name) return;
+      cand.push({ i: i, w: w, sc: (star ? 5 : 0) + (CONF[lw] ? 3 : 0) + Math.random() * 2 + (w.length > 2 ? 1 : 0) });
+    });
+    cand.sort(function (a, b) { return b.sc - a.sc; });
+    var pick = cand.slice(0, n).sort(function (a, b) { return a.i - b.i; });
+    return { toks: toks.map(function (t) { return t.replace(/^§/, ""); }), blanks: pick };
+  }
+  function distract(w, pool) {
+    var lw = w.toLowerCase(), out = (CONF[lw] || []).slice();
+    shuffle(pool).forEach(function (p) { if (out.length < 2 && p.toLowerCase() !== lw && out.indexOf(p) < 0 && Math.abs(p.length - w.length) <= 3) out.push(p); });
+    ["the", "to", "you"].forEach(function (p) { if (out.length < 2 && p !== lw && out.indexOf(p) < 0) out.push(p); });
+    if (/^[A-Z]/.test(w)) out = out.map(function (x) { return x.charAt(0).toUpperCase() + x.slice(1); });
+    return out.slice(0, 2);
+  }
+  var LV = [{ k: 1, name: "🟢 Fácil", tip: "1 lacuna, 3 opções" }, { k: 2, name: "🟡 Médio", tip: "2 lacunas, banco com pegadinhas" }, { k: 3, name: "🔴 Difícil", tip: "você escreve o que ouviu" }];
+  function lacLevel() { return S.lacLevel || [1, 1, 2, 3][(S.test && S.test.band) || 0]; }
+  function eq(a, b) { return canon(a) === canon(b); }
+  function joinS(a, m, b) { return [a, m, b].filter(Boolean).join(" ").replace(/ ([.?!,])/g, "$1"); }
+
+  // 🧩 Complete o que ouviu
+  function stLacuna(u, v, next, ctx) {
+    var B = variations(u, "lacuna")[v], w = frame("lacuna", u, v, ctx, next), lv = lacLevel(), list = B.list.slice(0, 8), i = 0, total = 0;
+    var pool = []; B.list.forEach(function (l) { words(l.en).forEach(function (x) { x = core(x); if (x && pool.indexOf(x) < 0) pool.push(x); }); });
+    var lvRow = el("div", { cls: "lvrow" });
+    LV.forEach(function (L) { lvRow.append(el("button", { cls: "lvb" + (L.k === lv ? " sel" : ""), type: "button", text: L.name, title: L.tip, onclick: function () { if (L.k === lv) return; S.lacLevel = L.k; persist(); stLacuna(u, v, next, ctx); } })); });
+    w.append(el("div", { cls: "card" }, el("h2", { text: B.label }), el("p", { cls: "small", text: "O nativo fala uma frase e algumas palavras somem. Ouça e complete. " + LV[lv - 1].tip + "." }), lvRow));
+    function one() {
+      if (i >= list.length) return finishBox(w, "lacuna", u, v, total / list.length, next);
+      var L = list[i], nb = lv === 1 ? 1 : Math.min(2, Math.max(1, words(L.en).length >= 5 ? 2 : 1)), P = pickBlanks(L, nb), fills = [], done = false;
+      var line = el("p", { cls: "lac-line" }), slots = [];
+      P.toks.forEach(function (t, ti) {
+        var b = P.blanks.filter(function (x) { return x.i === ti; })[0];
+        if (!b) { line.append(el("span", { text: t }), " "); return; }
+        var pre = t.slice(0, t.indexOf(b.w)), post = t.slice(t.indexOf(b.w) + b.w.length);
+        var slot;
+        if (lv === 3) { slot = el("input", { cls: "slot-in", type: "text", autocapitalize: "off", autocomplete: "off", spellcheck: "false", size: String(Math.max(3, b.w.length)), "aria-label": "palavra que falta" }); }
+        else slot = el("button", { cls: "slot", type: "button", text: "____", onclick: function () { if (done || lv !== 2) return; var k = slots.indexOf(slot); if (fills[k] != null) { bankBtns[fills[k]].disabled = false; fills[k] = null; slot.textContent = "____"; slot.classList.remove("full"); } } });
+        slot._ans = b.w; slots.push(slot);
+        if (pre) line.append(el("span", { text: pre })); line.append(slot); if (post) line.append(el("span", { text: post })); line.append(" ");
+      });
+      var answer = el("div", { cls: "lac-ans" }), res = el("div", { cls: "rt-res" }), bankBtns = [];
+      var check = el("button", { cls: "btn", type: "button", text: "Conferir", disabled: true, onclick: grade });
+      var locked = true;
+      function unlock() { locked = false; answer.classList.remove("locked"); }
+      if (lv === 1) {
+        var b0 = P.blanks[0], opts = shuffle([b0.w].concat(distract(b0.w, pool)));
+        opts.forEach(function (o) { answer.append(el("button", { cls: "opt word", type: "button", text: o, onclick: function (e) { if (done || locked) return; slots[0].textContent = o; slots[0].classList.add("full"); fills[0] = o; e.currentTarget.classList.add("sel"); grade(); } })); });
+      } else if (lv === 2) {
+        var bank = []; P.blanks.forEach(function (b) { bank.push(b.w); distract(b.w, pool).slice(0, 2).forEach(function (d) { if (bank.indexOf(d) < 0) bank.push(d); }); });
+        bank = shuffle(bank.slice(0, P.blanks.length + 3));
+        bank.forEach(function (o, bi) {
+          var bb = el("button", { cls: "opt word", type: "button", text: o, onclick: function () {
+            if (done || locked) return; var k = fills.findIndex ? -1 : -1; for (var z = 0; z < slots.length; z++) if (fills[z] == null) { k = z; break; }
+            if (k < 0) return; fills[k] = bi; slots[k].textContent = o; slots[k].classList.add("full"); bb.disabled = true;
+            check.disabled = fills.filter(function (x) { return x != null; }).length < slots.length;
+          } });
+          bankBtns.push(bb); answer.append(bb);
+        });
+        answer.append(check);
+      } else {
+        slots.forEach(function (sl) { sl.addEventListener("input", function () { check.disabled = slots.some(function (x) { return !x.value.trim(); }); }); sl.addEventListener("keydown", function (e) { if (e.key === "Enter" && !check.disabled) grade(); }); });
+        answer.append(check);
+      }
+      answer.classList.add("locked");
+      function grade() {
+        if (done) return; done = true; var ok = 0;
+        slots.forEach(function (sl, k) {
+          var got = lv === 3 ? sl.value.trim() : (lv === 2 ? (fills[k] != null ? bankBtns[fills[k]].textContent : "") : fills[k]);
+          var good = eq(got || "", sl._ans);
+          if (good) ok++;
+          var shown = el("span", { cls: "slot done " + (good ? "ok" : "bad") }, got && !good ? el("s", { text: got }) : null, got && !good ? " " : null, sl._ans);
+          sl.replaceWith(shown);
+        });
+        check.remove(); answer.querySelectorAll("button").forEach(function (b) { b.disabled = true; });
+        var pct = ok / slots.length; total += pct; buzz(pct === 1 ? 20 : [40, 30, 40]);
+        if (pct < 1) addError({ uid: u.id, kind: "ouvir", en: L.en, pt: L.pt, file: L.file, prompt: P.toks.map(function (t, ti) { var b = P.blanks[0]; return b.i === ti ? t.replace(b.w, "____") : t; }).join(" "), choices: shuffle([P.blanks[0].w].concat(distract(P.blanks[0].w, pool))), answer: P.blanks[0].w });
+        res.append(el("b", { text: pct === 1 ? "✅ Pegou tudo!" : pct > 0 ? "🟡 Quase" : "🔴 Essa escapou" }), el("span", { cls: "small", text: L.pt }));
+        nx.disabled = false;
+      }
+      var nx = el("button", { cls: "btn", type: "button", text: "Próxima frase →", disabled: true, onclick: function () { i++; card.classList.add("past"); nx.remove(); one(); } });
+      var card = el("div", { cls: "card" }, el("span", { cls: "eyebrow", text: "Frase " + (i + 1) + " de " + list.length }), ears(L.file, unlock), line, answer, res, nx);
+      w.append(card); card.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+    one();
+  }
+
+  // 🔢 Quantas palavras?
+  function stContar(u, v, next, ctx) {
+    var B = variations(u, "contar")[v], w = frame("contar", u, v, ctx, next), list = B.list, i = 0, ok = 0;
+    w.append(el("div", { cls: "card" }, el("h2", { text: B.label }), el("p", { cls: "small", text: "O nativo cola uma palavra na outra. Ouça e diga quantas palavras tem a frase. \"I'm\", \"don't\" e \"it's\" contam como 1." })));
+    function one() {
+      if (i >= list.length) return finishBox(w, "contar", u, v, ok / list.length, next);
+      var L = list[i], ws = words(L.en), n = ws.length, done = false;
+      var opts = el("div", { cls: "opts row locked" }), res = el("div", { cls: "rt-res" });
+      shuffle([n - 1, n, n + 1].filter(function (x) { return x > 1; })).forEach(function (x) {
+        opts.append(el("button", { cls: "opt num", type: "button", text: String(x), onclick: function (e) {
+          if (done) return; done = true; var good = x === n; if (good) ok++; e.currentTarget.classList.add(good ? "ok" : "bad"); buzz(good ? 20 : [40, 30, 40]);
+          var boxes = el("p", { cls: "wbox" }); ws.forEach(function (t) { boxes.append(el("span", { text: t })); });
+          res.append(el("b", { text: good ? "✅ Isso: " + n + " palavras" : "🔴 Eram " + n + " palavras" }), boxes, el("span", { cls: "small", text: L.pt }));
+          nx.disabled = false;
+        } }));
+      });
+      var nx = el("button", { cls: "btn", type: "button", text: "Próxima →", disabled: true, onclick: function () { i++; card.classList.add("past"); nx.remove(); one(); } });
+      var card = el("div", { cls: "card" }, el("span", { cls: "eyebrow", text: "Frase " + (i + 1) + " de " + list.length }), el("p", { cls: "hidden-line", text: "🙈 frase escondida" }), ears(L.file, function () { opts.classList.remove("locked"); }, { rate: 1.1 }), opts, res, nx);
+      w.append(card); card.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+    one();
+  }
+
+  // 🔗 Fala grudada
+  function stGrudada(u, v, next, ctx) {
+    var B = variations(GERAL, "grudada")[v], w = frame("grudada", u, v, ctx, next), list = B.list, i = 0, ok = 0;
+    w.append(el("div", { cls: "card" }, el("h2", { text: B.label }), el("p", { cls: "small", text: "Nativo não fala \"what do you want to\". Fala \"whaddaya wanna\". Ouça e escolha o que ele quis dizer." })));
+    function one() {
+      if (i >= list.length) return finishBox(w, "grudada", u, v, ok / list.length, next);
+      var it = list[i], url = AUD + it.file, done = false, res = el("div", { cls: "rt-res" });
+      var opts = el("div", { cls: "opts locked" });
+      shuffle(it.options.map(function (o, k) { return k; })).forEach(function (k) {
+        opts.append(el("button", { cls: "opt", type: "button", text: it.options[k], onclick: function (e) {
+          if (done) return; done = true; var good = k === it.answer; if (good) ok++; e.currentTarget.classList.add(good ? "ok" : "bad"); buzz(good ? 20 : [40, 30, 40]);
+          if (!good) { [].forEach.call(opts.children, function (b) { if (b.textContent === it.options[it.answer]) b.classList.add("ok"); }); addError({ uid: "geral", kind: "ouvir", en: it.options[it.answer], pt: it.pt, file: url, prompt: "🔗 O que ele quis dizer?", choices: it.options.slice(), answer: it.options[it.answer] }); }
+          res.append(el("p", { cls: "model" }, el("span", { text: "🔗 " + it.tip })), el("span", { cls: "small", text: "\"" + it.tts + "\" = " + it.pt }));
+          nx.disabled = false;
+        } }));
+      });
+      var nx = el("button", { cls: "btn", type: "button", text: "Próxima →", disabled: true, onclick: function () { i++; card.classList.add("past"); nx.remove(); one(); } });
+      var card = el("div", { cls: "card" }, el("span", { cls: "eyebrow", text: (i + 1) + " de " + list.length }), ears(url, function () { opts.classList.remove("locked"); }, { fast: false }), opts, res, nx);
+      w.append(card); card.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+    one();
+  }
+
+  // 🎯 Qual você ouviu?
+  function stPares(u, v, next, ctx) {
+    var B = variations(GERAL, "pares")[v], w = frame("pares", u, v, ctx, next), list = shuffle(B.list), i = 0, ok = 0;
+    w.append(el("div", { cls: "card" }, el("h2", { text: B.label }), el("p", { cls: "small", text: "Duas palavras quase iguais. O nativo fala uma delas: qual foi?" })));
+    function one() {
+      if (i >= list.length) return finishBox(w, "pares", u, v, ok / list.length, next);
+      var it = list[i], k = Math.random() < 0.5 ? 0 : 1, url = AUD + it.files[k], done = false, res = el("div", { cls: "rt-res" });
+      var opts = el("div", { cls: "opts row locked" });
+      it.words.forEach(function (wd, wk) {
+        opts.append(el("button", { cls: "opt pair", type: "button", onclick: function (e) {
+          if (done) return; done = true; var good = wk === k; if (good) ok++; e.currentTarget.classList.add(good ? "ok" : "bad"); buzz(good ? 20 : [40, 30, 40]);
+          if (!good) { opts.children[k].classList.add("ok"); addError({ uid: "geral", kind: "ouvir", en: joinS(it.before, it.words[k], it.after), pt: it.pt[k], file: url, prompt: joinS(it.before, "____", it.after), choices: it.words.slice(), answer: it.words[k] }); }
+          res.append(el("b", { text: good ? "✅ Isso! \"" + it.words[k] + "\"" : "🔴 Era \"" + it.words[k] + "\"" }),
+            el("div", { cls: "ears" }, el("button", { cls: "ear", type: "button", text: "🔊 " + it.words[0], onclick: function () { playUrl(AUD + it.files[0]); } }), el("button", { cls: "ear", type: "button", text: "🔊 " + it.words[1], onclick: function () { playUrl(AUD + it.files[1]); } })),
+            el("span", { cls: "small", text: "Ouça as duas e sinta a diferença." }));
+          nx.disabled = false;
+        } }, el("b", { text: wd }), el("span", { cls: "small", text: it.pt[wk] })));
+      });
+      var nx = el("button", { cls: "btn", type: "button", text: "Próxima →", disabled: true, onclick: function () { i++; card.classList.add("past"); nx.remove(); one(); } });
+      var card = el("div", { cls: "card" }, el("span", { cls: "eyebrow", text: (i + 1) + " de " + list.length }), el("p", { cls: "lac-line", text: joinS(it.before, "____", it.after) }), ears(url, function () { opts.classList.remove("locked"); }, { fast: false }), opts, res, nx);
+      w.append(card); card.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+    one();
+  }
+
   // 🧠 Meus erros: refaz o que errou (shadowing e real time)
   function runErrors(next, ci, cn) {
     next = next || home;
@@ -625,6 +858,16 @@
         return;
       }
       var e = list[i], res = el("div", { cls: "rt-res" });
+      if (e.kind === "ouvir") {
+        var dn = false, op = el("div", { cls: "opts locked" });
+        shuffle(e.choices).forEach(function (c) { op.append(el("button", { cls: "opt", type: "button", text: c, onclick: function (ev) {
+          if (dn) return; dn = true; var good = eq(c, e.answer); ev.currentTarget.classList.add(good ? "ok" : "bad");
+          if (good) { fixError(e.en); fixed++; } res.append(el("b", { text: good ? "✅ Pegou!" : "🔴 Era \"" + e.answer + "\"" }), el("span", { cls: "small", text: e.en + " · " + e.pt })); nx2.disabled = false; } })); });
+        var nx2 = el("button", { cls: "btn", type: "button", text: "Próximo →", disabled: true, onclick: function () { i++; card2.classList.add("past"); nx2.remove(); one(); } });
+        var card2 = el("div", { cls: "card" }, el("span", { cls: "eyebrow", text: "👂 Ouça de novo · " + (i + 1) + " de " + list.length }), ears(e.file, function () { op.classList.remove("locked"); }), el("p", { cls: "lac-line", text: e.prompt }), op, res, nx2);
+        w.append(card2); card2.scrollIntoView({ behavior: "smooth", block: "center" });
+        return;
+      }
       var t = talk(function (said, manual) {
         var o = manual ? 0.8 : overlap(e.en, said);
         res.innerHTML = ""; res.append(el("b", { text: (o >= 0.6 ? "✅ " : "🔴 ") + Math.round(o * 100) + "%" }), el("p", { cls: "model", text: e.en }));

@@ -206,7 +206,7 @@
         el("button", { cls: "btn ghost", type: "button", text: "Falei em voz alta →", onclick: function () { onDone("", true); } }));
       return wrap;
     }
-    var rec = null, finals = "", interim = "", state = "idle", downAt = 0, latch = false;
+    var rec = null, finals = "", interim = "", state = "idle", downAt = 0, latch = false, empties = 0;
     function start() {
       if (rec) return; finals = ""; interim = ""; live.textContent = "";
       stopAll();
@@ -226,7 +226,19 @@
       if (!rec || state !== "live") return; state = "stopping"; buzz([30, 40, 30]);
       b.classList.remove("live"); b.textContent = "⏳ Entendendo…"; b.disabled = true;
       var r = rec; setTimeout(function () { try { r.stop(); } catch (e) {} }, 350);
-      setTimeout(function () { rec = null; state = "idle"; latch = false; b.disabled = false; b.textContent = opts.again || "🎤 Falar de novo"; onDone((finals + " " + interim).trim(), false); }, 1300);
+      setTimeout(function () {
+        rec = null; state = "idle"; latch = false; b.disabled = false;
+        var said = (finals + " " + interim).trim();
+        // Gravação vazia NUNCA conta como resposta (Thiago 26/11): a 1ª costuma ser o pedido de permissão do microfone.
+        if (!said) {
+          empties++;
+          b.textContent = empties === 1 ? "🎤 Microfone pronto! Segure e fale de novo" : "🎤 Não ouvi nada. Segure, fale perto e solte no fim";
+          live.textContent = "";
+          if (empties >= 2 && !wrap.querySelector(".mic-fallback")) wrap.append(el("button", { cls: "btn ghost mic-fallback", type: "button", text: "Não consigo usar o microfone: falei em voz alta →", onclick: function () { onDone("", true); } }));
+          return;
+        }
+        empties = 0; b.textContent = opts.again || "🎤 Falar de novo"; onDone(said, false);
+      }, 1300);
     }
     b.addEventListener("pointerdown", function (e) { e.preventDefault(); if (state === "live" && latch) { stop(); return; } if (state !== "idle") return; downAt = Date.now(); latch = false; start(); try { b.setPointerCapture(e.pointerId); } catch (x) {} });
     b.addEventListener("pointerup", function () { if (state !== "live" || latch) return; if (Date.now() - downAt < 350) { latch = true; b.textContent = "🔴 Falando… toque pra parar"; return; } stop(); });

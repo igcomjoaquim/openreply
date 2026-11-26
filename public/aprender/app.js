@@ -174,13 +174,13 @@
   // ---------- reconhecimento de fala ----------
   var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   /* Botão de gravar: contagem 3-2-1 → 🔴 FALE AGORA → toque para parar. onDone(texto). */
-  function micButton(onText, onDone, label, auto) {
+  function micButton(onText, onDone, label, auto) { var empty = 0;
     var b = el("button", { cls: "mic", type: "button", text: label || "🎤 Gravar" });
     var rec = null, finals = "", interim = "", live = false, stopping = false;
     function stop() { if (!rec || stopping) return; stopping = true; b.disabled = true; b.textContent = "⏳ Entendendo…"; try { rec.stop(); } catch (e) {} setTimeout(end, 2500); }
     function end() {
       if (!rec) return; var t = (finals + " " + interim).trim(); rec = null; live = false; stopping = false;
-      b.disabled = false; b.classList.remove("live"); b.textContent = "🎤 Gravar de novo"; onDone(t);
+      b.disabled = false; b.classList.remove("live"); if (!t) { empty = (typeof empty === "number" ? empty : 0) + 1; b.textContent = empty === 1 ? "🎤 Microfone pronto! Grave de novo" : "🎤 Não ouvi nada. Fale mais perto e grave de novo"; return; } b.textContent = "🎤 Gravar de novo"; onDone(t);
     }
     b.onclick = function () {
       if (live) { stop(); return; }

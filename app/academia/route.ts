@@ -18,7 +18,7 @@ const HTML = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
 <link rel="stylesheet" href="/aprender/app.css?v=3">
 <link rel="stylesheet" href="/academia/app.css?v=7">
 </head><body><div id="app"><p class="boot">Carregando…</p></div>
-<script>window.__v=15</script><script src="/academia/app.js?v=10"></script></body></html>`;
+<script>window.__v=15</script><script src="/academia/app.js?v=11"></script></body></html>`;
 
 // Desde 26/11/2026 a Academia mora no Cloudflare Pages (destravando.inglescomjoaquim.com).
 // O HTML acima continua aqui porque scripts/build-destravando.mjs lê ele pra montar o site.

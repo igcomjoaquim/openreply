@@ -115,9 +115,10 @@
   function variations(u, st) {
     if (st === "cena") {
       var a = [];
-      if (u.video) a.push({ kind: "video", v: u.video, label: "Vídeo real" });
-      if (u.lesson && u.lesson.audio) a.push({ kind: "audio", label: "Só áudio" });
-      (u.academia && u.academia.cenas || []).forEach(function (c) { a.push({ kind: "video", v: c, label: "Vídeo real" }); });
+      function vl(v) { return "🎬 " + String(v.source || "Vídeo real").replace(/\s*\(.*?\)\s*/g, " ").trim(); }
+      if (u.video) a.push({ kind: "video", v: u.video, label: vl(u.video) });
+      if (u.lesson && u.lesson.audio) a.push({ kind: "audio", label: "🎧 Só áudio (sem imagem)" });
+      (u.academia && u.academia.cenas || []).forEach(function (c) { a.push({ kind: "video", v: c, label: vl(c) }); });
       while (a.length < 5) a.push({ kind: "soon", label: "Em breve" });
       return a.slice(0, 5);
     }

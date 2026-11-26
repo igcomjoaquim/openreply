@@ -285,7 +285,7 @@
     var w = screen();
     var name = el("input", { type: "text", placeholder: "Seu primeiro nome", value: S.name || "", autocomplete: "given-name" });
     if (S.testSave && S.testSave.res) w.append(el("button", { cls: "paused-card", type: "button", onclick: runTest }, el("span", { cls: "pe", text: "☕" }),
-      el("span", { cls: "tt" }, el("b", { text: "Você pausou o teste" }), el("span", { cls: "small", text: "Continua na parte " + (S.testSave.pi + 1) + " de 4." })), el("span", { cls: "go", text: "Continuar →" })));
+      el("span", { cls: "tt" }, el("b", { text: "Você pausou o teste" }), el("span", { cls: "small", text: "Continua na parte " + (S.testSave.pi + 1) + " de 4" + (S.testSave.ii ? ", pergunta " + (S.testSave.ii + 1) : "") + "." })), el("span", { cls: "go", text: "Continuar →" })));
     w.append(el("section", { cls: "hero" },
       el("span", { cls: "eyebrow", text: "Academia · Inglês com Joaquim" }),
       el("h1", { html: "Aqui você não assiste aula.<br><mark>Você treina.</mark>" }),
@@ -314,11 +314,14 @@
     var SV = S.testSave && S.testSave.res ? S.testSave : null;
     var res = SV ? SV.res : { entender: [], repetir: [], reagir: [], recontar: [] };
     var pi = SV ? SV.pi : 0, items = [], ii = 0, missStreak = 0, scored = false, base = null;
+    var resumeT = SV && SV.ii ? { ii: SV.ii, miss: SV.miss || 0 } : null; // pausa volta na pergunta exata
+    function saveT() { S.testSave = { res: res, pi: pi, ii: ii, miss: missStreak, date: today() }; persist(); }
     function nextPart() {
       if (pi >= parts.length) return finish();
       var P = parts[pi];
       items = (T[P.key] || []).slice().sort(function (a, b) { return a.band - b.band; }); ii = 0; missStreak = 0;
-      base = JSON.parse(JSON.stringify(res)); // ao pausar, guarda só as partes já terminadas
+      base = JSON.parse(JSON.stringify(res));
+      if (resumeT) { ii = resumeT.ii; missStreak = resumeT.miss; resumeT = null; return nextItem(); }
       var w = screen();
       w.append(testHead(P, 0, items.length), el("div", { cls: "card intro" }, el("h2", { text: P.title.replace(/ · /, " — ") }), el("p", { text: P.tip })),
         el("button", { cls: "btn big", type: "button", text: "Vamos →", onclick: nextItem }));
@@ -327,10 +330,10 @@
       var total = parts.length, pct = Math.round(((pi + (n ? i / n : 0)) / total) * 100);
       return el("div", { cls: "thead" }, el("header", { cls: "top" }, el("span", { cls: "brand", text: "🏋️ Academia" }),
           el("button", { cls: "pause", type: "button", text: "☕ Pausar", onclick: function () {
-            stopAll(); S.testSave = { res: base || res, pi: pi, date: today() }; persist();
+            stopAll(); saveT();
             var w2 = screen();
             w2.append(el("section", { cls: "hero center rest" }, el("div", { cls: "big-emoji", text: "☕" }), el("h1", { text: "Teste pausado." }),
-              el("p", { text: "Tudo salvo. Quando voltar, você continua na parte " + (pi + 1) + " de 4 (ela recomeça do início)." })),
+              el("p", { text: "Tudo salvo. Quando voltar, você continua exatamente daqui: parte " + (pi + 1) + " de 4, pergunta " + (ii + 1) + "." })),
               el("button", { cls: "btn big", type: "button", text: "Continuar agora →", onclick: runTest }),
               el("button", { cls: "linkish", type: "button", text: "Ir pro início", onclick: function () { S.test ? home() : welcome(); } }));
           } })),
@@ -344,7 +347,7 @@
       missStreak = ok >= 0.6 ? 0 : missStreak + 1;
       ii++;
       // adaptativo: 2 erros seguidos numa faixa → encerra a parte
-      if (missStreak >= 2 || ii >= items.length) { pi++; setTimeout(nextPart, 350); } else setTimeout(nextItem, 350);
+      if (missStreak >= 2 || ii >= items.length) { pi++; ii = 0; missStreak = 0; saveT(); setTimeout(nextPart, 350); } else { saveT(); setTimeout(nextItem, 350); }
     }
     function nextItem() {
       scored = false;
@@ -456,6 +459,7 @@
   }
   function home() {
     if (!S.test) return welcome();
+    var fresh = unlockCheck(); if (fresh) return unlockScreen(fresh);
     var w = screen(), t = curTheme(), I = INDEX[t];
     var D = todayPlan(), plan = D.plan, doneToday = (S.dailyDone === today()), roundOver = D.i >= plan.length, resume = D.i > 0 && !roundOver;
     w.append(topBar(),
@@ -465,12 +469,31 @@
       S.paused ? el("button", { cls: "paused-card", type: "button", onclick: resumePaused }, el("span", { cls: "pe", text: "☕" }),
         el("span", { cls: "tt" }, el("b", { text: "Você pausou: " + ST[S.paused.st].emoji + " " + ST[S.paused.st].name }), el("span", { cls: "small", text: ["erros", "cena", "fofoca"].indexOf(S.paused.st) > -1 ? "Toque pra continuar de onde parou." : "Parou na frase " + (S.paused.i + 1) + ". Toque pra continuar de onde parou." })), el("span", { cls: "go", text: "Continuar →" })) : "",
       el("button", { cls: "daily" + (doneToday ? " done" : ""), type: "button", onclick: function () { if (roundOver) { S.daily = { date: today(), plan: dailyPlan(), i: 0 }; persist(); } runDaily(); } },
-        el("span", { cls: "eyebrow", text: doneToday && !resume ? "✅ Treino de hoje feito · quer mais?" : doneToday ? "➕ Treino extra" : "🏋️ Treino do dia · ~15 min" }),
+        el("span", { cls: "eyebrow", text: doneToday && !resume ? "✅ Treino de hoje feito · quer mais?" : doneToday ? "➕ Treino extra" : "▶️ Treino de hoje · ~15 min" }),
         el("b", { text: I.emoji + " Tema " + (t + 1) + " · " + I.title }),
         el("span", { cls: "dlist" }, plan.map(function (x, k) { return el("span", { cls: k < D.i && !roundOver ? "dn" : "", text: ST[x.st].emoji }); })),
         resume ? el("span", { cls: "small", text: "⏸️ Você parou na fase " + (D.i + 1) + " de " + plan.length }) : null,
         el("span", { cls: "go", text: resume ? "Continuar →" : "Começar →" })));
-    // treino livre por problema
+    // 🗺️ trilha logo abaixo do treino de hoje: o aluno sempre vê onde está e o que falta
+    var nDone = 0; INDEX.forEach(function (x) { if (themeMastery(x.id) >= 2) nDone++; });
+    var tl = el("div", { cls: "trail" }), XS = [0, 1, 1.6, 1, 0, -1, -1.6, -1], hereNode = null;
+    INDEX.forEach(function (x, i) {
+      var open = themeOpen(i), m = Math.min(themeMastery(x.id), 2), done = m >= 2, here = i === t && !done;
+      var falta = 2 - m;
+      var node = el("button", { cls: "tnode" + (done ? " done" : here ? " here" : open ? " open" : " locked"), type: "button", disabled: !open, style: "--x:" + XS[i % XS.length], onclick: function () { themePage(i); } },
+        here ? el("span", { cls: "bubble", text: "VOCÊ ESTÁ AQUI" }) : null,
+        el("span", { cls: "disc" }, done ? "✓" : open ? x.emoji : "🔒"),
+        el("span", { cls: "tlabel" }, el("b", { text: (i + 1) + " · " + x.title }),
+          el("span", { cls: "small", text: done ? "dominado ✓" : open ? "falta " + falta + " Real Time" + (falta > 1 ? "s" : "") + " com 70%+" : "abre quando o tema " + i + " estiver dominado" })));
+      if (here) hereNode = node;
+      tl.append(node);
+      if (i < INDEX.length - 1) tl.append(el("span", { cls: "tline" + (done ? " done" : ""), style: "--x:" + ((XS[i % XS.length] + XS[(i + 1) % XS.length]) / 2) }));
+    });
+    tl.append(LVL === "a1" ? el("button", { cls: "tgoal final", type: "button", onclick: runFinal }, el("span", { cls: "disc" }, S.a1Done ? "🎓" : "🏆"), el("b", { text: S.a1Done ? "Teste final: aprovado ✅" : "🎓 Teste final do A1" }), el("span", { cls: "small", text: S.a1Done ? "A2 liberado" : nDone >= INDEX.length ? "Bora! Quem passa libera o A2 →" : "Recomendado depois do tema " + INDEX.length + " · passe e libere o A2" }))
+      : el("div", { cls: "tgoal" }, el("span", { cls: "disc" }, "🏆"), el("b", { text: "A2 completo!" }), el("span", { cls: "small", text: "Depois: B1 (em breve)" })));
+    w.append(el("h2", { cls: "sec", text: "🗺️ Sua trilha do " + LVL.toUpperCase() }),
+      el("div", { cls: "trail-head" }, steps(t + 1, INDEX.length, "Tema"), el("p", { cls: "small", text: nDone + " de " + INDEX.length + " temas dominados. Cada tema abre o próximo quando você manda bem (70%+) em 2 Real Times dele." })), tl);
+    // ➕ mais treinos: tudo que é opcional fica guardado aqui (menos escolha = mais treino)
     var fp = focusProb(), probs = el("div", { cls: "probs" });
     ["ouvir", "falar"].forEach(function (k) {
       var P = PROB[k];
@@ -479,31 +502,42 @@
           el("span", { cls: "pl", text: P.list.map(function (st) { return ST[st].emoji; }).join(" ") + "  ·  " + P.list.length + " exercícios" })),
         k === fp ? el("span", { cls: "ptag", text: "seu foco" }) : null));
     });
-    var er = el("button", { cls: "station errs" + (myErrors().length ? "" : " off"), type: "button", disabled: !myErrors().length, onclick: function () { runErrors(); } },
-      el("span", { cls: "se", text: "🧠" }), el("span", { cls: "tt" }, el("b", { text: "Meus erros" }), el("span", { cls: "small", text: myErrors().length ? myErrors().length + " pra revisar" : "nada por enquanto 🎉" })));
-    w.append(el("h2", { cls: "sec", text: "O que mais trava você?" }), probs, er);
-    // temas
-    var nDone = 0; INDEX.forEach(function (x) { if (themeMastery(x.id) >= 2) nDone++; });
-    var tl = el("div", { cls: "trail" }), XS = [0, 1, 1.6, 1, 0, -1, -1.6, -1];
-    INDEX.forEach(function (x, i) {
-      var open = themeOpen(i), m = Math.min(themeMastery(x.id), 2), done = m >= 2, here = i === t && !done;
-      var node = el("button", { cls: "tnode" + (done ? " done" : here ? " here" : open ? " open" : " locked"), type: "button", disabled: !open, style: "--x:" + XS[i % XS.length], onclick: function () { themePage(i); } },
-        here ? el("span", { cls: "bubble", text: "VOCÊ ESTÁ AQUI" }) : null,
-        el("span", { cls: "disc" }, done ? "✓" : open ? x.emoji : "🔒"),
-        el("span", { cls: "tlabel" }, el("b", { text: (i + 1) + " · " + x.title }), el("span", { cls: "small", text: done ? "dominado ✓" : open ? "domínio " + m + "/2" : x.titlePt })));
-      tl.append(node);
-      if (i < INDEX.length - 1) tl.append(el("span", { cls: "tline" + (done ? " done" : "") , style: "--x:" + ((XS[i % XS.length] + XS[(i + 1) % XS.length]) / 2) }));
-    });
-    tl.append(LVL === "a1" ? el("button", { cls: "tgoal final", type: "button", onclick: runFinal }, el("span", { cls: "disc" }, S.a1Done ? "🎓" : "🏆"), el("b", { text: S.a1Done ? "Teste final: aprovado ✅" : "🎓 Teste final do A1" }), el("span", { cls: "small", text: S.a1Done ? "A2 liberado" : nDone >= INDEX.length ? "Bora! Quem passa libera o A2 →" : "Recomendado depois do tema " + INDEX.length + " · passe e libere o A2" }))
-      : el("div", { cls: "tgoal" }, el("span", { cls: "disc" }, "🏆"), el("b", { text: "A2 completo!" }), el("span", { cls: "small", text: "Depois: B1 (em breve)" })));
+    var nErr = myErrors().length;
+    var er = el("button", { cls: "station errs" + (nErr ? "" : " off"), type: "button", disabled: !nErr, onclick: function () { runErrors(); } },
+      el("span", { cls: "se", text: "🧠" }), el("span", { cls: "tt" }, el("b", { text: "Meus erros" }), el("span", { cls: "small", text: nErr ? nErr + " pra revisar" : "nada por enquanto 🎉" })));
     var lvSw = el("div", { cls: "lvsw" });
     [["a1", "A1", "Básico"], ["a2", "A2", "Pré-intermediário"]].forEach(function (L) {
       var locked = L[0] === "a2" && !a2Open();
       lvSw.append(el("button", { cls: "lvs" + (L[0] === LVL ? " sel" : "") + (locked ? " locked" : ""), type: "button", disabled: locked && L[0] !== LVL,
         onclick: function () { setLevel(L[0]); } }, el("b", { text: (locked ? "🔒 " : "") + L[1] }), el("span", { cls: "small", text: locked ? "passe no teste final do A1" : L[2] })));
     });
-    w.append(el("h2", { cls: "sec", text: "🗺️ Sua trilha do " + LVL.toUpperCase() }), lvSw, el("div", { cls: "trail-head" }, steps(t + 1, INDEX.length, "Tema"), el("p", { cls: "small", text: nDone + " de " + INDEX.length + " temas dominados. O próximo abre quando você manda bem (70%+) em 2 Real Times do tema." })), tl,
+    var more = el("details", { cls: "more" }, el("summary", {}, el("span", { text: "➕ Mais treinos" }), el("span", { cls: "small", text: "treino livre, meus erros" + (nErr ? " (" + nErr + ")" : "") + ", nível" })),
+      el("h3", { cls: "sec", text: "O que mais trava você?" }), probs, er,
+      el("h3", { cls: "sec", text: "Nível" }), lvSw,
       el("button", { cls: "linkish", type: "button", text: "Refazer o teste de nível", onclick: runTest }));
+    w.append(more);
+  }
+  // 🔓 tema novo liberado: comemora na hora, não deixa o aluno descobrir sozinho
+  function unlockCheck() {
+    var ids = INDEX.filter(function (x) { return themeMastery(x.id) >= 2; }).map(function (x) { return x.id; });
+    if (!S.mastered) { S.mastered = ids; persist(); return null; }
+    var fresh = ids.filter(function (id) { return S.mastered.indexOf(id) < 0; });
+    if (!fresh.length) return null;
+    ids.forEach(function (id) { if (S.mastered.indexOf(id) < 0) S.mastered.push(id); }); persist();
+    return fresh[fresh.length - 1];
+  }
+  function unlockScreen(uid) {
+    var i = uidx(uid), I = INDEX[i], N = INDEX[i + 1], w = screen();
+    markDay(); persist();
+    w.append(topBar(), el("section", { cls: "hero center unlock" }, el("div", { cls: "big-emoji", text: "🔓" }),
+      el("span", { cls: "eyebrow", text: "Tema " + (i + 1) + " dominado" }),
+      el("h1", { html: N ? "Liberou o <mark>tema " + (i + 2) + "</mark>!" : LVL === "a1" ? "Você dominou <mark>todo o A1</mark>!" : "Você dominou <mark>todo o A2</mark>!" }),
+      el("p", { text: "Você mandou bem em " + I.emoji + " " + I.title + "." }),
+      N ? el("div", { cls: "card nextph" }, el("span", { cls: "eyebrow", text: "Próximo tema" }), el("b", { text: N.emoji + " " + N.title }), el("span", { cls: "small", text: N.titlePt || "" })) : null,
+      el("p", { cls: "hand", text: "🔥 " + streak() + (streak() === 1 ? " dia" : " dias") + " de ofensiva. Falou, validou!" })),
+      !N && LVL === "a1" && !S.a1Done ? el("button", { cls: "btn big", type: "button", text: "🎓 Fazer o teste final do A1 →", onclick: runFinal }) :"",
+      el("button", { cls: N || S.a1Done || LVL !== "a1" ? "btn big" : "linkish", type: "button", text: N ? "Bora pro próximo →" : "Ver minha trilha", onclick: home }));
+    buzz([40, 60, 40]);
   }
   // ---------- teste final A1 -> A2 (4 partes x 25 pts; passa com 65 e >= 50% em cada parte) ----------
   var FINAL = null;
@@ -517,22 +551,24 @@
     w.append(topBar(home), el("section", { cls: "hero" },
       el("span", { cls: "eyebrow", text: "🎓 Teste final do A1" }),
       el("h1", { html: "Pronto pro <mark>A2</mark>?" }),
-      el("p", { text: "São 4 partes, uns 25 minutos: " + F.parts.map(function (P) { return P.emoji + " " + P.title; }).join(" · ") + ". Dá pra pausar e continuar depois." }),
+      el("p", { text: "São 4 partes, uns 20 minutos, só ouvindo e falando (nada de ler ou escrever): " + F.parts.map(function (P) { return P.emoji + " " + P.title; }).join(" · ") + ". Dá pra pausar e continuar depois." }),
       el("p", { cls: "small", text: "Pra passar: " + F.passTotal + " de 100 pontos e pelo menos metade em cada parte. Quem passa libera o A2." })),
       S.finalLast ? el("div", { cls: "card" }, el("b", { text: "Última tentativa: " + S.finalLast.total + "/100 " + (S.finalLast.pass ? "✅" : "") }), el("p", { cls: "small", text: S.finalLast.date })) : "",
-      el("button", { cls: "btn big", type: "button", text: SV ? "Continuar da parte " + (SV.pi + 1) + " →" : "Começar o teste →", onclick: function () { finalFlow(F); } }),
+      el("button", { cls: "btn big", type: "button", text: SV ? "Continuar da parte " + (SV.pi + 1) + (SV.ii ? ", questão " + (SV.ii + 1) : "") + " →" : "Começar o teste →", onclick: function () { finalFlow(F); } }),
       SV ? el("button", { cls: "linkish", type: "button", text: "Recomeçar do zero", onclick: function () { S.finalSave = null; persist(); finalFlow(F); } }) : "");
   }
   function finalFlow(F) {
     var SV = S.finalSave, res = SV ? SV.res : {}, pi = SV ? SV.pi : 0, ii = 0, got = [];
+    var resumeAt = SV && SV.ii ? { ii: SV.ii, got: SV.got || [] } : null; // pausa volta na questão exata
+    function save() { S.finalSave = { res: res, pi: pi, ii: ii, got: got.slice(), date: today() }; persist(); }
     var A = "/aprender/audio/";
     function head(P, intro) {
       return el("div", { cls: "thead" }, el("header", { cls: "top" }, el("span", { cls: "brand", text: "🎓 Teste final" }),
         el("button", { cls: "pause", type: "button", text: "☕ Pausar", onclick: function () {
-          stopAll(); S.finalSave = { res: res, pi: pi, date: today() }; persist();
+          stopAll(); save();
           var w2 = screen();
           w2.append(el("section", { cls: "hero center rest" }, el("div", { cls: "big-emoji", text: "☕" }), el("h1", { text: "Teste pausado." }),
-            el("p", { text: "Tudo salvo. Quando voltar, você continua na parte " + (pi + 1) + " de " + F.parts.length + " (ela recomeça do início)." })),
+            el("p", { text: "Tudo salvo. Quando voltar, você continua exatamente daqui: parte " + (pi + 1) + " de " + F.parts.length + ", questão " + (ii + 1) + "." })),
             el("button", { cls: "btn big", type: "button", text: "Continuar agora →", onclick: function () { finalFlow(F); } }),
             el("button", { cls: "linkish", type: "button", text: "Ir pro início", onclick: home }));
         } })),
@@ -543,6 +579,7 @@
     function nextPart() {
       if (pi >= F.parts.length) return finish();
       var P = F.parts[pi]; ii = 0; got = [];
+      if (resumeAt) { ii = resumeAt.ii; got = resumeAt.got; resumeAt = null; return nextItem(); }
       var w = screen();
       w.append(head(P, true), el("div", { cls: "card intro" }, el("h2", { text: P.emoji + " Parte " + (pi + 1) + " de " + F.parts.length + " — " + P.title }), el("p", { text: P.tip })),
         el("button", { cls: "btn big", type: "button", text: "Vamos →", onclick: nextItem }));
@@ -550,8 +587,8 @@
     function score(v) {
       got.push(Math.max(0, Math.min(1, v))); ii++;
       var P = F.parts[pi];
-      if (ii >= P.items.length) { var s = 0; got.forEach(function (x) { s += x; }); res[P.key] = Math.round(s / P.items.length * 25); pi++; S.finalSave = { res: res, pi: pi, date: today() }; persist(); setTimeout(nextPart, 300); }
-      else setTimeout(nextItem, 300);
+      if (ii >= P.items.length) { var s = 0; got.forEach(function (x) { s += x; }); res[P.key] = Math.round(s / P.items.length * 25); pi++; ii = 0; got = []; save(); setTimeout(nextPart, 300); }
+      else { save(); setTimeout(nextItem, 300); }
     }
     function norm(s) { return String(s || "").toLowerCase().replace(/[^a-z0-9@.]/g, ""); }
     function nextItem() {
@@ -599,17 +636,31 @@
             var size = n >= it.minWords ? 1 : n / it.minWords;
             once(0.4 * size + 0.6 * (hits / it.checks.length));
           } })));
+      } else if (P.key === "repetir") {
+        // 🔁 pronúncia: ouvir e repetir igualzinho (frase escondida)
+        var c5 = el("div", { cls: "card" }, el("h2", { text: "🔁 Ouça e repita igualzinho" }), el("p", { cls: "hidden-line", text: "🙈 frase escondida" }));
+        var t5 = talk(function (said, manual) { once(manual ? 0.5 : overlap(it.en, said)); }, { label: "🎤 Segure e repita" });
+        t5.classList.add("locked");
+        c5.append(player(A + it.file, { max: 2, onEnd: function () { t5.classList.remove("locked"); } }), t5);
+        w.append(c5);
+        setTimeout(function () { var b = w.querySelector(".pbtn"); if (b) b.click(); }, 300);
+      } else if (P.key === "recontar") {
+        // 🗣️ ouvir a historinha e recontar falando
+        var c6 = el("div", { cls: "card" }, el("h2", { text: "🗣️ " + (it.title || "Mini fofoca") }), el("p", { cls: "small", text: "Pode começar com: \"So, the story is about…\"" }));
+        var t6 = talk(function (said, manual) {
+          if (manual) return once(0.5);
+          var k = (it.keywords || []).filter(function (x) { return has(said, x); }).length / Math.max(1, (it.keywords || []).length);
+          once(Math.min(1, k * 1.3) * (cw(said).length >= (it.minWords || 10) ? 1 : 0.6));
+        }, { label: "🎤 Segure e reconte" });
+        t6.classList.add("locked");
+        c6.append(player(A + it.file, { max: 2, onEnd: function () { t6.classList.remove("locked"); } }), t6);
+        w.append(c6);
       } else {
-        var c3 = el("div", { cls: "card" }, el("h2", { text: "🗣️ " + it.q }));
+        var c3 = el("div", { cls: "card" }, el("h2", { text: "⚡ " + it.q }));
         if (it.scene) c3.append(el("div", { cls: "final-scene", text: it.scene }));
         function judge(txt) { var groups = it.expect || [], g = groups.filter(function (grp) { return grp.some(function (x) { return has(txt, x); }); }).length; var enough = cw(txt).length >= (it.minWords || 4); return (groups.length ? g / groups.length : 1) * (enough ? 1 : 0.5); }
-        var t4 = talk(function (said, manual) {
-          if (!manual) return once(judge(said));
-          // sem microfone: versão digitada, vale no máximo 60%
-          var ta2 = el("textarea", { cls: "final-ta", rows: 3, placeholder: "Escreva o que você responderia, em inglês" });
-          c3.append(el("p", { cls: "small", text: "Sem microfone: escreva a sua resposta (vale no máximo 60% desta questão)." }), ta2,
-            el("button", { cls: "btn", type: "button", text: "Enviar →", onclick: function () { once(0.6 * judge(ta2.value)); } }));
-        }, { label: "🎤 Segure e responda" });
+        // sem microfone: vale metade (o Destravando não tem parte escrita)
+        var t4 = talk(function (said, manual) { once(manual ? 0.5 : judge(said)); }, { label: "🎤 Segure e responda" });
         t4.classList.add("locked");
         c3.append(player(A + it.file, { max: 2, onEnd: function () { t4.classList.remove("locked"); } }), t4);
         w.append(c3);

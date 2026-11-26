@@ -147,7 +147,7 @@
 @media (prefers-reduced-motion:reduce){.steps .st.now{animation:none}}
 
 /* ☕ pausar */
-.top .pause{background:var(--yellow);border:2px solid var(--ink);border-radius:999px;padding:6px 14px;font-weight:700;font-size:14px;box-shadow:2px 2px 0 var(--ink)}
+.top .pause{background:var(--yellow);border:2px solid var(--ink);border-radius:999px;padding:10px 18px;min-height:44px;font-weight:800;font-size:16px;box-shadow:3px 3px 0 var(--ink)}
 .paused-card{display:flex;align-items:center;gap:12px;text-align:left;background:var(--card);border:2px dashed var(--marsala);border-radius:16px;padding:12px 14px}
 .paused-card .pe{font-size:30px}.paused-card .tt{display:flex;flex-direction:column;flex:1}
 .paused-card .go{background:var(--marsala);color:#fff;border-radius:999px;padding:5px 12px;font-weight:700;font-size:13px;white-space:nowrap}
@@ -199,3 +199,15 @@
 .fbody.locked{opacity:.35;pointer-events:none}
 .tgoal.final{background:none;border:0;cursor:pointer;font:inherit;color:inherit;width:100%}
 .tgoal.final b{background:var(--yellow);border:2px solid var(--ink);border-radius:999px;padding:6px 14px;box-shadow:3px 3px 0 var(--ink)}
+
+/* 26/11: ☕ sempre à mão — a barra de cima acompanha a rolagem */
+.top{position:sticky;top:0;z-index:20;background:var(--paper);padding-top:8px;padding-bottom:8px}
+/* ➕ Mais treinos (opções guardadas) */
+.more{margin-top:18px;background:var(--card);border:2px solid var(--ink);border-radius:18px;padding:4px 16px 14px;box-shadow:4px 4px 0 var(--ink)}
+.more>summary{list-style:none;cursor:pointer;display:flex;flex-direction:column;gap:2px;padding:12px 0;font-family:var(--f-display);font-weight:800;font-size:19px}
+.more>summary::-webkit-details-marker{display:none}
+.more[open]>summary{border-bottom:2px dashed var(--line);margin-bottom:8px}
+.more h3.sec{font-size:16px;margin:14px 0 8px}
+/* 🔓 tema liberado */
+.unlock .big-emoji{animation:pop .6s ease-out}
+@keyframes pop{0%{transform:scale(.3);opacity:0}70%{transform:scale(1.15);opacity:1}100%{transform:scale(1)}}

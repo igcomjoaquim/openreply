@@ -23,5 +23,6 @@ const HTML = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
 // O HTML acima continua aqui porque scripts/build-destravando.mjs lê ele pra montar o site.
 void HTML;
 export function GET() {
-  return NextResponse.redirect("https://destravando.inglescomjoaquim.com/aprender/", 301);
+  // homework é só dos alunos particulares; o Destravando (público) fica separado. aprender.… é tratado no proxy.ts.
+  return new NextResponse("Not found", { status: 404 });
 }

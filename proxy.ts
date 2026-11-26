@@ -37,9 +37,8 @@ export function proxy(request: NextRequest) {
   // aprender.inglescomjoaquim.com mudou pra destravando.inglescomjoaquim.com (Cloudflare Pages, 26/11/2026).
   // A página leva o progresso salvo no aparelho (localStorage é por endereço) e redireciona.
   const lowerHost = host.toLowerCase();
-  const isOldAcademy =
-    DESTRAVANDO_PATHS[pathname] !== undefined &&
-    (lowerHost.startsWith("aprender.") || (pathname !== "/" && lowerHost.startsWith("homework.")));
+  // Só o aprender.… (endereço público antigo). homework.… é dos alunos particulares e não leva pro Destravando.
+  const isOldAcademy = DESTRAVANDO_PATHS[pathname] !== undefined && lowerHost.startsWith("aprender.");
   if (isOldAcademy) {
     return new NextResponse(migrationPage(DESTRAVANDO_PATHS[pathname] + request.nextUrl.search), {
       headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" },

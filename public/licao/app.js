@@ -1932,6 +1932,12 @@
       if (s.key === "scene" && C.scene) box.append(el("a", { href: "https://www.youtube.com/watch?v=" + C.scene.youtubeId + "&t=" + C.scene.start + "s", target: "_blank", rel: "noopener", text: "▶ Abrir a cena no YouTube, já no minuto" }));
       s.sec.append(box);
     });
+    // modo professor: mostra também o que o aluno vê depois de entregar (treino dos erros + extras)
+    fbSec.replaceChildren(); fbSec.hidden = false;
+    fbSec.append(el("div", { cls: "teacher-key" }, el("b", { text: "👀 Depois que o aluno entrega" }),
+      el("p", { text: "Aqui embaixo aparece o que ele vê no fim: o treino dos erros (3 variações, montadas com o que ELE errou — aqui, sem respostas, sai com as frases da lição) e as lições extras." })));
+    trainingCard();
+    buildExtras();
   }
 
   build();

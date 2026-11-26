@@ -485,3 +485,4 @@ h1,.hero-title,.result h2,.fb-head h2,.login h1{font-family:var(--f-display)!imp
 .ex-body{display:flex;flex-direction:column;gap:12px}
 .ex-line{line-height:2.1;margin:0}
 .ex-lock{color:var(--muted);margin:0}
+.extras[hidden],.fb[hidden],.result[hidden]{display:none}

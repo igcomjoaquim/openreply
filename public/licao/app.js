@@ -212,10 +212,10 @@
     hudEl.append(cur
       ? el("span", null, el("b", { text: (ICON[cur.key] || "▶") + " Fase " + (steps.indexOf(cur) + 1) + " de " + steps.length }), " · " + cur.title.replace(/^[^\wÀ-ú]+/, ""))
       : el("b", { text: delivered ? "🏆 Lição entregue! Veja seu feedback." : doneN === steps.length ? "🏁 Todas as fases feitas! Falta só concluir." : "" }),
-      el("button", { cls: "hud-go", type: "button", text: PAGED ? (cur && pgCur === cur.sec ? "" : cur ? "voltar →" : delivered ? "ver →" : "ir ao final →") : cur ? "ir ↓" : delivered ? "ver ↓" : "ir ao final ↓", onclick: function () {
+      el("button", { cls: "hud-go", type: "button", text: PAGED ? (cur ? (pgCur === cur.sec ? "" : "voltar →") : pgCur === concludeSec ? "" : delivered ? "ver →" : "ir ao final →") : cur ? "ir ↓" : delivered ? "ver ↓" : "ir ao final ↓", onclick: function () {
         var t = cur ? cur.sec : delivered ? resultSec : concludeSec; if (t) nav(t);
       } }),
-      !delivered ? el("button", { cls: "hud-pause", type: "button", text: "⏸ Pausar", onclick: pauseBox } ) : null);
+      !delivered ? el("button", { cls: "hud-pause", type: "button", text: "⏸ Pausar", onclick: pauseBox } ) : "");
   }
   // ---------- pausar e continuar depois ----------
   // o que já terminou vai pro servidor; o que está pela metade fica no aparelho (rascunho)
@@ -270,6 +270,7 @@
     var first = stepOf && stepOf === steps[0];
     [].forEach.call(app.querySelectorAll(":scope > header, :scope > .howto, :scope > .prev-fix, :scope > .viewnote"), function (e) { e.classList.toggle("pg-off", !first); });
     steps.forEach(function (s) { s.sec.classList.toggle("pg-off", s !== stepOf); });
+    [].forEach.call(app.querySelectorAll(":scope > .phase"), function (e) { e.classList.toggle("pg-off", !stepOf || e.nextElementSibling !== stepOf.sec); });
     endEls.forEach(function (e) { if (e) e.classList.toggle("pg-off", !isEnd); });
     var page = stepOf ? stepOf.sec : concludeSec;
     if (pgCur !== page) {

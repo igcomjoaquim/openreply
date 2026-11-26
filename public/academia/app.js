@@ -511,7 +511,8 @@
       lvSw.append(el("button", { cls: "lvs" + (L[0] === LVL ? " sel" : "") + (locked ? " locked" : ""), type: "button", disabled: locked && L[0] !== LVL,
         onclick: function () { setLevel(L[0]); } }, el("b", { text: (locked ? "🔒 " : "") + L[1] }), el("span", { cls: "small", text: locked ? "passe no teste final do A1" : L[2] })));
     });
-    var more = el("details", { cls: "more" }, el("summary", {}, el("span", { text: "➕ Mais treinos" }), el("span", { cls: "small", text: "treino livre, meus erros" + (nErr ? " (" + nErr + ")" : "") + ", nível" })),
+    var more = el("details", { cls: "more" }, el("summary", {}, el("span", { text: "➕ Mais treinos" }), el("span", { cls: "small", text: "nativo de verdade, treino livre, meus erros" + (nErr ? " (" + nErr + ")" : "") + ", nível" })),
+      el("button", { cls: "station errs", type: "button", onclick: extrasPage }, el("span", { cls: "se", text: "🎧" }), el("span", { cls: "tt" }, el("b", { text: "Nativo de verdade" }), el("span", { cls: "small", text: "entrevista de rua, série, vlog: ouvir e escolher" }))),
       el("h3", { cls: "sec", text: "O que mais trava você?" }), probs, er,
       el("h3", { cls: "sec", text: "Nível" }), lvSw,
       el("button", { cls: "linkish", type: "button", text: "Refazer o teste de nível", onclick: runTest }));
@@ -727,6 +728,71 @@
     });
   }
 
+  // ===== 🎧 Extras com nativo de verdade (vlog, série, entrevista de rua) =====
+  // Só ouvir e escolher a palavra (nada de digitar). Banco conferido: aulas-rotinas/extras-banco → academia/extras.json
+  var EXTRAS = null;
+  function loadExtras() { if (EXTRAS) return Promise.resolve(EXTRAS); return j("/academia/extras.json?v=" + (window.__v || 1)).then(function (x) { EXTRAS = x; return x; }); }
+  function gapParts(en) { var m = en.match(/\[\[([^\]]+)\]\]/); if (!m) return null; return { ans: m[1].split("|")[0], before: en.slice(0, m.index), after: en.slice(m.index + m[0].length) }; }
+  function cleanLine(en) { return en.replace(/\[\[([^\]]+)\]\]/g, function (_, a) { return a.split("|")[0]; }); }
+  function extrasPage() {
+    var w = screen(); w.append(topBar(home), el("p", { cls: "boot", text: "Carregando…" }));
+    loadExtras().then(function (L) {
+      w.innerHTML = ""; S.extras = S.extras || {};
+      w.append(topBar(home), el("span", { cls: "eyebrow", text: "➕ Quer mais?" }), el("h1", { text: "🎧 Nativo de verdade" }),
+        el("p", { cls: "small", text: "Trechos reais: entrevista na rua, série, vlog. Você ouve com a tela coberta e escolhe a palavra que ouviu. É difícil mesmo: é o inglês da rua." }));
+      var list = el("div", { cls: "vars" });
+      L.forEach(function (X) {
+        var r = S.extras[X.id];
+        list.append(el("button", { cls: "var", type: "button", onclick: function () { stExtra(X); } },
+          el("span", { cls: "vn", text: /Série|📺/.test(X.source) ? "📺" : "🎤" }),
+          el("span", { cls: "vt" }, el("b", { text: X.title }), el("span", { cls: "small", text: X.source + " · " + (r ? "melhor " + Math.round(r.best * 100) + "%" : X.lines.length + " falas") }))));
+      });
+      w.append(list);
+    }, netError);
+  }
+  function stExtra(X) {
+    var w = screen(), i = 0, ok = 0, p = null, ready = false, poll = null, cur = null;
+    w.append(el("header", { cls: "top" }, el("button", { cls: "back", type: "button", text: "← Extras", onclick: function () { stopYT(); extrasPage(); } }), el("span", { cls: "brand", text: "🎧 Nativo de verdade" })),
+      el("span", { cls: "eyebrow", text: X.source }), el("h1", { text: X.title }), el("p", { cls: "small", text: X.focus }));
+    var holder = el("div"), cover = el("div", { cls: "yt-cover" }, el("span", { text: "🙈 Só ouvindo" }));
+    var yt = el("div", { cls: "yt covered" }, holder, cover);
+    var stage = el("div");
+    w.append(el("div", { cls: "card" }, yt), stage);
+    function stopYT() { clearInterval(poll); poll = null; try { p && p.pauseVideo(); } catch (e) {} }
+    function play(L, rate) { if (!ready) return; stopAll(); try { p.setPlaybackRate(rate || 1); } catch (e) {} p.seekTo(L.t, true); p.playVideo(); clearInterval(poll); poll = setInterval(function () { if (!document.body.contains(yt)) { clearInterval(poll); try { p.destroy(); } catch (e) {} return; } if (p.getCurrentTime && p.getCurrentTime() >= L.end) { p.pauseVideo(); clearInterval(poll); poll = null; cur && cur(); } }, 200); }
+    function one() {
+      stage.innerHTML = "";
+      if (i >= X.lines.length) return end();
+      var L = X.lines[i], g = gapParts(L.en), heard = false;
+      var pool = []; X.lines.forEach(function (o) { var q = gapParts(o.en); if (q && q.ans.toLowerCase() !== g.ans.toLowerCase() && pool.indexOf(q.ans) < 0) pool.push(q.ans); });
+      (CONF[g.ans.toLowerCase()] || []).forEach(function (c) { if (pool.indexOf(c) < 0) pool.unshift(c); });
+      var opts = shuffle([g.ans].concat(shuffle(pool).slice(0, 2)));
+      var line = el("p", { cls: "x-line" }, el("span", { text: g.before }), el("b", { cls: "x-gap", text: "____" }), el("span", { text: g.after }));
+      var choices = el("div", { cls: "opts locked" }), res = el("div");
+      var nx = el("button", { cls: "btn", type: "button", text: i + 1 < X.lines.length ? "Próxima fala →" : "Ver resultado →", disabled: true, onclick: function () { i++; one(); } });
+      opts.forEach(function (o) { choices.append(el("button", { cls: "opt", type: "button", text: o, onclick: function (e) {
+        if (!nx.disabled) return; var good = o.toLowerCase() === g.ans.toLowerCase(); if (good) ok++;
+        e.currentTarget.classList.add(good ? "right" : "wrong"); line.querySelector(".x-gap").textContent = g.ans; line.querySelector(".x-gap").classList.add(good ? "ok" : "no");
+        res.append(el("p", { cls: "small", text: (good ? "✅ Isso! " : "🔴 Era \"" + g.ans + "\". ") + "Em português: " + L.pt }));
+        nx.disabled = false; buzz(good ? 30 : [40, 40, 40]); } })); });
+      cur = function () { heard = true; choices.classList.remove("locked"); };
+      stage.append(el("div", { cls: "card" }, steps(i + 1, X.lines.length, "Fala"),
+        el("div", { cls: "ptools" }, el("button", { cls: "pbtn sm", type: "button", text: "▶", onclick: function () { play(L, 1); } }), el("button", { type: "button", text: "🐢", onclick: function () { play(L, 0.75); } }), el("span", { cls: "plays", text: "ouça o trecho (pode repetir)" })),
+        line, choices, res, nx));
+      window.scrollTo(0, 0);
+    }
+    function end() {
+      stopYT(); S.extras = S.extras || {}; var pct = ok / Math.max(1, X.lines.length), r = S.extras[X.id] || { n: 0, best: 0 };
+      r.n++; r.best = Math.max(r.best, pct); S.extras[X.id] = r; markDay(); persist();
+      cover.remove(); yt.classList.remove("covered");
+      stage.append(el("div", { cls: "sheet " + (pct >= 0.7 ? "good" : "bad") }, el("b", { text: (pct >= 0.7 ? "Mandou bem! " : "Treino é isso: ") + Math.round(pct * 100) + "%" }), el("p", { text: "Agora assista com a imagem e confira tudo o que foi dito." })),
+        saidCard(X.lines.map(function (L) { return cleanLine(L.en); })),
+        el("button", { cls: "btn big", type: "button", text: "Outra extra →", onclick: extrasPage }), el("button", { cls: "linkish", type: "button", text: "Voltar pro início", onclick: home }));
+    }
+    loadYT().then(function (YT) { p = new YT.Player(holder, { videoId: X.youtubeId, playerVars: { controls: 0, disablekb: 1, fs: 0, rel: 0, playsinline: 1, modestbranding: 1, cc_load_policy: 0, iv_load_policy: 3 }, events: { onReady: function () { ready = true; } } }); });
+    one();
+  }
+
   // ===== treino do dia =====
   // treino do dia: o plano do dia fica salvo; dá pra parar e continuar de onde parou
   function todayPlan() {
@@ -891,6 +957,15 @@
   }
   function lockBox(text) { return el("div", { cls: "listen-lock" }, el("span", { text: "🔒" }), el("p", { text: text })); }
 
+  // 📜 texto só no FINAL (Thiago 26/11, igual ao homework): primeiro ouve sem ler, depois confere o que foi dito. Só inglês.
+  function saidCard(lines, url) {
+    if (!lines || !lines.length) return null;
+    var box = el("div", { cls: "said" });
+    lines.forEach(function (l) { var t = typeof l === "string" ? l : l.text; if (!t) return; box.append(el("p", { html: esc(t).replace(/\*\*([^*]+)\*\*/g, "<mark>$1</mark>") })); });
+    return el("div", { cls: "card" }, el("span", { cls: "eyebrow", text: "📜 O que foi dito (agora pode ler)" }),
+      el("p", { cls: "small", text: "Ouça de novo acompanhando o texto: é aqui que o ouvido conecta som e palavra." }),
+      url ? el("div", { cls: "ears" }, el("button", { cls: "ear", type: "button", text: "🔊 ouvir lendo", onclick: function () { playUrl(url); } })) : "", box);
+  }
   // 🎬 Cenas
   var ytReady = null;
   function loadYT() { if (ytReady) return ytReady; ytReady = new Promise(function (res) { window.onYouTubeIframeAPIReady = function () { res(window.YT); }; document.head.append(el("script", { src: "https://www.youtube.com/iframe_api" })); }); return ytReady; }
@@ -900,7 +975,7 @@
       var A = u.lesson.audio;
       w.append(el("div", { cls: "card" }, el("span", { cls: "eyebrow", text: "🎧 Só áudio · sem imagem nenhuma" }), el("h2", { text: A.title }),
         el("p", { cls: "small", text: "Ouça pelo menos 1 vez inteira. As perguntas só abrem depois." }),
-        player(af(u, "lesson"), { onEnd: function (n) { if (n === 1) { lk.remove(); w.append(el("button", { cls: "btn", type: "button", text: "Responder as perguntas →", onclick: function () { quiz(w, A.questions || [], function (p) { finishBox(w, "cena", u, v, p, next); }, af(u, "lesson")); } })); } } })));
+        player(af(u, "lesson"), { onEnd: function (n) { if (n === 1) { lk.remove(); w.append(el("button", { cls: "btn", type: "button", text: "Responder as perguntas →", onclick: function () { quiz(w, A.questions || [], function (p) { finishBox(w, "cena", u, v, p, next, null, [saidCard(A.lines, af(u, "lesson"))]); }, af(u, "lesson")); } })); } } })));
       var lk = lockBox("As perguntas abrem depois que você ouvir."); w.append(lk);
       return;
     }
@@ -956,7 +1031,7 @@
         chips.innerHTML = ""; keys.forEach(function (k) { var ok = manual || has(said, k); chips.append(el("span", { cls: "kchip" + (ok ? " ok" : ""), text: (ok ? "✓ " : "✗ ") + k })); });
         var enough = manual || cw(said).length >= (R.minWords || 15);
         var p = (Math.min(1, hit / Math.max(1, keys.length) * 1.25) * (enough ? 1 : 0.6)) * 0.7 + qScore * 0.3;
-        if (!fin) { fin = true; var you = el("div", { cls: "card" }, el("span", { cls: "eyebrow", text: "🗣️ O que você contou" }), el("p", { cls: "small", text: said ? "\"" + said + "\"" : "" }), chips); finishBox(w, "fofoca", u, v, p, next, enough ? null : "Da próxima vez, tente falar mais: pelo menos " + (R.minWords || 15) + " palavras.", [you, nativeRecap(seen, "Nessa fofoca tinha:")]); }
+        if (!fin) { fin = true; var you = el("div", { cls: "card" }, el("span", { cls: "eyebrow", text: "🗣️ O que você contou" }), el("p", { cls: "small", text: said ? "\"" + said + "\"" : "" }), chips); finishBox(w, "fofoca", u, v, p, next, enough ? null : "Da próxima vez, tente falar mais: pelo menos " + (R.minWords || 15) + " palavras.", [you, saidCard(G.lines, af(u, "g" + v)), nativeRecap(seen, "Nessa fofoca tinha:")]); }
       }, { label: "🎤 Segure e reconte" });
       var fin = false;
       w.append(el("div", { cls: "card" }, el("span", { cls: "eyebrow", text: "🗣️ Agora você conta" }), el("h2", { text: "Reconte a fofoca falando" }),

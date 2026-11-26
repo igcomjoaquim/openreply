@@ -211,3 +211,17 @@
 /* 🔓 tema liberado */
 .unlock .big-emoji{animation:pop .6s ease-out}
 @keyframes pop{0%{transform:scale(.3);opacity:0}70%{transform:scale(1.15);opacity:1}100%{transform:scale(1)}}
+
+/* 📜 texto só no final */
+.said{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.said p{margin:0;font-size:17px;line-height:1.45}
+.said mark{background:var(--yellow);padding:0 3px;border-radius:4px}
+/* 🎧 Nativo de verdade */
+.yt-cover{display:grid;place-items:center;background:var(--ink);color:var(--card);font-weight:800;font-size:18px;z-index:2}
+.x-line{font-size:19px;line-height:1.5;margin:12px 0}
+.x-gap{display:inline-block;min-width:60px;text-align:center;border-bottom:3px solid var(--ink);padding:0 4px}
+.x-gap.ok{background:var(--okbg);color:var(--ok);border-color:var(--ok)}
+.x-gap.no{background:var(--badbg);color:var(--marsala);border-color:var(--marsala)}
+.opts.locked{opacity:.4;pointer-events:none}
+.opt.right{background:var(--okbg);border-color:var(--ok)}
+.opt.wrong{background:var(--badbg);border-color:var(--marsala)}

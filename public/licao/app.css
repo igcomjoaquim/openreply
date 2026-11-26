@@ -517,3 +517,8 @@ h1,.hero-title,.result h2,.fb-head h2,.login h1{font-family:var(--f-display)!imp
 .mine p{margin:6px 0 0}
 .mine .said{text-decoration:line-through;opacity:.8}
 .dict-out{margin:6px 0 0}
+/* 🎙️ estilo WhatsApp: ouvir o próprio áudio antes de enviar */
+.take{display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:14px;background:#FFF8EC;border:2px dashed #7A2E3A}
+.take.sent{border-style:solid;border-color:#2E7D4F;background:#E1F0E3}
+.take audio{width:100%}
+.take-btns{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end}

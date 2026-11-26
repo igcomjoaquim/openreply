@@ -45,7 +45,7 @@ export async function GET(request: NextRequest, { params }: Params) {
   const json = JSON.stringify(data).replace(/</g, "\\u003c");
   const body = `<div class="wrap" id="app"><p class="loading">Carregando a sua lição…</p></div>
 <script id="lesson-data" type="application/json">${json}</script>
-<script src="/licao/app.js?v=47"></script>`;
+<script src="/licao/app.js?v=48"></script>`;
   return new NextResponse(page(`${lesson.title} — ${lesson.student.name}`, body), { headers: HTML_HEADERS });
 }
 

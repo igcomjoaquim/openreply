@@ -14,6 +14,9 @@
   var VIEW = D.mode === "view";
   // modo professor (link do painel): mostra tudo igual, mas não cria tentativa nem salva nada
   var PREVIEW = !!D.preview;
+  // 🎙️ estilo WhatsApp (Thiago 26/11): grava → ouve/pausa → regrava (máx. 3) ou ✅ Enviar. Por enquanto só no Aluno Teste (?whats=1 força).
+  var WA = /[?&]whats=1/.test(location.search) || (/^aluno teste$/i.test(D.student || "") && !/[?&]whats=0/.test(location.search));
+  var MAX_REDO = 3;
   var PQ = PREVIEW ? "professor=1" : "";
   // 📄 uma fase por tela (Thiago 26/11): em teste só no Aluno Teste; ?paginas=0/1 força
   var PAGED = !VIEW && (/[?&]paginas=1/.test(location.search) || (/^aluno teste$/i.test(D.student || "") && !/[?&]paginas=0/.test(location.search)));
@@ -691,7 +694,7 @@
     var box = el("div", { style: "display:flex;flex-direction:column;gap:10px" },
       el("p", { cls: "hint", html: "🎙️ <b>Segure o botão</b> (igual áudio de WhatsApp). Quando aparecer 🔴 FALE AGORA, fale em inglês, perto do celular, e <b>solte</b> no fim. Fala comprida? Dê um toque só, espere 3, 2, 1 e toque de novo para parar." }),
       btn, level, el("div", { cls: "meter" }, tm, wc), tr, msg);
-    var sess = null, timer = null, taken = "", tries = 0, valve = null, totalSecs = 0;
+    var sess = null, timer = null, taken = "", tries = 0, valve = null, totalSecs = 0, redos = 0, reviewing = null;
     function offerValve() {
       if (valve || step.done) return;
       valve = el("button", { cls: "ghost", text: "Não estou conseguindo — liberar e o professor ouve meu áudio", onclick: function () {
@@ -722,7 +725,7 @@
     }
     var stream0 = null, live = false, ptt;
     ptt = pttWire(btn, {
-      pre: function () { return step.done; },
+      pre: function () { if (reviewing) { say(msg, "Ouça o seu áudio e escolha: 🔁 Gravar de novo ou ✅ Enviar."); return true; } return step.done; },
       stop: function () { btn.disabled = true; if (sess) sess.stop(); },
       begin: function () {
         if (busy || sess) return null;
@@ -752,6 +755,11 @@
               say(msg, "Parece que você falou em português 🙂 Essa gravação não conta. Fale em inglês, mesmo que errando!");
               return;
             }
+            if (WA && (blob || t)) { reviewTake(t, secs, blob, info, note); return; }
+            commit(t, secs, blob, info, note);
+          },
+        });
+        function commit(t, secs, blob, info, note) {
             taken = (taken + " " + t).trim(); render(taken);
             if (blob) totalSecs += secs;
             upload(step.key, blob, t, secs, info);
@@ -762,8 +770,31 @@
               if (secs >= 3) tries++;
               if (tries >= 3) offerValve();
             }
-          },
-        });
+        }
+        // 🎙️ revisão estilo WhatsApp: o aluno se ouve antes de mandar
+        function reviewTake(t, secs, blob, info, note) {
+          var url = blob ? URL.createObjectURL(blob) : null;
+          btn.textContent = "🎧 Ouça o seu áudio antes de enviar"; btn.disabled = true;
+          render(t ? (taken + " " + t).trim() : taken);
+          var left = MAX_REDO - redos;
+          var card = el("div", { cls: "take" },
+            el("b", { text: "🎧 Seu áudio" + (secs ? " · " + secs + " s" : "") }),
+            url ? el("audio", { controls: "", src: url, preload: "auto" }) : el("p", { cls: "small", text: "(este celular não salvou o som, só o texto)" }),
+            t ? el("p", { cls: "small", text: "O site entendeu: “" + t + "”" }) : el("p", { cls: "small", text: "O site não leu a fala, mas o seu professor vai ouvir o áudio." }));
+          var row = el("div", { cls: "take-btns" });
+          if (left > 0) row.append(el("button", { cls: "ghost", type: "button", text: "🔁 Gravar de novo (" + left + (left === 1 ? " chance" : " chances") + ")", onclick: function () {
+            redos++; reviewing = null; card.remove(); if (url) URL.revokeObjectURL(url);
+            render(taken); btn.disabled = false; btn.textContent = "🎙️ Gravar de novo (segure)"; say(msg, "");
+          } }));
+          else row.append(el("p", { cls: "small", text: "Você já regravou " + MAX_REDO + " vezes: agora é enviar. 💪" }));
+          row.append(el("button", { cls: "btn", type: "button", text: "✅ Enviar", onclick: function () {
+            reviewing = null; row.remove(); card.classList.add("sent"); card.querySelector("b").textContent = "✅ Áudio enviado" + (secs ? " · " + secs + " s" : "");
+            btn.disabled = false; redos = 0;
+            commit(t, secs, blob, info, note);
+          } }));
+          card.append(row); reviewing = card;
+          msg.before(card); say(msg, "Ouça (▶️ / ⏸). Gostou? ✅ Enviar. Quer melhorar? 🔁 Gravar de novo.");
+        }
         busy = sess; say(msg, "");
         btn.textContent = "⏳ Ligando o microfone…";
         var p = sess.start(), mine = sess;
@@ -1179,6 +1210,9 @@
     var count = el("span"), dots = el("div", { cls: "sh-dots" }), text = el("div", { cls: "sh-text" }), pt = el("div", { cls: "sh-pt" });
     var msg = el("p", { cls: "msg", hidden: "" });
     var play = el("button", { cls: "btn", text: "🔊 Ouvir" }), slowB = el("button", { cls: "soft", text: "🐢 Devagar" });
+    // 🎧 estilo WhatsApp: depois de gravar, o aluno compara a voz dele com a do nativo
+    var myVoice = el("button", { cls: "soft", text: "🎧 Minha voz", hidden: "" }), myUrl = null;
+    myVoice.onclick = function () { if (!myUrl) return; [].forEach.call(document.querySelectorAll("audio"), function (a) { try { a.pause(); } catch (e) {} }); var a = new Audio(myUrl); a.play().catch(function () {}); };
     var rec = el("button", { cls: "rec sh-rec", text: "🎤 Segure e fale" }), next = el("button", { cls: "btn", hidden: "", text: "Próxima frase →" });
     SH.forEach(function () { dots.append(el("span")); });
     function render() {
@@ -1243,6 +1277,7 @@
             var note = "";
             if (srFailed(t, info)) { turnOffSR(); info.srOff = true; note = "🎧 Seu celular não deixa a página ler a fala enquanto grava. Tudo bem: a partir de agora a página só grava e o seu professor ouve e corrige."; }
             upload("shadowing-" + (si + 1), blob, t, secs, info);
+            if (WA && blob) { if (myUrl) URL.revokeObjectURL(myUrl); myUrl = URL.createObjectURL(blob); myVoice.hidden = false; }
             if (SR && !t.trim()) {
               rec.textContent = "🎙️ Gravar de novo (segure)"; rec.classList.remove("live");
               say(msg, firstMicTry(blob) ? MIC_FIRST : secs < 2 ? "Muito rápido! Segure o botão, espere o 🔴 FALE AGORA, fale e só depois solte." : "Seu áudio foi gravado, mas a página não entendeu as palavras. Fale um pouco mais alto e devagar, perto do celular.");
@@ -1264,14 +1299,14 @@
       },
     });
     next.onclick = function () {
-      if (si < SH.length - 1) { si++; render(); playIt(false); return; }
+      if (si < SH.length - 1) { si++; myVoice.hidden = true; render(); playIt(false); return; }
       var pts = res.filter(function (x) { return x >= 0.95; }).length;
       var list = SH.map(function (s, i) { return { en: s.en, pct: Math.round((res[i] || 0) * 100) }; });
       finish(step, pts, { sentences: list, missed: miss, good: pts === SH.length ? ["Shadowing: todas as frases com a pronúncia entendida! 🗣️"] : [] });
       next.hidden = true; rec.disabled = true;
     };
     sec.append(el("div", { cls: "sh-how", html: "<span><b>1.</b> 🔊 Ouça a frase</span><span><b>2.</b> 🎤 Segure o botão e repita igualzinho; solte no fim</span><span><b>3.</b> ✅ Verde = entendeu você</span>" }),
-      el("div", { cls: "sh" }, el("div", { cls: "sh-count" }, count, dots), text, pt, el("div", { cls: "sh-btns" }, play, slowB, rec), msg, next));
+      el("div", { cls: "sh" }, el("div", { cls: "sh-count" }, count, dots), text, pt, el("div", { cls: "sh-btns" }, play, slowB, myVoice, rec), msg, next));
     if (!SR && !canRecord) sec.append(el("button", { cls: "ghost", text: "Não consigo gravar — pular esta parte", onclick: function () { finish(step, 0, { skipped: true }); } }));
     render();
   }

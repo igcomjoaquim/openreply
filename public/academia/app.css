@@ -129,3 +129,57 @@
 .daily .dlist .dn{opacity:.35;filter:grayscale(1)}
 .rest .nextph{display:flex;flex-direction:column;gap:2px;align-items:center;margin-top:8px}
 .rest .nextph b{font-family:var(--f-display);font-size:20px}
+/* vídeo: só o trecho, sem a barra do YouTube */
+.yt{position:relative}
+.yt::after{content:"";position:absolute;inset:0}
+
+/* progresso: bolinhas + pílula */
+.progress{display:flex;align-items:center;gap:10px;justify-content:space-between}
+.steps{display:flex;gap:5px;flex:1;flex-wrap:wrap}
+.steps .st{flex:1;min-width:10px;max-width:42px;height:10px;border-radius:999px;background:var(--line);transition:background .3s,transform .3s}
+.steps .st.done{background:var(--ok)}
+.steps .st.now{background:var(--yellow);border:2px solid var(--ink);animation:stpulse 1.4s ease-in-out infinite}
+.steps.emo .st{height:auto;min-width:30px;max-width:44px;font-size:17px;line-height:30px;text-align:center;background:var(--card);border:2px solid var(--line);filter:grayscale(1);opacity:.6}
+.steps.emo .st.done{background:var(--okbg);border-color:var(--ok);filter:none;opacity:1}
+.steps.emo .st.now{background:var(--yellow);border-color:var(--ink);filter:none;opacity:1}
+.progress .pill{flex:none;background:var(--ink);color:var(--card);border-radius:999px;padding:3px 10px;font-weight:700;font-size:13px;font-variant-numeric:tabular-nums}
+@keyframes stpulse{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
+@media (prefers-reduced-motion:reduce){.steps .st.now{animation:none}}
+
+/* ☕ pausar */
+.top .pause{background:var(--yellow);border:2px solid var(--ink);border-radius:999px;padding:6px 14px;font-weight:700;font-size:14px;box-shadow:2px 2px 0 var(--ink)}
+.paused-card{display:flex;align-items:center;gap:12px;text-align:left;background:var(--card);border:2px dashed var(--marsala);border-radius:16px;padding:12px 14px}
+.paused-card .pe{font-size:30px}.paused-card .tt{display:flex;flex-direction:column;flex:1}
+.paused-card .go{background:var(--marsala);color:#fff;border-radius:999px;padding:5px 12px;font-weight:700;font-size:13px;white-space:nowrap}
+
+/* 🔥 ofensiva */
+.streak{background:var(--card);border:2px solid var(--line);border-radius:18px;padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+.streak.lit{border-color:#E8731A;box-shadow:3px 3px 0 #E8731A}
+.streak .sk{display:flex;gap:12px;align-items:center}
+.streak .fire{font-size:34px;filter:grayscale(1);opacity:.5}.streak.lit .fire{filter:none;opacity:1}
+.streak .tt{display:flex;flex-direction:column}.streak .tt b{font-family:var(--f-display);font-size:19px}
+.week{display:flex;justify-content:space-between}
+.wd{display:flex;flex-direction:column;align-items:center;gap:2px;width:36px;padding:4px 0;border-radius:10px}
+.wd i{font-style:normal;font-size:18px;color:var(--line)}.wd small{font-size:11px;color:var(--muted);font-weight:700}
+.wd.on{background:#FDEBD9}.wd.td{outline:2px solid var(--ink)}
+.toast-streak{display:flex;flex-direction:column;align-items:center;gap:2px;text-align:center;background:#FDEBD9;border:2px solid #E8731A;border-radius:18px;padding:14px;animation:pop .5s ease-out}
+.toast-streak .big{font-size:48px;line-height:1}.toast-streak b{font-family:var(--f-display);font-size:22px}
+@keyframes pop{0%{transform:scale(.7);opacity:0}70%{transform:scale(1.05)}100%{transform:scale(1);opacity:1}}
+
+/* 🗺️ trilha */
+.trail-head{display:flex;flex-direction:column;gap:6px}
+.trail{display:flex;flex-direction:column;align-items:center;padding:30px 0 10px;gap:0}
+.tnode{--x:0;transform:translateX(calc(var(--x) * 56px));display:flex;flex-direction:column;align-items:center;gap:4px;background:none;border:0;position:relative;color:var(--ink)}
+.tnode .disc{width:66px;height:66px;border-radius:50%;display:grid;place-items:center;font-size:28px;background:var(--card);border:3px solid var(--ink);box-shadow:0 5px 0 var(--ink)}
+.tnode.done .disc{background:var(--okbg);border-color:var(--ok);box-shadow:0 5px 0 var(--ok);color:var(--ok);font-weight:800}
+.tnode.here .disc{background:var(--yellow);animation:bob 1.6s ease-in-out infinite}
+.tnode.locked .disc{background:var(--line);border-color:var(--wood);box-shadow:0 5px 0 var(--wood);font-size:22px}
+.tnode.locked{opacity:.75}
+.tnode .tlabel{display:flex;flex-direction:column;align-items:center;font-size:13px;line-height:1.2;max-width:150px;text-align:center}
+.tnode .tlabel b{font-size:14px}
+.tnode .bubble{top:-26px}
+.tline{--x:0;transform:translateX(calc(var(--x) * 56px));width:6px;height:26px;border-radius:3px;background:repeating-linear-gradient(var(--line) 0 6px,transparent 6px 10px);margin:4px 0}
+.tline.done{background:var(--ok)}
+.tgoal{display:flex;flex-direction:column;align-items:center;gap:2px;margin-top:14px}
+.tgoal .disc{width:74px;height:74px;border-radius:50%;display:grid;place-items:center;font-size:34px;background:#FDEBD9;border:3px dashed #E8731A}
+@media (prefers-reduced-motion:reduce){.tnode.here .disc,.toast-streak{animation:none}}

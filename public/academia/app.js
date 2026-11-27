@@ -292,20 +292,60 @@
      ["Quanto tempo por dia eu preciso?", "Uns 15 minutos. O treino do dia é feito de fases curtas. O que muda o jogo não é o tempo, é a constância: treinar um pouquinho todo dia."],
      ["Preciso marcar horário ou aula ao vivo?", "Não. Você treina no seu tempo, no celular ou no computador, na hora que der."],
      ["E se eu travar ou errar?", "Ótimo, é pra isso que serve. O que você erra vai pro Meus erros e volta em outro dia, numa situação nova, até você acertar. Errar falando vale mais que acertar no silêncio."],
-     ["Preciso de alguma coisa?", "De fone, pra ouvir bem, e de microfone, pra falar. O celular já tem os dois."]].forEach(function (q) {
+     ["Preciso de alguma coisa?", "De fone, pra ouvir bem, e de microfone, pra falar. O celular já tem os dois."],
+     ["É assinatura?", "É. Enquanto a assinatura estiver ativa, você tem a plataforma inteira e o seu progresso fica salvo na sua conta. O pagamento é feito pela Hotmart, com segurança."]].forEach(function (q) {
       faq.append(el("details", null, el("summary", { text: q[0] }), el("p", { text: q[1] })));
     });
+    // 🧭 menu com abas, igual ao inglescomjoaquim.com (no celular abre pelo ☰)
+    var NAV = [["Como funciona", "como-funciona"], ["Prévia", "previa"], ["O método", "metodo"], ["Quem é o Joaquim", "professor"], ["Assinatura", "assinatura"], ["Dúvidas", "faq"]];
+    function go(id) { menu.classList.remove("open"); burger.textContent = "☰"; var t = document.getElementById(id); if (!t) return; var y = t.getBoundingClientRect().top + window.scrollY - 70, y0 = window.scrollY; window.scrollTo({ top: y, behavior: "smooth" }); setTimeout(function () { if (Math.abs(window.scrollY - y0) < 5) window.scrollTo(0, y); }, 450); }
+    var menu = el("nav", { cls: "land-nav" });
+    NAV.forEach(function (n) { menu.append(el("button", { type: "button", text: n[0], onclick: function () { go(n[1]); } })); });
+    if (!PROF && CONTA_OK) menu.append(el("button", { cls: "nav-login", type: "button", text: "Entrar na minha conta", onclick: function () { menu.classList.remove("open"); loginFromLanding(); } }));
+    var burger = el("button", { cls: "land-burger", type: "button", "aria-label": "Abrir menu", text: "☰", onclick: function () { menu.classList.toggle("open"); burger.textContent = menu.classList.contains("open") ? "✕" : "☰"; } });
+    var top = el("header", { cls: "land-top" }, el("img", { cls: "land-logo", src: SITE + "logo.png", alt: "Inglês com Joaquim" }), menu,
+      el("div", { cls: "land-top-r" }, PROF || !CONTA_OK ? null : el("button", { cls: "btn ghost sm hide-m", type: "button", text: "Entrar", onclick: loginFromLanding }),
+        el("button", { cls: "btn gold sm hide-m", type: "button", text: "Começar agora →", onclick: startFlow }), burger));
+    // 📸 cartão com a foto do Joaquim e o áudio da prévia (como o cartão do site)
+    var heroA = null, heroPlay = el("button", { cls: "hc-play", type: "button", "aria-label": "Ouvir", text: "▶" });
+    heroPlay.onclick = function () { if (heroA && !heroA.paused) { heroA.pause(); heroPlay.textContent = "▶"; return; } heroA = playUrl(DEMO); heroPlay.textContent = "❚❚"; heroA.onended = heroA.onerror = function () { heroPlay.textContent = "▶"; heard = true; [].forEach.call(opts.children, function (c) { c.classList.remove("wait"); }); }; };
+    var wave = el("span", { cls: "hc-wave" }); for (var wi = 0; wi < 26; wi++) wave.append(el("i", { style: "height:" + (6 + Math.round(Math.abs(Math.sin(wi * 1.7)) * 18)) + "px" }));
+    var heroCard = el("div", { cls: "land-hcard" }, el("img", { src: SITE + "profile.png", alt: "Joaquim sorrindo" }),
+      el("div", { cls: "hc-tag" }, el("small", { text: "TEMA 4 · FOFOCA" }), el("b", { text: "Que horas são no prédio do Carlos?" }), el("span", { text: "What time is it? · o'clock" })),
+      el("div", { cls: "hc-bar" }, heroPlay, wave, el("span", { cls: "hc-t", text: "0:08" })),
+      el("span", { cls: "hc-badge", text: "Falou, validou!" }));
+    // ➖ faixa que corre
+    var mq = el("div", { cls: "land-marquee" }), mqIn = el("div", { cls: "mq-in" });
+    var MQ = ["Ouvir nativo de verdade", "Falar todo dia", "Cenas reais", "Correção na hora", "Sem decoreba", "No seu nível", "15 minutos por dia", "Falou, validou", "Do zero ao A2", "Chega de travar"];
+    for (var mr = 0; mr < 2; mr++) MQ.forEach(function (t) { mqIn.append(el("span", { text: t }), el("i", { text: "✦" })); });
+    mq.append(mqIn);
+    // 💳 oferta: o que você leva + assinatura
+    var oferta = sec("A decisão é sua", "Daqui a alguns meses você pode estar entendendo e falando, ou exatamente onde está hoje", "land-offer");
+    oferta.id = "assinatura";
+    var leva = el("ul", { cls: "land-check" });
+    ["Trilha completa do A1 ao A2, um tema por vez", "Cenas reais de séries, entrevistas de rua e vlogs, em partes, com Raio-X do som", "Treino de fala todo dia: você grava, se ouve e vê o que a página entendeu", "Ditado, fofoca, shadowing, leitura em voz alta e Real Time", "Meus erros: o que você erra volta até você acertar", "Teste de nível, evolução 🌱🌿🌳🍎 e medalhas", "Tudo no celular ou no computador, no seu tempo, sem hora marcada"].forEach(function (t) { leva.append(el("li", { text: t })); });
+    oferta.append(el("div", { cls: "land-offer-card" },
+      el("div", { cls: "lo-top" }, el("span", { cls: "eyebrow", text: "O que você leva" }), el("h3", { text: "Destravando · Assinatura" }), leva),
+      el("div", { cls: "lo-bottom" }, el("span", { cls: "lo-pill", text: "⚡ Acesso imediato" }), el("small", { text: "Assinatura" }), el("strong", { text: "Treino novo todo dia" }), el("small", { text: "pra destravar de vez" }),
+        cta("Quero destravar meu inglês →"), el("p", { cls: "lo-safe", text: "🔒 Pagamento seguro pela Hotmart · valor exibido no checkout" }))),
+      el("p", { cls: "small center", text: "Meu compromisso: se você aparecer todo dia e abrir a boca, você destrava. A parte difícil eu já resolvi." }));
+    // ⬇️ barra fixa embaixo (aparece depois do topo e some no fim)
+    var bar = el("div", { cls: "land-bar" }, el("button", { cls: "btn big gold", type: "button", text: "Quero destravar meu inglês →", onclick: startFlow }));
+    function onScroll() { if (!w.isConnected) { window.removeEventListener("scroll", onScroll); bar.remove(); return; } var y = window.scrollY, end = document.documentElement.scrollHeight - window.innerHeight - 500; bar.classList.toggle("show", y > 520 && y < end); top.classList.toggle("solid", y > 10); }
+    window.addEventListener("scroll", onScroll, { passive: true });
     w.append(
-      el("header", { cls: "land-top" }, el("img", { cls: "land-logo", src: SITE + "logo.png", alt: "Inglês com Joaquim" }),
-        PROF || !CONTA_OK ? el("span", { cls: "brand", text: "Destravando" }) : el("button", { cls: "btn ghost sm", type: "button", text: "Entrar", onclick: loginFromLanding })),
+      top,
       el("section", { cls: "land-hero" },
         el("span", { cls: "eyebrow", text: "• Destravando · A1 · A2" }),
         el("h1", { html: "Você estuda inglês há anos e ainda <mark>trava</mark> na hora de ouvir e falar?" }),
         el("p", { html: "A culpa não é sua: é do método que te ensinaram. Na <b>Destravando</b>, você treina o ouvido e a fala <b>todo dia</b>, com nativo de verdade, e valida na prática. Nada de teoria sem fim." }),
         el("p", { cls: "hand", text: "Falou, validou." }),
         cta(),
-        el("button", { cls: "btn ghost", type: "button", text: "▶ Ver como funciona", onclick: function () { w.querySelector(".land-how").scrollIntoView({ behavior: "smooth", block: "start" }); } }),
-        el("div", { cls: "land-badges" }, el("span", { text: "15 min por dia" }), el("span", { text: "no seu celular" }), el("span", { text: "nativo de verdade" }))),
+        el("button", { cls: "btn ghost", type: "button", text: "▶ Ver como funciona", onclick: function () { go("como-funciona"); } }),
+        el("div", { cls: "land-badges" }, el("span", { cls: "stars", text: "★★★★★" }), el("span", { text: "Método aprovado por alunos A1–B2" })),
+        el("p", { cls: "small", text: "15 min por dia · no seu celular" }),
+        heroCard),
+      mq,
       (function () { var x = sec("O diagnóstico honesto", "O problema não é você. É o método.");
         x.append(el("p", { text: "Te ensinaram a estudar inglês como quem estuda pra prova. Só que fluência não se prova numa folha: se prova no ouvido e na boca. Se algum destes te descreve, presta atenção:" }),
           el("ul", { cls: "land-x" },
@@ -316,7 +356,7 @@
             el("li", { text: "Decora listas de palavras que sozinhas não servem pra nada." })),
           el("blockquote", { cls: "land-quote" }, el("p", { text: "“O conhecimento só é validado quando você fala. Enquanto ficar só na teoria, o inglês continua trancado.”" }), el("span", { text: "— Joaquim" })));
         return x; })(),
-      (function () { var x = sec("A virada de chave", "Conheça a Destravando");
+      (function () { var x = sec("A virada de chave", "Conheça a <mark>Destravando</mark>", "land-dark");
         x.append(el("p", { text: "Uma academia de inglês no seu celular pra fazer o que realmente destrava: ouvir nativo de verdade e falar. Todo. Santo. Dia." }),
           el("div", { cls: "land-cards" },
             el("div", null, el("b", { text: "🎬 Nativo de verdade" }), el("span", { text: "Cenas de séries, entrevistas de rua e vlogs, em partes, com o Raio-X do som." })),
@@ -325,19 +365,19 @@
             el("div", null, el("b", { text: "🌱 Progresso que você sente" }), el("span", { text: "Cada habilidade evolui: 🌱 → 🌿 → 🌳 → 🍎." }))),
           cta());
         return x; })(),
-      (function () { var x = sec("Como funciona na prática", "Quatro passos. Todo dia. Quinze minutos.", "land-how");
+      (function () { var x = sec("Como funciona na prática", "Quatro passos. Todo dia. Quinze minutos.", "land-how"); x.id = "como-funciona";
         x.append(el("ol", { cls: "land-steps" },
           el("li", null, el("i", { text: "01" }), el("b", { text: "Você cria sua conta" }), el("span", { text: "Assim o seu progresso fica salvo e você continua de qualquer aparelho." })),
           el("li", null, el("i", { text: "02" }), el("b", { text: "Faz o teste de nível" }), el("span", { text: "Só ouvindo e falando, uns 10 minutos. Ele mostra onde você está e o que mais te trava." })),
           el("li", null, el("i", { text: "03" }), el("b", { text: "Treina todo dia" }), el("span", { text: "Cena real, ditado, fofoca, shadowing, leitura em voz alta e Real Time, em fases curtas." })),
           el("li", null, el("i", { text: "04" }), el("b", { text: "Evolui e valida" }), el("span", { text: "O que você erra volta até acertar. Falou, validou. Aí vem o próximo tema." }))));
         return x; })(),
-      (function () { var x = sec("Prévia · experimenta agora", "Ouça a fofoca do prédio", "land-demo");
+      (function () { var x = sec("Prévia · experimenta agora", "Ouça a fofoca do prédio", "land-demo"); x.id = "previa";
         x.append(el("p", { cls: "small", text: "O Carlos mora no apartamento 6 com o cachorro, o Max. Ouça o trecho, sem ler nada, e responda." }),
           playB, el("p", { cls: "comp-q", text: "❓ Que horas são na história?" }), opts, dmsg,
           el("p", { cls: "small", text: "É assim o treino inteiro: primeiro você ouve, depois entende, e só então vê o texto." }));
         return x; })(),
-      (function () { var x = sec("O método por trás", "Não é sorte. É um jeito de ensinar que respeita como o cérebro aprende.");
+      (function () { var x = sec("O método por trás", "Não é sorte. É um jeito de ensinar que respeita como o cérebro aprende."); x.id = "metodo";
         x.append(el("div", { cls: "land-cards three" },
           el("div", null, el("b", { text: "Prática antes da teoria" }), el("span", { text: "Você usa primeiro, entende depois. O contrário do que te ensinaram a vida toda." })),
           el("div", null, el("b", { text: "Contexto é tudo" }), el("span", { text: "Nunca palavra solta. Sempre dentro de uma história que faz sentido pra você." })),
@@ -356,7 +396,7 @@
           el("div", null, el("em", { text: "A2" }), el("b", { text: "Já entende, mas trava" }), el("span", { text: "Cenas mais rápidas, phrasal verbs e reconto. Você conta a história com as suas palavras." }))),
           el("p", { cls: "small", text: "Não sabe seu nível? Sem crise: o teste mostra por onde começar." }));
         return x; })(),
-      (function () { var x = sec("Quem tá do outro lado", null, "land-prof");
+      (function () { var x = sec("Quem tá do outro lado", null, "land-prof land-wine"); x.id = "professor";
         x.append(el("div", { cls: "land-prof-in" }, el("img", { src: SITE + "profile.png", alt: "Thiago Joaquim, professor de inglês" }),
           el("div", null, el("span", { cls: "small", text: "O professor" }), el("h2", { text: "Oi, eu sou o Joaquim." }))),
           el("p", { text: "Não aprendi idiomas na sala de aula tradicional: aprendi vivendo. Morei 4 anos na Europa, trabalhei em outra língua, errei muito e falei mesmo assim. Foi aí que entendi: fluência não vem de mais teoria, vem de usar." }),
@@ -364,12 +404,18 @@
           el("p", { cls: "hand", text: "Se você fala, você valida. Simples assim." }),
           el("div", { cls: "land-stats" }, el("div", null, el("b", { text: "5 idiomas" }), el("span", { text: "aprendidos na prática" })), el("div", null, el("b", { text: "4 anos" }), el("span", { text: "morando na Europa" })), el("div", null, el("b", { text: "A1 → B2+" }), el("span", { text: "alunos destravados" }))));
         return x; })(),
-      (function () { var x = sec("Antes de você perguntar", "Perguntas que todo mundo faz"); x.append(faq); return x; })(),
-      el("section", { cls: "land-end" }, el("h2", { html: "Chega de estudar inglês. <mark>Bora treinar.</mark>" }),
+      oferta,
+      (function () { var x = sec("Antes de você perguntar", "Perguntas que todo mundo faz"); x.id = "faq"; x.append(faq); return x; })(),
+      el("section", { cls: "land-end land-dark" }, el("h2", { html: "Chega de estudar inglês. <mark>Bora treinar.</mark>" }),
         el("p", { text: "Quinze minutos por dia. Nativo de verdade. Sua voz destravando um pouco mais a cada treino." }),
         cta("Quero destravar meu inglês →"),
         PROF || !CONTA_OK ? null : el("button", { cls: "linkish", type: "button", text: "Já tenho conta · Entrar", onclick: loginFromLanding }),
-        el("p", { cls: "hand", text: "Falou, validou!" })));
+        el("p", { cls: "hand", text: "Falou, validou!" })),
+      el("footer", { cls: "land-foot" }, el("img", { src: SITE + "logo.png", alt: "Inglês com Joaquim" }),
+        el("p", null, el("a", { href: "https://instagram.com/inglescomjoaquim", target: "_blank", rel: "noopener", text: "Instagram" }), " · ", el("a", { href: "/privacidade.html", text: "Privacidade" }), " · ", el("a", { href: "mailto:contato@inglescomjoaquim.com", text: "Contato" })),
+        el("small", { text: "© " + new Date().getFullYear() + " Inglês com Joaquim · Falou, validou." })),
+      bar);
+    onScroll();
   }
   function welcome(fromLanding) {
     if (!fromLanding && !ACC && !S.self && !(S.testSave && S.testSave.res)) return landing();

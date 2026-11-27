@@ -146,3 +146,98 @@ body.premium .land-end p{margin:0;color:#3B3222}
 
 html:has(body.premium){background:#FBF7EF}
 body.premium{min-height:100vh;background-attachment:fixed}
+
+/* 🏠 v2: site completo no estilo do inglescomjoaquim.com (menu, cartão com foto, faixa, seções escuras/vinho, oferta, barra fixa) */
+body.premium:has(.land){overflow-x:clip}
+body.premium .land{max-width:1080px}
+body.premium .land > *{width:100%;max-width:720px;margin-inline:auto}
+body.premium .land-top{max-width:none!important;margin-inline:calc(50% - 50vw)!important;width:100vw!important;padding:12px max(18px,calc(50vw - 540px));background:rgba(251,247,239,.6);border-bottom-color:transparent;transition:background .2s,border-color .2s;gap:12px}
+body.premium .land-top.solid{background:rgba(251,247,239,.92);border-bottom-color:rgba(228,222,210,.8)}
+body.premium .land-top-r{display:flex;align-items:center;gap:8px;margin-left:auto}
+body.premium .land-burger{width:44px;height:44px;border-radius:50%;border:1px solid var(--line);background:#FFFDF8;font-size:18px;color:var(--ink);cursor:pointer;display:grid;place-items:center}
+body.premium .land-nav{display:none}
+body.premium .land-nav.open{display:flex;flex-direction:column;position:absolute;top:100%;left:0;right:0;background:rgba(251,247,239,.98);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);padding:8px 18px 18px;border-bottom:1px solid var(--line);box-shadow:0 20px 40px -20px rgba(60,40,10,.35)!important}
+body.premium .land-nav button{background:none;border:0;text-align:left;font:500 17px var(--f-body);color:var(--ink);padding:13px 4px;border-bottom:1px solid var(--line);cursor:pointer}
+body.premium .land-nav .nav-login{color:var(--marsala);font-weight:700;border-bottom:0}
+body.premium .hide-m{display:none}
+@media (min-width:900px){
+  body.premium .land-nav{display:flex;gap:4px;position:static}
+  body.premium .land-nav button{border:0;font-size:14px;padding:8px 10px;color:#4A4030}
+  body.premium .land-nav button:hover{color:var(--gold-txt)}
+  body.premium .land-nav .nav-login{display:none}
+  body.premium .land-burger{display:none}
+  body.premium .hide-m{display:inline-flex}
+}
+/* cartão do topo com a foto */
+body.premium .land-hcard{position:relative;margin-top:14px;border-radius:28px;overflow:hidden;aspect-ratio:4/4.6;background:linear-gradient(180deg,#F1E6E2,#E9DCD3);box-shadow:0 0 0 8px rgba(237,197,95,.18),0 30px 60px -24px rgba(60,40,10,.45)!important}
+body.premium .land-hcard img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 20%}
+body.premium .hc-tag{position:absolute;top:16px;left:16px;max-width:66%;background:rgba(255,253,248,.95);border-radius:14px;padding:10px 12px;display:flex;flex-direction:column;gap:2px;box-shadow:0 10px 24px -12px rgba(60,40,10,.4)!important}
+body.premium .hc-tag small{font:700 10px var(--f-body);letter-spacing:.12em;color:var(--gold-txt)}
+body.premium .hc-tag b{font:600 14px/1.25 var(--f-body);color:var(--ink)}
+body.premium .hc-tag span{font-size:11px;color:var(--muted)}
+body.premium .hc-bar{position:absolute;left:14px;right:14px;bottom:14px;display:flex;align-items:center;gap:12px;padding:10px 14px 10px 10px;border-radius:999px;background:linear-gradient(180deg,rgba(33,26,16,.0),rgba(33,26,16,.0))}
+body.premium .land-hcard::after{content:"";position:absolute;left:0;right:0;bottom:0;height:38%;background:linear-gradient(180deg,rgba(33,26,16,0),rgba(33,26,16,.55));pointer-events:none}
+body.premium .hc-bar{z-index:2}
+body.premium .hc-play{width:46px;height:46px;flex:none;border-radius:50%;border:0;background:linear-gradient(180deg,var(--gold-1),var(--gold-3));color:var(--gold-ink);font-size:16px;cursor:pointer;box-shadow:0 8px 20px -8px rgba(212,168,67,.9)!important}
+body.premium .hc-wave{display:flex;align-items:center;gap:3px;flex:1;overflow:hidden}
+body.premium .hc-wave i{display:block;width:3px;border-radius:2px;background:#FBF7EF;opacity:.9}
+body.premium .hc-t{font:600 12px var(--f-body);color:#FBF7EF;background:rgba(255,255,255,.16);padding:4px 9px;border-radius:999px}
+body.premium .hc-badge{position:absolute;right:14px;top:16px;z-index:2;font:700 18px var(--f-hand);color:#FBF7EF;background:var(--marsala);padding:4px 12px;border-radius:12px;transform:rotate(4deg)}
+body.premium .land-badges .stars{color:var(--gold-2);letter-spacing:2px;border:0!important;background:none!important;padding-left:0!important}
+/* faixa que corre */
+body.premium .land-marquee{max-width:none!important;width:100vw!important;margin-inline:calc(50% - 50vw)!important;background:var(--ink);color:#FBF7EF;overflow:hidden;padding:14px 0;border-block:1px solid rgba(255,255,255,.08)}
+body.premium .mq-in{display:flex;gap:18px;width:max-content;animation:landmq 38s linear infinite;font:500 15px var(--f-display);font-style:italic;white-space:nowrap}
+body.premium .mq-in i{color:var(--gold-2);font-style:normal}
+@keyframes landmq{to{transform:translateX(-50%)}}
+@media (prefers-reduced-motion:reduce){body.premium .mq-in{animation:none}}
+/* seções escuras e vinho de ponta a ponta */
+body.premium .land-dark,body.premium .land-wine{max-width:none!important;width:100vw!important;margin-inline:calc(50% - 50vw)!important;padding:56px max(22px,calc(50vw - 360px))!important;border-top:0!important;color:#FBF7EF}
+body.premium .land-dark{background:radial-gradient(80% 60% at 50% 0%,#3A2E1E,#211A10 70%)!important}
+body.premium .land-wine{background:radial-gradient(80% 60% at 20% 0%,#86364C,#6E2A3C 70%)!important}
+body.premium .land-dark h2,body.premium .land-wine h2,body.premium .land-dark p,body.premium .land-wine p{color:#FBF7EF}
+body.premium .land-dark .eyebrow,body.premium .land-wine .eyebrow{color:var(--gold-1)}
+body.premium .land-dark mark{color:var(--gold-1)}
+body.premium .land-dark .land-cards>div{background:rgba(255,255,255,.04)!important;border:1px solid rgba(255,255,255,.12)!important}
+body.premium .land-dark .land-cards b{color:#FBF7EF}
+body.premium .land-dark .land-cards span{color:rgba(251,247,239,.7)}
+body.premium .land-wine .small{color:rgba(251,247,239,.75)!important}
+body.premium .land-wine .land-stats div{background:rgba(255,255,255,.07)!important;border-color:rgba(255,255,255,.16)!important}
+body.premium .land-wine .land-stats b{color:var(--gold-1)}
+body.premium .land-wine .land-stats span{color:rgba(251,247,239,.75)}
+body.premium .land-wine .hand{color:var(--gold-1)}
+body.premium .land-end.land-dark{text-align:center;padding-block:70px!important}
+body.premium .land-end.land-dark .linkish{color:var(--gold-1)}
+/* oferta */
+body.premium .land-offer h2{font-size:30px}
+body.premium .land-offer-card{border-radius:24px;overflow:hidden;border:1px solid var(--line);background:#FFFDF8;box-shadow:0 30px 60px -30px rgba(60,40,10,.4)!important}
+body.premium .lo-top{padding:26px 22px;display:flex;flex-direction:column;gap:10px}
+body.premium .lo-top h3{font:600 26px/1.15 var(--f-display);margin:0}
+body.premium .land-check{list-style:none;margin:6px 0 0;padding:0;display:flex;flex-direction:column;gap:12px}
+body.premium .land-check li{position:relative;padding-left:34px;font-size:16px;line-height:1.45;color:#3B3222}
+body.premium .land-check li::before{content:"✓";position:absolute;left:0;top:0;width:22px;height:22px;border-radius:50%;background:var(--gold-2);color:var(--gold-ink);font:700 13px/22px var(--f-body);text-align:center}
+body.premium .lo-bottom{padding:26px 22px;background:radial-gradient(90% 80% at 80% 0%,#4A2A2A,#211A10 75%);color:#FBF7EF;display:flex;flex-direction:column;gap:6px}
+body.premium .lo-pill{align-self:flex-start;font:600 13px var(--f-body);color:var(--gold-1);background:rgba(237,197,95,.14);padding:5px 12px;border-radius:999px;margin-bottom:6px}
+body.premium .lo-bottom small{color:rgba(251,247,239,.7);font-size:14px}
+body.premium .lo-bottom strong{font:600 34px/1.1 var(--f-display);color:#FBF7EF}
+body.premium .lo-bottom .btn{margin-top:14px}
+body.premium .lo-safe{margin:6px 0 0;font-size:13px;color:rgba(251,247,239,.65);text-align:center}
+body.premium .center{text-align:center}
+/* rodapé */
+body.premium .land-foot{display:flex;flex-direction:column;align-items:center;gap:8px;padding:26px 0 90px;text-align:center;color:var(--muted)}
+body.premium .land-foot img{height:30px}
+body.premium .land-foot a{color:var(--marsala)}
+/* barra fixa embaixo */
+body.premium .land-bar{position:fixed;left:0;right:0;bottom:0;z-index:40;max-width:none!important;padding:26px 16px calc(14px + env(safe-area-inset-bottom));background:linear-gradient(0deg,#FBF7EF 55%,rgba(251,247,239,0));transform:translateY(110%);transition:transform .3s ease;pointer-events:none}
+body.premium .land-bar.show{transform:none}
+body.premium .land-bar .btn{max-width:520px;margin:0 auto;display:flex;justify-content:center;pointer-events:auto}
+@media (min-width:900px){
+  body.premium .land-hero{display:grid;grid-template-columns:1.1fr .9fr;column-gap:48px;max-width:1080px!important;align-items:start}
+  body.premium .land-hero > *{grid-column:1}
+  body.premium .land-hero .land-hcard{grid-column:2;grid-row:1 / span 8;margin-top:0}
+  body.premium .land-bar{display:none}
+}
+body.premium .hc-badge{top:auto;bottom:84px;right:16px}
+body.premium .land-hero .land-badges{align-items:center}
+body.premium .land-hero .land-badges span:not(.stars){background:none!important;border:0!important;padding:0!important;font-size:14px;color:#4A4030}
+body.premium .land-hero > p.small{font-size:14px;color:var(--muted)}
+body.premium .land-nav.open{background:#FBF7EF!important}

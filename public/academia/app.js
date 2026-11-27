@@ -271,25 +271,24 @@
     var w = screen(); w.classList.add("land");
     function sec(eyebrow, title, cls) { var x = el("section", { cls: "land-sec " + (cls || "") }, el("span", { cls: "eyebrow", text: eyebrow }), title ? el("h2", { html: title }) : null); return x; }
     function cta(txt) { return el("button", { cls: "btn big gold", type: "button", text: txt || "Quero destravar meu inglês →", onclick: startFlow }); }
-    // prévia de verdade (Thiago 28/11: "um áudio mais autêntico e um pouco mais difícil"): entrevista de rua nos EUA,
-    // Easy English, tela coberta igual ao treino. O moço inventa um plano e a amiga desmente na hora.
-    var DEMO_ID = "OlyYE6USuO0", D0 = 110.2, D1 = 129.75, heard = false, answered = false, playing = false;
+    // prévia de verdade (Thiago 28/11: série, autêntico, um pouco difícil e CURTO): Modern Family, ~10 s, tela coberta igual ao treino.
+    var DEMO_ID = "2bdNNJqKqT4", D0 = 97.5, D1 = 107.9, heard = false, answered = false, playing = false;
     var dHolder = el("div"), dCover = el("div", { cls: "yt-cover2" }, el("span", { cls: "cv-ic", text: "🎧" }), el("span", { text: "Tela coberta · só ouvido" }));
     var dBox = el("div", { cls: "yt yt-wrap2 land-yt" }, dHolder, dCover), DY = null;
     var opts = el("div", { cls: "pt-q" }), dmsg = el("div", { cls: "small" });
-    var DEMO_TX = [["I'm gonna ride my bike home and then walk my dog and then take a nap.", "Vou pra casa de bicicleta, depois passear com o meu cachorro e depois tirar um cochilo."], ["That's not true at all!", "Isso não é verdade de jeito nenhum!"], ["You don't even have a dog?", "Você nem tem cachorro?"], ["No. And I don't have a bike.", "Não. E eu não tenho bicicleta."], ["And you never sleep.", "E você nunca dorme."], ["I'm definitely going to take a nap.", "Eu com certeza vou tirar um cochilo."], ["At least it's partially true.", "Pelo menos é meio verdade."]];
+    var DEMO_TX = [["Claire: But I run every day.", "Mas eu corro todo dia."], ["Phil: You really think you can run as fast as me?", "Você acha mesmo que consegue correr tão rápido quanto eu?"], ["Claire: No, Phil. I think I can run much… much faster than you.", "Não, Phil. Eu acho que eu corro muito… muito mais rápido que você."]];
     function demoReveal() {
       var box = el("div", { cls: "said-box land-tx" }, el("b", { text: "🗣️ O que eles falaram:" }));
-      DEMO_TX.forEach(function (l) { box.append(el("i", { text: "“" + l[0] + "”" }), el("small", { text: "🇧🇷 " + l[1] })); });
+      DEMO_TX.forEach(function (l) { var k = l[0].indexOf(": "); box.append(el("i", { text: l[0].slice(0, k + 2) + "“" + l[0].slice(k + 2) + "”" }), el("small", { text: l[1] })); });
       dCover.remove(); dmsg.replaceChildren(box, el("button", { cls: "btn ghost", type: "button", text: "🎬 Ver a cena de novo, agora sem a capa", onclick: function () { DY.play(D0, D1, 1); } }));
     }
-    [["Era mentira: ele não tem cachorro nem bicicleta", "He doesn't have a dog or a bike", true], ["Era verdade: ele vai pra casa de bicicleta", "He's riding his bike home", false], ["Ela vai cuidar do cachorro dele", "She's walking his dog", false]].forEach(function (o) {
+    [["Que ela corre muito mais rápido que ele", "Much faster than you", true], ["Que os dois correm igual", "As fast as you", false], ["Que ele corre mais rápido que ela", "Faster than me", false]].forEach(function (o) {
       var b = el("button", { cls: "pt-opt wait", type: "button" }, o[0], el("span", { cls: "opt-en", text: o[1] }));
       b.onclick = function () {
         if (!heard) { dmsg.textContent = "🎧 Primeiro toque em ▶ pra ouvir."; return; }
         if (answered) return;
         if (o[2]) { answered = true; b.classList.add("ok"); fb(true); demoReveal(); }
-        else { b.classList.add("bad"); b.disabled = true; fb(false); dmsg.textContent = "❌ Não foi essa. Ouça de novo: preste atenção no que a amiga responde."; }
+        else { b.classList.add("bad"); b.disabled = true; fb(false); dmsg.textContent = "❌ Não foi essa. Ouça de novo: preste atenção na resposta da Claire."; }
       };
       opts.append(b);
     });
@@ -297,7 +296,7 @@
       if (!DY) DY = ytScene(dHolder, DEMO_ID, D0, D1);
       if (playing) { DY.pause(); playing = false; playB.textContent = "▶ Ouvir de novo"; heroPlay.textContent = "▶"; return; }
       playing = true; playB.classList.remove("pulse"); playB.textContent = "⏸ Pausar"; heroPlay.textContent = "❚❚";
-      DY.play(D0, D1, 1, function () { playing = false; heard = true; playB.textContent = "▶ Ouvir de novo"; heroPlay.textContent = "▶"; [].forEach.call(opts.children, function (c) { c.classList.remove("wait"); }); if (!answered) dmsg.textContent = "Agora escolha: o plano dele era verdade?"; });
+      DY.play(D0, D1, 1, function () { playing = false; heard = true; playB.textContent = "▶ Ouvir de novo"; heroPlay.textContent = "▶"; [].forEach.call(opts.children, function (c) { c.classList.remove("wait"); }); if (!answered) dmsg.textContent = "Agora escolha: o que a Claire acha?"; });
     }
     var playB = el("button", { cls: "btn pt-big pulse", type: "button", text: "▶ Ouvir o trecho", onclick: demoPlay });
     var faq = el("div", { cls: "land-faq" });
@@ -323,8 +322,8 @@
     var heroPlay = el("button", { cls: "hc-play", type: "button", "aria-label": "Ouvir a prévia", text: "▶", onclick: function () { go("previa"); demoPlay(); } });
     var wave = el("span", { cls: "hc-wave" }); for (var wi = 0; wi < 26; wi++) wave.append(el("i", { style: "height:" + (6 + Math.round(Math.abs(Math.sin(wi * 1.7)) * 18)) + "px" }));
     var heroCard = el("div", { cls: "land-hcard" }, el("img", { src: SITE + "profile.png", alt: "Joaquim sorrindo" }),
-      el("div", { cls: "hc-tag" }, el("small", { text: "CENA REAL · EUA" }), el("b", { text: "O plano dele é verdade?" }), el("span", { text: "Entrevista de rua · Easy English" })),
-      el("div", { cls: "hc-bar" }, heroPlay, wave, el("span", { cls: "hc-t", text: "0:19" })),
+      el("div", { cls: "hc-tag" }, el("small", { text: "SÉRIE · MODERN FAMILY" }), el("b", { text: "Quem corre mais rápido?" }), el("span", { text: "10 segundos, tela coberta" })),
+      el("div", { cls: "hc-bar" }, heroPlay, wave, el("span", { cls: "hc-t", text: "0:10" })),
       el("span", { cls: "hc-badge", text: "Falou, validou!" }));
     // ➖ faixa que corre
     var mq = el("div", { cls: "land-marquee" }), mqIn = el("div", { cls: "mq-in" });
@@ -384,10 +383,10 @@
           el("li", null, el("i", { text: "03" }), el("b", { text: "Treina todo dia" }), el("span", { text: "Cena real, ditado, fofoca, shadowing, leitura em voz alta e Real Time, em fases curtas." })),
           el("li", null, el("i", { text: "04" }), el("b", { text: "Evolui e valida" }), el("span", { text: "O que você erra volta até acertar. Falou, validou. Aí vem o próximo tema." }))));
         return x; })(),
-      (function () { var x = sec("Prévia · experimenta agora", "Nativo de verdade, na rua, sem roteiro", "land-demo"); x.id = "previa";
-        x.append(el("p", { cls: "small", text: "Numa entrevista de rua nos EUA, perguntam os planos pro resto do dia. Um moço responde, e a amiga dele comenta. Ouça com a tela coberta, sem ler nada, e responda." }),
-          dBox, playB, el("p", { cls: "comp-q", text: "❓ O plano dele era verdade?" }), opts, dmsg,
-          el("p", { cls: "small", text: "Achou rápido? É assim que nativo fala de verdade. No treino, a cena vem em partes, com o Raio-X do som, até você entender tudo." }));
+      (function () { var x = sec("Prévia · experimenta agora", "10 segundos de Modern Family. Você entende?", "land-demo"); x.id = "previa";
+        x.append(el("p", { cls: "small", text: "A Claire avisou que corre rápido demais pro Phil. Ele se gaba da caminhada que faz toda manhã, e ela responde. Ouça com a tela coberta, sem ler nada, e responda." }),
+          dBox, playB, el("p", { cls: "comp-q", text: "❓ O que a Claire acha da corrida dos dois?" }), opts, dmsg,
+          el("p", { cls: "small", text: "Achou rápido? É assim que nativo fala. No treino tem série, desenho, talk show, entrevista de rua e vlog, e cada cena vem em partes, com o Raio-X do som, até você entender tudo." }));
         return x; })(),
       (function () { var x = sec("O método por trás", "Não é sorte. É um jeito de ensinar que respeita como o cérebro aprende."); x.id = "metodo";
         x.append(el("div", { cls: "land-cards three" },
@@ -1041,7 +1040,7 @@
         function nx() {
           if (qi >= order.length) return end();
           var it = order[qi], others = shuffle(pairs.filter(function (x) { return x.en !== it.en; })).slice(0, 2), ch = shuffle(others.concat([it]));
-          q.textContent = "🇧🇷 " + it.pt; opts.replaceChildren();
+          q.textContent = it.pt; opts.replaceChildren();
           ch.forEach(function (c) { opts.append(el("button", { cls: "pt-opt", type: "button", text: c.en, onclick: function (e) { if (over) return; var g = c.en === it.en; e.currentTarget.classList.add(g ? "ok" : "bad"); if (g) right++; fb(g); qi++; setTimeout(nx, g ? 250 : 650); } })); });
         }
         function end() { if (over) return; over = true; clearInterval(tmr); opts.replaceChildren(); q.textContent = (right >= order.length ? "🏆 Gabaritou! " : "⚡ Fim! ") + "Você acertou " + right + " de " + order.length + ". +" + right * 2 + " XP"; S.xp += right * 2; S.bonusDay = today(); S.bonusRight = right; persist(); if (right >= order.length) SFX.stage(); else SFX.small(); }
@@ -1309,7 +1308,7 @@
       var s = B.list[i], url = af(u, s.key), heard = false, tries = 0, best = 0, hl = null;
       var dots = el("div", { cls: "pt-dots" }); B.list.forEach(function (_, k) { dots.append(el("i", { cls: k < i ? (res[k] >= 0.95 ? "ok" : "meh") : k === i ? "cur" : "", text: String(k + 1) })); });
       var text = el("p", { cls: "sh-line blind", title: "Ouça a frase primeiro" }); clean(s.en).split(" ").forEach(function (wd, k) { if (k) text.append(" "); text.append(el("span", { text: wd })); });
-      var pt = el("p", { cls: "small hide", text: s.pt ? "🇧🇷 " + s.pt : "" });
+      var pt = el("p", { cls: "small hide", text: s.pt ? s.pt : "" });
       var score = el("div", { cls: "sh-score" });
       function playIt(rate) {
         var spans = [].slice.call(text.children), lens = spans.map(function (x) { return x.textContent.length + 1; }), tot = lens.reduce(function (a, b) { return a + b; }, 0);
@@ -2223,7 +2222,7 @@
             if (k === q.answer) {
               b.classList.add("ok"); fb(qTries === 1); [].forEach.call(qBox.querySelectorAll(".pt-opt"), function (o) { o.disabled = true; });
               if (q.hard && qTries > 1) addError({ uid: u.id, kind: "cena", en: "🎬 " + q.hard.text + " · " + V.youtubeId + "@" + q.hard.t, yt: V.youtubeId, t: q.hard.t, end: q.hard.end, prompt: clean(q.prompt), options: q.options, answer: q.answer, som: q.hard.som, porque: q.hard.porque, tipo: tipoOf(q.hard.text, q.options), level: LVL });
-              if (q.said) { var sb = el("p", { cls: "said-box" }, "✅ Isso! 🗣️ No áudio: ", el("i", { text: "“" + q.said + "”" }), q.said_pt ? el("small", { text: "🇧🇷 " + q.said_pt }) : null); qBox.append(sb); }
+              if (q.said) { var sb = el("p", { cls: "said-box" }, "✅ Isso! 🗣️ No áudio: ", el("i", { text: "“" + q.said + "”" }), q.said_pt ? el("small", { text: q.said_pt }) : null); qBox.append(sb); }
               if (qi + 1 < x.qs.length) {
                 var nq = x.qs[qi + 1];
                 if (!q.said) { msg.textContent = nq.comp ? "✅ Isso! Próxima pergunta. Pode ouvir de novo." : "✅ Isso! Agora o pedaço mais difícil desta parte."; setTimeout(function () { qi++; renderQ(); }, 700); return; }
@@ -2242,13 +2241,13 @@
         x.qs.forEach(function (q) { if (q.hard) after.append(raioX(q.hard)); });
         var spans = [], txt = el("p", { cls: "wp-txt" });
         clean(x.en).split(/\s+/).filter(Boolean).forEach(function (t, i) { if (i) txt.append(" "); var s = el("span", { cls: "wp-w", text: t }); spans.push(s); txt.append(s); });
-        var pt = el("p", { cls: "pt-pt", hidden: true, text: "🇧🇷 " + (x.pt || "") });
+        var pt = el("p", { cls: "pt-pt", hidden: true, text: (x.pt || "") });
         var kara = el("button", { cls: "btn mini", type: "button", text: "▶ Ouvir lendo", onclick: function () {
           var tot = spans.reduce(function (a, s) { return a + s.textContent.length + 1; }, 0);
           Y.play(Math.max(T0, x.t - 0.3), Math.min(T1 + 0.5, x.end + 0.8), 1, function () { spans.forEach(function (s) { s.classList.remove("lit"); }); barFn = null; });
           barFn = function (cur) { var f = (cur - x.t) / Math.max(1, x.end - x.t), acc = 0; spans.forEach(function (s) { var w2 = (s.textContent.length + 1) / tot; s.classList.toggle("lit", f >= acc && f < acc + w2); acc += w2; }); };
         } });
-        after.append(el("div", { cls: "wp" }, el("b", { text: "📖 Leia ouvindo, pra aprender o som" }), el("p", { cls: "small", text: "Repare no que soa diferente do que está escrito." }), txt, el("div", { cls: "pt-play" }, kara, x.pt ? el("button", { cls: "soft", type: "button", text: "🇧🇷 Tradução", onclick: function () { pt.hidden = !pt.hidden; } }) : null), pt),
+        after.append(el("div", { cls: "wp" }, el("b", { text: "📖 Leia ouvindo, pra aprender o som" }), el("p", { cls: "small", text: "Repare no que soa diferente do que está escrito." }), txt, el("div", { cls: "pt-play" }, kara, x.pt ? el("button", { cls: "soft", type: "button", text: "Tradução", onclick: function () { pt.hidden = !pt.hidden; } }) : null), pt),
           el("button", { cls: "btn", type: "button", text: pi + 1 < PP.length ? "Próxima parte · " + (pi + 2) + " de " + PP.length + " →" : "✅ Terminei as partes", onclick: function () { Y.pause(); if (pi + 1 < PP.length) part(pi + 1); else partsDone(); } }));
       }
       setStage(el("div", { cls: "card pt-box" }, el("div", { cls: "pt-head" }, el("b", { text: "✂️ Passo 2 · Parte " + (pi + 1) + " de " + PP.length }), dots),

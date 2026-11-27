@@ -510,7 +510,7 @@
           [].forEach.call(box.children, function (b) { b.classList.remove("sel"); }); e.currentTarget.classList.add("sel"); chosen = k; check.disabled = false;
         } }, el("span", { text: item.options[k] }), opt[k] ? el("small", { cls: "opt-pt", text: opt[k] }) : null));
       });
-      var trBtn = opt.length ? el("button", { cls: "linkish trbtn", type: "button", text: "🇧🇷 Não entendi as opções — traduzir", onclick: function () { box.classList.add("show-pt"); trBtn.remove(); } }) : null;
+      var trBtn = opt.length ? el("button", { cls: "linkish trbtn", type: "button", text: "Não entendi as opções: traduzir", onclick: function () { box.classList.add("show-pt"); trBtn.remove(); } }) : null;
       var check = el("button", { cls: "btn big", type: "button", text: "Conferir", disabled: true, onclick: function () {
         if (chosen == null) return; box.classList.add("locked");
         var ok = chosen === item.answer;
@@ -521,7 +521,7 @@
         sheet(ok, ok ? pick(GOOD) : pick(BAD), ok ? null : el("p", null, "Resposta certa: ", el("b", { text: item.options[item.answer] }), opt[item.answer] ? el("span", { cls: "small", text: " (" + opt[item.answer] + ")" }) : null));
       } });
       stage.append(el("div", { cls: "card" }, opts.eyebrow ? el("span", { cls: "eyebrow", text: opts.eyebrow }) : null, el("h2", { cls: "q", html: rich(item.q) }),
-        item.pt ? el("p", { cls: "q-pt", text: "🇧🇷 " + item.pt }) : null, opts.media || null, box, trBtn));
+        item.pt ? el("p", { cls: "q-pt", text: item.pt }) : null, opts.media || null, box, trBtn));
       foot.append(check);
     };
   }
@@ -566,7 +566,7 @@
         if (!opts.noCard) addCard({ id: "t:" + U.id + ":" + norm(item.pt).slice(0, 40) + "|" + norm(target).slice(0, 40), kind: "tr", unit: U.id, from: cardFrom, pt: item.pt, en: target, alt: item.alt || [] }, !ok);
         if (!ok) R.wrongs.push({ said: said, right: target, why: item.pt });
         say(U, opts.audioKey, target);
-        sheet(ok, ok ? pick(GOOD) : pick(BAD), el("div", null, el("p", null, ok ? "" : "Certo: ", el("b", { text: target }), " ", ear(U, opts.audioKey, target)), opts.listen && item.pt ? el("p", { cls: "small", text: "🇧🇷 " + item.pt }) : null));
+        sheet(ok, ok ? pick(GOOD) : pick(BAD), el("div", null, el("p", null, ok ? "" : "Certo: ", el("b", { text: target }), " ", ear(U, opts.audioKey, target)), opts.listen && item.pt ? el("p", { cls: "small", text: item.pt }) : null));
       } });
       ta.addEventListener("input", refresh);
       var prompt = opts.listen
@@ -887,7 +887,7 @@
       var re = hlRegex(all), box = el("div", { cls: "readhl" });
       L.audio.lines.forEach(function (l) { box.append(el("p", null, el("span", { html: hl(l.text, re) }), l.pt ? el("small", { cls: "rpt", text: l.pt }) : null)); });
       var url = audioUrl(U, "lesson"), pl = url ? bigPlayer(url, {}) : null;
-      var tbtn = el("button", { cls: "linkish", type: "button", text: "🇧🇷 Mostrar a tradução", onclick: function () { box.classList.toggle("show-pt"); tbtn.textContent = box.classList.contains("show-pt") ? "🙈 Esconder a tradução" : "🇧🇷 Mostrar a tradução"; } });
+      var tbtn = el("button", { cls: "linkish", type: "button", text: "Mostrar a tradução", onclick: function () { box.classList.toggle("show-pt"); tbtn.textContent = box.classList.contains("show-pt") ? "🙈 Esconder a tradução" : "Mostrar a tradução"; } });
       stage.append(el("div", { cls: "card" }, el("span", { cls: "eyebrow", text: "📖 Agora leia ouvindo" }), el("h2", { text: L.audio.title }),
         el("p", { cls: "small", html: "O que está <mark>marcado</mark> é o que você vai aprender hoje. Ouça de novo lendo junto." }), pl, box, tbtn));
       foot.append(contBtn("Bora tirar do contexto →"));
@@ -969,7 +969,7 @@
       if (G.read) st.push(stGaps(U, G.read, null, gk + "-read", from + " (" + gname + ")"));
       if (G.opinion) st.push(stSpeak(U, {
         eyebrow: "💬 E você?", title: rich(G.opinion.q), micLabel: "🎤 Responder",
-        body: el("p", { cls: "q-pt", text: "🇧🇷 " + G.opinion.pt + (G.opinion.starter ? " · Comece com: " + G.opinion.starter : "") }),
+        body: el("p", { cls: "q-pt", text: G.opinion.pt + (G.opinion.starter ? " · Comece com: " + G.opinion.starter : "") }),
         check: function (t) { var n = words(t).length; return { ok: n >= 3, pts: n >= 6 ? 2 : 1, max: 2, msg: "Responda com uma frase (pelo menos 3 palavras).", title: pick(GOOD) + " Falou, validou!" }; },
       }));
     } else if (pk === "rt1" || pk === "rt2") {

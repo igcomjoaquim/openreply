@@ -261,3 +261,25 @@ body.premium .land-tx small{display:block;color:var(--muted)}
   body.premium .land-nav button{background:rgba(111,42,61,.1)!important;border:1px solid rgba(111,42,61,.35)!important}
   body.premium .land-nav button:hover{border-color:var(--marsala)!important}
 }
+
+/* 🍯🍷 menu v3 (Thiago 28/11: "mais evidente, meio borrado, amarelo com marsala, menos formal") */
+body.premium .land-nav button{position:relative;isolation:isolate;border:0!important;background:none!important;color:var(--marsala)!important;font-weight:700!important;letter-spacing:-.01em}
+body.premium .land-nav button::before{content:"";position:absolute;inset:2px -2px;z-index:-1;border-radius:999px;background:linear-gradient(110deg,rgba(237,197,95,.95),rgba(212,168,67,.75) 45%,rgba(111,42,61,.55));filter:blur(5px);opacity:.55;transition:opacity .2s,filter .2s,transform .2s}
+body.premium .land-nav button:hover::before,body.premium .land-nav button:focus-visible::before{opacity:.95;filter:blur(3px);transform:scale(1.06)}
+body.premium .land-nav button:hover{background:none!important;color:var(--marsala)!important}
+@media (min-width:900px){
+  body.premium .land-nav{gap:10px}
+  body.premium .land-nav button{padding:8px 14px!important;transform:rotate(-1.5deg)}
+  body.premium .land-nav button:nth-child(even){transform:rotate(1.5deg)}
+  body.premium .land-nav button:hover{transform:rotate(0) scale(1.05)}
+}
+body.premium .land-nav.open{gap:10px;padding-top:14px}
+body.premium .land-nav.open button{border-bottom:0!important;padding:13px 18px;font-size:17px}
+body.premium .land-nav.open button:nth-child(odd){transform:rotate(-.8deg)}
+body.premium .land-nav.open button:nth-child(even){transform:rotate(.8deg)}
+body.premium .land-nav.open button::after{color:var(--marsala)}
+body.premium .land-nav.open .nav-login{transform:none!important}
+body.premium .land-nav.open .nav-login::before{display:none}
+body.premium .land-burger{background:linear-gradient(110deg,var(--gold-1),var(--gold-2) 40%,var(--marsala))!important;color:#FFF8EC!important;text-shadow:0 1px 2px rgba(60,20,30,.5)}
+body.premium .land-nav button::before{opacity:.85;filter:blur(4px)}
+body.premium .land-nav.open .nav-login{background:var(--marsala)!important;color:#FBF7EF!important;justify-content:center}

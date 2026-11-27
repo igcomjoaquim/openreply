@@ -263,8 +263,8 @@
   var SITE = "https://inglescomjoaquim.com/images/";
   function startFlow() {
     SFX.go();
-    if (CONTA_OK && !ACC && !PROF) return signupScreen(function () { welcome(true); }, "Crie sua conta pra começar.");
-    welcome(true);
+    if (CONTA_OK && !ACC && !PROF) return signupScreen(function () { S.test ? home() : welcome(true); }, "Crie sua conta pra começar.");
+    S.test ? home() : welcome(true);
   }
   function loginFromLanding() { loginScreen(function () { S.test ? home() : welcome(true); }); }
   function landing() {
@@ -2677,7 +2677,7 @@
     if (Q.get("teste") === "1") return runTest();
     if (Q.get("resultado") === "1" && S.test) return result();
     // 🔐 quem já treina sem conta: cria a conta (o progresso do aparelho vai junto)
-    if (CONTA_OK && S.test && !ACC && !PROF && S.skipAccUntil !== today()) return signupScreen(home, "Crie sua conta pra não perder o seu progresso.");
+    if (CONTA_OK && !ACC && !PROF && S.skipAccUntil !== today()) return landing();
     S.test ? home() : welcome();
   }).catch(function () { root.innerHTML = "<p class='boot'>Não consegui carregar. Confira a internet e recarregue.</p>"; });
 })();

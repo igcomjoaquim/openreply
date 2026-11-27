@@ -256,7 +256,71 @@
     { e: "😬", t: "Sei mais ou menos, mas travo", d: "Entendo algumas coisas, mas na hora de falar não sai" },
     { e: "😎", t: "Domino bem", d: "Não tenho muita dificuldade" }
   ];
-  function welcome() {
+  // 🏠 PÁGINA DE ENTRADA (Thiago 27/11: "a pessoa precisa entender onde caiu, ver uma prévia, e aí o botão pra começar")
+  function landing() {
+    var w = screen(); w.classList.add("land");
+    function go() { SFX.go(); welcome(true); }
+    // prévia de verdade: um áudio da fofoca do tema 4 e uma pergunta, igual ao treino
+    var DEMO = "/aprender/audio/u03-gl0_2-f483b62a.mp3", heard = false, answered = false;
+    var opts = el("div", { cls: "pt-q" }), dmsg = el("p", { cls: "small" });
+    [["Quatro em ponto", "Four o'clock", true], ["Catorze horas", "Fourteen o'clock", false], ["Quarenta minutos", "Forty minutes", false]].forEach(function (o) {
+      var b = el("button", { cls: "pt-opt wait", type: "button" }, o[0], el("span", { cls: "opt-en", text: o[1] }));
+      b.onclick = function () {
+        if (!heard) { dmsg.textContent = "🎧 Primeiro toque em ▶ pra ouvir."; return; }
+        if (answered) return;
+        if (o[2]) { answered = true; b.classList.add("ok"); fb(true); dmsg.replaceChildren(el("span", { cls: "said-box" }, "✅ Isso! 🗣️ No áudio: ", el("i", { text: "“Woof! Woof! Max! What time is it? Four o'clock!”" }), el("small", { text: "🇧🇷 Au! Au! O Max! Que horas são? Quatro em ponto!" }))); }
+        else { b.classList.add("bad"); b.disabled = true; fb(false); dmsg.textContent = "❌ Não foi essa. Ouça de novo."; }
+      };
+      opts.append(b);
+    });
+    var playB = el("button", { cls: "btn pt-big pulse", type: "button", text: "▶ Ouvir o trecho", onclick: function () {
+      playB.classList.remove("pulse"); var a = playUrl(DEMO); a.onended = a.onerror = function () { heard = true; [].forEach.call(opts.children, function (c) { c.classList.remove("wait"); }); if (!answered) dmsg.textContent = "Agora escolha: que horas são na história?"; };
+    } });
+    w.append(
+      el("header", { cls: "land-top" }, el("span", { cls: "brand", text: "🔓 Destravando" }),
+        PROF || !CONTA_OK ? null : el("button", { cls: "linkish", type: "button", text: "Já tenho conta · Entrar", onclick: function () { loginScreen(); } })),
+      el("section", { cls: "hero land-hero" },
+        el("span", { cls: "eyebrow", text: "Inglês com Joaquim · A1 e A2" }),
+        el("h1", { html: "Você entende um pouco, mas <mark>trava</mark> pra ouvir e pra falar?" }),
+        el("p", { html: "Aqui é a <b>Destravando</b>: uma academia de inglês no seu celular. Você não assiste aula: <b>treina o ouvido e a fala</b>, todo dia, uns 15 minutos, com nativo de verdade." }),
+        el("p", { cls: "hand", text: "Falou, validou." }),
+        el("button", { cls: "btn big", type: "button", text: "Começar agora →", onclick: go }),
+        el("button", { cls: "btn ghost", type: "button", text: "▶ Ver uma prévia", onclick: function () { var t = w.querySelector(".land-demo"); t.scrollIntoView({ behavior: "smooth", block: "start" }); } })),
+      el("section", { cls: "card land-sec" }, el("span", { cls: "eyebrow", text: "O problema" }), el("h2", { text: "Não é falta de estudo. É falta de treino." }),
+        el("ul", { cls: "land-x" },
+          el("li", { text: "Você lê e entende, mas quando o nativo fala rápido, some tudo." }),
+          el("li", { text: "Sabe a regra, mas na hora de responder a frase não sai." }),
+          el("li", { text: "Já fez curso e app, e continua sem conseguir conversar." })),
+        el("p", { cls: "small", text: "Ouvir e falar são músculos. Músculo se treina." })),
+      el("section", { cls: "card land-sec" }, el("span", { cls: "eyebrow", text: "Como funciona" }), el("h2", { text: "4 passos, todo dia" }),
+        el("ol", { cls: "land-steps" },
+          el("li", null, el("b", { text: "🎯 Teste de nível" }), el("span", { text: "Só ouvindo e falando, uns 10 minutos. Ele mostra onde você está e o que mais te trava." })),
+          el("li", null, el("b", { text: "▶️ Treino do dia" }), el("span", { text: "Fases curtas: cena real de nativo, ditado, fofoca, shadowing, leitura em voz alta e Real Time." })),
+          el("li", null, el("b", { text: "🎙️ Você fala" }), el("span", { text: "Grava igual áudio de WhatsApp, se ouve e vê na hora o que a página entendeu." })),
+          el("li", null, el("b", { text: "🌱 Você evolui" }), el("span", { text: "Cada habilidade cresce: 🌱 → 🌿 → 🌳 → 🍎. O que você erra volta em outro dia até acertar." })))),
+      el("section", { cls: "card land-sec land-demo" }, el("span", { cls: "eyebrow", text: "Prévia · experimenta agora" }), el("h2", { text: "Ouça a fofoca do prédio" }),
+        el("p", { cls: "small", text: "O Carlos mora no apartamento 6 com o cachorro, o Max. Ouça o trecho, sem ler nada, e responda." }),
+        playB, el("p", { cls: "comp-q", text: "❓ Que horas são na história?" }), opts, dmsg,
+        el("p", { cls: "small", text: "É assim o treino inteiro: primeiro você ouve, depois entende, e só então vê o texto." })),
+      el("section", { cls: "card land-sec" }, el("span", { cls: "eyebrow", text: "O que você treina" }),
+        el("div", { cls: "land-grid" },
+          el("div", null, el("b", { text: "🎬 Cenas reais" }), el("span", { text: "Vídeos de nativo em partes, com o Raio-X do som." })),
+          el("div", null, el("b", { text: "✍️ Ditado" }), el("span", { text: "Frases emendadas, como o nativo fala." })),
+          el("div", null, el("b", { text: "🕵️ Fofocas" }), el("span", { text: "Histórias curtas pra ouvir e recontar." })),
+          el("div", null, el("b", { text: "🔁 Shadowing" }), el("span", { text: "Repita colado e as palavras ficam verdes." })),
+          el("div", null, el("b", { text: "⚡ Real Time" }), el("span", { text: "Do português pro inglês, falando, com tempo." })),
+          el("div", null, el("b", { text: "🧠 Meus erros" }), el("span", { text: "O que escapou volta até você acertar." })))),
+      el("section", { cls: "card land-sec" }, el("span", { cls: "eyebrow", text: "Pra quem é" }),
+        el("p", { html: "Pra quem está no <b>zero</b>, pra quem <b>sabe um pouco</b> e pra quem <b>entende mas trava</b>. A trilha vai do A1 ao A2, um tema por vez, e o teste mostra por onde você começa." }),
+        el("p", { cls: "small", text: "📱 No celular ou no computador · 🎧 use fone · 🎙️ precisa de microfone pra falar" })),
+      el("section", { cls: "card land-sec" }, el("span", { cls: "eyebrow", text: "Quem está por trás" }),
+        el("p", { html: "O método é do <b>Joaquim, do Inglês com Joaquim</b>, que aprendeu 5 idiomas na prática e ensina do mesmo jeito: <b>prática antes da teoria</b>, sempre com contexto, e só avança quem fala." })),
+      el("section", { cls: "land-end" }, el("h2", { html: "Bora <mark>destravar</mark>?" }),
+        el("button", { cls: "btn big", type: "button", text: "Começar agora →", onclick: go }),
+        PROF || !CONTA_OK ? null : el("button", { cls: "linkish", type: "button", text: "Já tenho conta · Entrar", onclick: function () { loginScreen(); } })));
+  }
+  function welcome(fromLanding) {
+    if (!fromLanding && !S.self && !(S.testSave && S.testSave.res)) return landing();
     var w = screen();
     if (S.testSave && S.testSave.res) w.append(el("button", { cls: "paused-card", type: "button", onclick: runTest }, el("span", { cls: "pe", text: "☕" }),
       el("span", { cls: "tt" }, el("b", { text: "Você pausou o teste" }), el("span", { cls: "small", text: "Continua na parte " + (S.testSave.pi + 1) + " de 4" + (S.testSave.ii ? ", pergunta " + (S.testSave.ii + 1) : "") + "." })), el("span", { cls: "go", text: "Continuar →" })));

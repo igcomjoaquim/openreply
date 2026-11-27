@@ -554,3 +554,232 @@ h1,.hero-title,.result h2,.fb-head h2,.login h1{font-family:var(--f-display)!imp
 .traj-main b{font-size:14px;line-height:1.25}
 .traj-bar{height:8px;border-radius:99px;background:#E6D3BC;overflow:hidden}.traj-bar i{display:block;height:100%;background:#2E7D4F}
 .traj-pct{font-weight:800;font-size:13px;white-space:nowrap}
+
+/* 📱 abas da página Minhas lições (26/11) */
+.tabbed .pane{display:flex;flex-direction:column;gap:18px}
+.js .tabbed .pane{display:none}
+.js .tabbed .pane.on{display:flex}
+.tabbed{padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))}
+.tabbar{display:none}
+.js .tabbar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:20;justify-content:center;gap:4px;background:var(--card);border-top:1px solid var(--line);padding:6px 8px calc(6px + env(safe-area-inset-bottom,0px));box-shadow:0 -4px 16px rgba(29,27,24,.08)}
+.tabbar a{flex:1;max-width:140px;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 4px;border-radius:12px;text-decoration:none;color:var(--muted);font-size:12px;font-weight:600}
+.tabbar .ti{font-size:22px;line-height:1;filter:grayscale(.6);opacity:.75}
+.tabbar a.on{background:var(--ink);color:var(--card)}
+.tabbar a.on .ti{filter:none;opacity:1}
+.chips{display:flex;flex-wrap:wrap;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;text-decoration:none;color:var(--ink)}
+.chips span{background:var(--paper);border-radius:999px;padding:6px 10px;font-size:14px;font-weight:600}
+.chips .chips-go{background:none;padding:6px 2px;color:var(--muted);margin-left:auto}
+
+/* 🎯 Treinar meus erros: EXTRA, opcional — visual diferente da lição de casa (tracejado, sem amarelo) */
+.extra-card{display:flex;flex-direction:column;gap:6px;border:2px dashed var(--line);border-radius:16px;padding:14px 16px;background:transparent;text-decoration:none;color:var(--ink)}
+.extra-card > b{font-family:var(--f-display);font-size:19px}
+.extra-tag{align-self:flex-start;font-size:11px;font-weight:700;letter-spacing:.04em;color:var(--muted);background:var(--card);border:1px solid var(--line);border-radius:999px;padding:3px 9px}
+.extra-go{align-self:flex-end;font-weight:700;font-size:14px}
+.extra-head{display:flex;flex-direction:column;gap:8px;border:2px dashed var(--line);border-radius:16px;padding:16px}
+.extra-head h2{margin:0}
+.extra-warn{background:var(--card);border-radius:10px;padding:10px 12px;font-size:14px;margin:0}
+.drill-count{display:flex;flex-direction:column;gap:10px}
+.drill-big{display:flex;align-items:baseline;gap:10px}
+.drill-big b{font-family:var(--f-display);font-size:40px;line-height:1}
+.drill-big span{font-weight:600}
+.drill-ex{display:flex;flex-direction:column;gap:12px}
+.drill-ex h3{margin:0}
+.drill-step{display:flex;justify-content:space-between;font-size:13px;font-weight:700;color:var(--muted)}
+.drill-said s{opacity:.8}
+.drill-ans{display:block;background:var(--paper);border-radius:10px;padding:10px 12px}
+.drill-fin{display:flex;flex-direction:column;gap:10px}
+.tabbar a{min-width:0}
+.tabbar .tl{white-space:nowrap;font-size:11.5px}
+#drill-app [hidden]{display:none!important}
+/* ✂️ Cena real por partes (26/11) */
+.pt-steps{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:4px;font-size:15px}
+.pt-box,.pt-again{display:flex;flex-direction:column;gap:10px;background:var(--paper);border-radius:14px;padding:14px;margin-top:6px}
+.pt-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.pt-count{font-size:13px;font-weight:700;color:var(--muted)}
+.pt-play,.pt-ask{display:flex;flex-wrap:wrap;gap:8px}
+.pt-text{font-family:var(--f-display);font-weight:600;font-size:19px;line-height:1.4;background:var(--card);border-radius:10px;padding:12px}
+.pt-pt{margin:0;font-size:14px;color:var(--muted)}
+.pt-msg{margin:0}
+.pt-done{margin:0}
+.pt-box [hidden],.pt-again [hidden]{display:none!important}
+/* 🎧 contador de vezes que ouviu a fofoca */
+.listen-count{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:14px;font-weight:600}
+.listen-count .dots{display:flex;gap:4px}
+.listen-count .dots i{width:14px;height:14px;border-radius:50%;background:var(--line);display:block}
+.listen-count .dots i.on{background:var(--ink)}
+/* ✍️ writing: contar uma história */
+.w-keys{display:flex;flex-wrap:wrap;gap:6px}
+.w-keys .chip{font-size:14px}
+.w-count{font-size:13px;font-weight:700;color:var(--muted);text-align:right;margin:0}
+.w-count.ok{color:#2f7a3b}
+.w-guide{margin:0;padding-left:20px;font-size:14px;color:var(--muted)}
+.pt-again[hidden],.pt-box[hidden]{display:none!important}
+
+/* 📱 menu de baixo bem visível (Thiago 26/11: "um aluno não tinha percebido") — barra escura em relevo, ícones coloridos */
+.js .tabbar{left:10px;right:10px;bottom:calc(10px + env(safe-area-inset-bottom,0px));padding:8px;gap:4px;background:var(--ink);border:0;border-top:3px solid var(--yellow);border-radius:22px;box-shadow:0 10px 28px rgba(29,27,24,.45),0 2px 0 rgba(255,255,255,.08) inset}
+.tabbar a{color:#F2E9DE;font-size:12px;padding:8px 2px 6px;border-radius:16px;position:relative;transition:transform .15s}
+.tabbar .ti{font-size:26px;filter:none;opacity:1;position:relative;line-height:1}
+.tabbar .tl{font-weight:700;letter-spacing:.01em}
+.tabbar a.on{background:var(--yellow);color:var(--ink);transform:translateY(-6px);box-shadow:0 6px 14px rgba(0,0,0,.35)}
+.tb-badge{position:absolute;top:-6px;right:-12px;min-width:18px;height:18px;padding:0 4px;border-radius:999px;background:var(--marsala);color:#fff;font:700 11px/18px var(--f-body);text-align:center;border:2px solid var(--ink)}
+.tabbed{padding-bottom:calc(110px + env(safe-area-inset-bottom,0px))}
+@keyframes tabpulse{0%,100%{box-shadow:0 10px 28px rgba(29,27,24,.45),0 0 0 0 rgba(255,210,31,.75)}50%{box-shadow:0 10px 28px rgba(29,27,24,.45),0 0 0 10px rgba(255,210,31,0)}}
+.tabbar.pulse{animation:tabpulse 1.6s ease-in-out infinite}
+.menu-tip{position:fixed;left:16px;right:16px;bottom:calc(104px + env(safe-area-inset-bottom,0px));z-index:21;background:var(--yellow);color:var(--ink);border-radius:16px;padding:14px 16px;display:flex;flex-direction:column;gap:6px;box-shadow:0 10px 24px rgba(29,27,24,.35);font-size:15px}
+.menu-tip[hidden]{display:none}
+.menu-tip b{font-size:17px}
+.menu-tip button{align-self:flex-end;background:var(--ink);color:var(--card);border:0;border-radius:999px;padding:8px 16px;font:700 14px var(--f-body)}
+.menu-tip::after{content:"";position:absolute;bottom:-9px;left:50%;margin-left:-10px;border:10px solid transparent;border-bottom:0;border-top-color:var(--yellow)}
+/* menu em marsala (Thiago 26/11: opção 1) */
+.js .tabbar{background:var(--marsala);box-shadow:0 10px 28px rgba(122,46,58,.45),0 2px 0 rgba(255,255,255,.1) inset}
+.tabbar a{color:#F8E9DF}
+.tb-badge{background:var(--yellow);color:var(--ink);border-color:var(--marsala)}
+@keyframes tabpulse{0%,100%{box-shadow:0 10px 28px rgba(122,46,58,.45),0 0 0 0 rgba(255,210,31,.75)}50%{box-shadow:0 10px 28px rgba(122,46,58,.45),0 0 0 10px rgba(255,210,31,0)}}
+/* ✂️ partes: bolinhas numeradas e escolha da frase */
+.pt-dots{display:flex;gap:6px}
+.pt-dots i{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font:700 13px var(--f-body);font-style:normal;background:var(--card);border:2px solid var(--line);color:var(--muted)}
+.pt-dots i.cur{border-color:var(--marsala);color:var(--marsala)}
+.pt-dots i.ok{background:var(--ok);border-color:var(--ok);color:#fff}
+.pt-dots i.meh{background:var(--yellow);border-color:var(--yellow);color:var(--ink)}
+.pt-q{display:flex;flex-direction:column;gap:8px}
+.pt-qt{margin:0}
+.pt-opt{text-align:left;font:500 16px/1.35 var(--f-body);background:var(--card);color:var(--ink);border:2px solid var(--line);border-radius:12px;padding:12px 14px}
+.pt-opt.ok{background:var(--okbg);border-color:var(--ok);color:var(--ok)}
+.pt-opt.bad{background:var(--badbg);border-color:var(--marsala);color:var(--marsala);text-decoration:line-through;opacity:.8}
+.pt-text{font-family:var(--f-body);font-weight:500;font-size:16px;line-height:1.55}
+/* ✂️ botão da parte: grande, amarelo e piscando até tocar (Thiago 26/11) */
+.yt-ctrl[hidden],.yt-time[hidden]{display:none!important}
+.pt-big{width:100%;background:var(--yellow);color:var(--ink);font-size:19px;padding:16px;border-radius:16px;box-shadow:0 4px 0 #c9a200}
+@keyframes ptpulse{0%,100%{transform:scale(1);box-shadow:0 4px 0 #c9a200,0 0 0 0 rgba(255,210,31,.8)}50%{transform:scale(1.03);box-shadow:0 4px 0 #c9a200,0 0 0 12px rgba(255,210,31,0)}}
+.pt-big.pulse{animation:ptpulse 1.4s ease-in-out infinite}
+/* ⏱️ barrinha do que está tocando */
+.mini-bar{display:flex;flex-direction:column;gap:6px;background:var(--card);border-radius:12px;padding:10px 12px}
+.mini-bar[hidden]{display:none!important}
+.mb-top{display:flex;justify-content:space-between;gap:8px;font-size:14px;font-weight:700}
+.mb-tm{font-variant-numeric:tabular-nums;color:var(--muted)}
+.mb-track{height:10px;border-radius:999px;background:var(--line);overflow:hidden}
+.mb-track i{display:block;height:100%;width:0;background:var(--marsala);border-radius:999px;transition:width .25s linear}
+.pt-opt.wait{opacity:.75;border-style:dashed}
+/* 📘 lições de reforço */
+.rf-list,.rf-head{display:flex;flex-direction:column;gap:10px;border:2px dashed var(--line);background:transparent}
+.rf-list h3,.rf-head h2{margin:0}
+.rf-item{display:flex;flex-direction:column;gap:6px;background:var(--card);border-radius:14px;padding:12px}
+.rf-err{margin:0}
+.rf-err s{opacity:.8}
+.rf-run{display:flex;flex-direction:column;gap:18px}
+.rf-step{display:flex;flex-direction:column;gap:10px}
+.rf-step h3{margin:0}
+.rf-ex{display:flex;gap:10px;align-items:center;background:var(--paper);border-radius:12px;padding:10px}
+.rf-ex p{margin:2px 0 0}
+.rf-q{display:flex;flex-direction:column;gap:8px;background:var(--paper);border-radius:12px;padding:12px}
+.rf-qh{display:flex;gap:10px;align-items:center}
+.rf-story{line-height:2.1}
+.rf-step [hidden],.rf-q [hidden]{display:none!important}
+/* 🎙️ gravador estilo WhatsApp no Treinar/reforço */
+.wa-rec{display:flex;flex-direction:column;gap:8px}
+.wa-rec [hidden]{display:none!important}
+.wa-go{width:100%}
+.wa-go.live{background:var(--marsala);color:#fff;animation:ptpulse 1.4s ease-in-out infinite}
+.wa-live,.wa-review{display:flex;flex-direction:column;gap:8px;background:var(--card);border-radius:12px;padding:10px 12px}
+.wa-live .mb-track i{background:var(--marsala)}
+/* 🎬 erro de cena no Treinar */
+.sc-step{display:flex;flex-direction:column;gap:10px;background:var(--paper);border-radius:14px;padding:12px}
+.sc-new{border:2px solid var(--marsala)}
+.sc-why{background:var(--card);border-radius:12px;padding:10px 12px}
+.sc-why p{margin:2px 0}
+.clip{display:flex;flex-direction:column;gap:8px}
+.clip .yt-wrap{max-height:120px;overflow:hidden}
+.sc-step [hidden]{display:none!important}
+/* 🎧 fases do ouvido */
+.ear-box{display:flex;flex-direction:column;gap:6px;background:var(--card);border:2px solid var(--yellow);border-radius:14px;padding:10px 12px}
+.ear-box p{margin:0}
+.ear-steps{display:flex;flex-wrap:wrap;gap:6px}
+.ear-steps span{font-size:12px;font-weight:700;padding:3px 8px;border-radius:999px;background:var(--paper);color:var(--muted)}
+.ear-steps span.done{background:var(--okbg);color:var(--ok)}
+.ear-steps span.cur{background:var(--yellow);color:var(--ink)}
+.pt-up{background:var(--yellow);border-radius:12px;padding:10px 12px;margin:0}
+/* 🎚️ seus níveis */
+.niveis{display:flex;flex-direction:column;gap:10px}
+.nv-row{display:flex;flex-direction:column;gap:8px;background:var(--paper);border-radius:14px;padding:12px}
+.nv-top{display:flex;justify-content:space-between;gap:8px;align-items:baseline;flex-wrap:wrap}
+.nv-cur{background:var(--yellow);border-radius:999px;padding:3px 10px;font-weight:700;font-size:14px}
+.nv-steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
+.nv-steps li{display:flex;justify-content:space-between;gap:8px;font-size:14px;padding:6px 10px;border-radius:10px;background:var(--card);color:var(--muted)}
+.nv-steps li.done{color:var(--ok)}
+.nv-steps li.cur{background:var(--yellow);color:var(--ink)}
+.nv-steps li span{font-size:13px}
+.niveis p{margin:0}
+/* 🔍 lacuna no trecho difícil, Raio-X do som e prova sem texto */
+.pt-gap{margin:0;font-size:17px;font-weight:600;background:var(--card);border-radius:10px;padding:10px 12px}
+.gapline{display:inline-block;min-width:90px;border-bottom:3px solid var(--marsala);color:transparent}
+.raiox{display:flex;flex-direction:column;gap:8px}
+.raiox[hidden]{display:none!important}
+.rx-item{display:flex;flex-direction:column;gap:6px;background:#FFF3C4;border:2px solid var(--yellow);border-radius:14px;padding:12px}
+.rx-item p{margin:0}
+.rx-som{font-size:18px;color:var(--marsala)}
+.prova{display:flex;flex-direction:column;gap:10px;background:var(--card);border:2px solid var(--marsala);border-radius:14px;padding:12px;margin-bottom:10px}
+.prova p{margin:0}
+.prova-it{display:flex;flex-direction:column;gap:6px;background:var(--paper);border-radius:12px;padding:10px}
+.prova-it input{width:100%}
+.prova [hidden]{display:none!important}
+.sk-box{margin-bottom:8px}
+.cut-btn{font-size:13px;align-self:flex-start}
+.pt-dots i.skip{background:var(--line);color:var(--muted);text-decoration:line-through}
+/* 🎧 parte inteira: lacunas na ordem + karaokê */
+.whole[hidden]{display:none!important}
+.wp{display:flex;flex-direction:column;gap:8px;background:var(--card);border:2px dashed var(--marsala);border-radius:14px;padding:12px}
+.wp p{margin:0}
+.wp-txt{font-size:17px;line-height:1.9}
+.wp-slot{display:inline-block;min-width:56px;border-bottom:3px solid var(--marsala);text-align:center;font-weight:700;color:var(--muted)}
+.wp-slot.ok{color:var(--ok);border-color:var(--ok)}
+.wp-w.lit,.wp-slot.lit{background:var(--yellow);border-radius:4px}
+.wp [hidden]{display:none!important}
+.comp-q{font-family:var(--f-body);font-size:17px}
+/* 🧠 pergunta destacada, opção com inglês do lado, "ele disse" */
+.comp-q{margin:0;background:var(--marsala);color:#fff;border-radius:12px;padding:12px 14px;font:700 17px/1.35 var(--f-body)}
+.pt-opt .opt-en{display:block;font-size:13px;font-weight:500;font-style:italic;color:var(--muted);margin-top:3px}
+.pt-opt.ok .opt-en{color:var(--ok)}
+.said-box{margin:0;background:var(--okbg);color:var(--ok);border-radius:12px;padding:10px 12px;font-weight:600}
+.said-box i{color:var(--ink);font-weight:600}
+.pt-opt .opt-en[hidden]{display:none!important}
+.said-box small{display:block;margin-top:4px;font-size:13px;font-weight:500;color:var(--muted)}
+.nv-steps li{flex-wrap:wrap;align-items:baseline}
+.nv-steps li b{white-space:nowrap}
+.nv-steps li span{text-align:right;flex:1 1 140px}
+/* 🎚️ clean: selo de uma linha + "Seus níveis" compacto */
+.evo-wrap{display:flex;flex-direction:column;gap:6px;margin-bottom:8px}
+.evo-badge{display:flex;align-items:center;gap:8px;width:100%;background:var(--card);border:2px solid var(--yellow);border-radius:999px;padding:7px 12px;font:600 15px var(--f-body);color:var(--ink);text-align:left}
+.evo-ic{font-size:18px}
+.evo-lab{color:var(--muted);font-weight:500}
+.evo-dots{margin-left:auto;letter-spacing:2px;color:var(--marsala);font-size:12px}
+.evo-i{color:var(--muted);font-size:15px}
+.badge-tip{margin:0;font-size:14px;background:var(--card);border-radius:12px;padding:10px 12px}
+.badge-tip[hidden]{display:none!important}
+.q-count{float:right;font-size:12px;font-weight:700;color:var(--muted);background:var(--paper);border-radius:999px;padding:2px 8px}
+.niveis details.nv-row{padding:0;gap:0}
+.niveis details summary{list-style:none;display:flex;align-items:center;gap:8px;padding:10px 12px;cursor:pointer}
+.niveis details summary::-webkit-details-marker{display:none}
+.nv-lab{font-weight:600;flex:1;font-size:15px}
+.niveis .nv-cur{font-size:13px;padding:2px 9px}
+.nv-dots{letter-spacing:2px;color:var(--marsala);font-size:11px}
+.niveis details[open] .nv-steps,.niveis details[open] p{margin:0 12px 10px}
+.notice{position:fixed;left:16px;right:16px;top:calc(70px + env(safe-area-inset-top,0px));z-index:50;background:var(--ink);color:var(--card);border-radius:14px;padding:12px 16px;font:600 15px var(--f-body);box-shadow:0 8px 24px rgba(0,0,0,.3);transition:opacity .5s}
+.notice.go{opacity:0}
+/* status em uma frase (Aluno Teste) */
+.status-mini{display:flex;flex-direction:column;gap:2px;padding:12px 16px}
+.status-mini b{font-family:var(--f-display);font-size:20px}
+.status-mini span{font-size:14px;color:var(--muted)}
+/* 🎉 evoluiu */
+.evo-ov{position:fixed;inset:0;z-index:80;background:rgba(29,27,24,.72);display:grid;place-items:center;padding:20px;animation:evofade .3s ease}
+.evo-card{background:var(--card);border-radius:24px;padding:24px 20px;max-width:360px;width:100%;text-align:center;display:flex;flex-direction:column;gap:12px;align-items:center;box-shadow:0 20px 50px rgba(0,0,0,.4)}
+.evo-top{margin:0;font-weight:700;color:var(--marsala)}
+.evo-anim{display:flex;align-items:center;gap:14px;font-size:64px;line-height:1}
+.evo-from{opacity:.45;transform:scale(.75);animation:evoout 1.2s ease forwards}
+.evo-arrow{font-size:28px;color:var(--muted)}
+.evo-to{transform:scale(0);animation:evoin .9s cubic-bezier(.2,1.6,.4,1) .5s forwards}
+.evo-name{font-family:var(--f-display);font-size:24px}
+.evo-card .small{margin:0}
+@keyframes evofade{from{opacity:0}to{opacity:1}}
+@keyframes evoin{to{transform:scale(1.15)}}
+@keyframes evoout{0%{opacity:1;transform:scale(1)}100%{opacity:.4;transform:scale(.75)}}
+.evo-ov ~ .confetti,.confetti:last-of-type{z-index:90}

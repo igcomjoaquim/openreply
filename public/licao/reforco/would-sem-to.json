@@ -1,0 +1,68 @@
+{
+ "id": "would-sem-to",
+ "title": "Would + verbo sem to",
+ "level": "A2",
+ "regra": "Depois de <b>would</b> e <b>wouldn't</b> o verbo vem <b>direto, sem to</b>: I would <b>visit</b>, she would <b>travel</b>, I wouldn't <b>work</b>. É igual ao <b>can</b>: I can swim (e não 'can to swim').",
+ "exemplos": [
+  {
+   "en": "I would visit my grandma.",
+   "pt": "Eu visitaria a minha avó.",
+   "audio": "5e72c26c2d1181fdd48cce1db0ba42c4.mp3"
+  },
+  {
+   "en": "She wouldn't work on Mondays.",
+   "pt": "Ela não trabalharia às segundas.",
+   "audio": "0e74c19694aea0af85e5ba7e7486e34f.mp3"
+  }
+ ],
+ "fofoca": {
+  "audio": "464cc957203c0c43101ec492b011b52b.mp3",
+  "gaps": "If I won the lottery, I would [[buy]] a house by the beach. I would [[visit]] my grandma every week. And I wouldn't [[work]] on Mondays! My sister says she would [[travel]] around the world. She would [[go]] to Japan first."
+ },
+ "ouvir": [
+  {
+   "options": [
+    "I would visit my grandma.",
+    "I would to visit my grandma.",
+    "I will visit my grandma."
+   ],
+   "answer": 0,
+   "audio": "e147b8a56e8952d48e1f6f4ff9b71c42.mp3"
+  },
+  {
+   "options": [
+    "She would travel around the world.",
+    "She would to travel around the world.",
+    "She will travel around the world."
+   ],
+   "answer": 0,
+   "audio": "202c325881596f431224398aa89ff3e7.mp3"
+  },
+  {
+   "options": [
+    "I wouldn't work on Mondays.",
+    "I wouldn't to work on Mondays.",
+    "I won't work on Mondays."
+   ],
+   "answer": 0,
+   "audio": "d216d5f840d87650db43ed67b6e320bd.mp3"
+  }
+ ],
+ "falar": [
+  {
+   "pt": "Eu visitaria a minha avó.",
+   "en": "I would visit my grandma.",
+   "audio": "e68e433d2c7f2a31688ef3a974318341.mp3"
+  },
+  {
+   "pt": "Ela viajaria pelo mundo.",
+   "en": "She would travel around the world.",
+   "audio": "6db0ddbb3a2a1680d44e7cce2f243483.mp3"
+  },
+  {
+   "pt": "Eu não trabalharia às segundas.",
+   "en": "I wouldn't work on Mondays.",
+   "audio": "8ae77194a32a4ed820337ea5b0a16c57.mp3"
+  }
+ ]
+}

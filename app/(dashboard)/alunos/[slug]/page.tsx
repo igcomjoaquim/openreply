@@ -18,7 +18,7 @@ const STEPS: [string, string][] = [
   ["writing", "8 · Writing"],
   ["realtime", "9 · Real Time"],
 ];
-const HIDDEN = new Set(["done", "combo", "_days", "bonus"]);
+const HIDDEN = new Set(["done", "combo", "_days", "bonus", "_drill", "_partes", "_cortes"]);
 
 type Wrong = { said?: string; right?: string; why?: string };
 type StepData = {

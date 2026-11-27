@@ -113,6 +113,7 @@ export default async function StudentsPanelPage() {
   return (
     <div className="space-y-6">
       <AutoRefresh seconds={60} />
+      <a href="/alunos/destravando" className="inline-block rounded-lg border border-border bg-surface px-4 py-2 text-sm font-medium">🔓 Destravando: leads e alunos da plataforma pública →</a>
       <p className="text-sm text-muted">
         A lição mais nova de cada aluno no site das lições (homework.inglescomjoaquim.com). Quem ainda não fez aparece primeiro.
       </p>

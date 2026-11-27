@@ -41,7 +41,8 @@ function weekIndex(d: Date): number {
   return Math.floor(monday.getTime() / (7 * 86_400_000));
 }
 
-export function gameOf(rows: LessonRow[]): Game {
+/** drillFixed: erros corrigidos no 🎯 Treinar (cada um dá +3 XP e conta pra medalha Caçador de erros). */
+export function gameOf(rows: LessonRow[], drillFixed?: number): Game {
   const graded = rows.filter((r) => r.graded);
   let xp = 0;
   let perfectStage = false;
@@ -67,6 +68,8 @@ export function gameOf(rows: LessonRow[]): Game {
     if (full("shadowing")) goldenSpeech = true;
     if (full("dictation") && full("gossip")) sharpEar = true;
   }
+  if (drillFixed) xp += drillFixed * 3;
+
   const weeks = [...new Set(graded.map((r) => weekIndex(r.graded!.finishedAt)))].sort((a, b) => a - b);
   let run = 0;
   let bestRun = 0;
@@ -93,15 +96,16 @@ export function gameOf(rows: LessonRow[]): Game {
     levels: LEVELS,
     badges: [
       { icon: "🎒", name: "Primeira lição", desc: "Concluiu a primeira lição", got: graded.length >= 1, have: Math.min(graded.length, 1), need: 1, how: "Termine uma lição inteira e toque em ✅ Concluir." },
-      { icon: "⭐", name: "Fase perfeita", desc: "Fez uma fase com todos os pontos", got: perfectStage, have: Math.min(perfectCount, 1), need: 1, how: "Faça qualquer fase sem perder nenhum ponto (3 estrelas na fase)." },
+      { icon: "⭐", name: "Fase perfeita", desc: "Fez uma fase com todos os pontos", got: perfectStage, have: Math.min(perfectCount, 1), need: 1, how: "Faça qualquer fase sem perder nenhum ponto: 3 estrelas." },
       { icon: "🌟", name: "Lição 3 estrelas", desc: "90% ou mais numa lição", got: threeStars, have: Math.min(bestPct, 90), need: 90, how: "Tire 90% ou mais numa lição inteira. Sua melhor até agora: " + bestPct + "%." },
-      { icon: "🗣️", name: "Fala de ouro", desc: "Shadowing todo certo", got: goldenSpeech, have: goldenSpeech ? 1 : 0, need: 1, how: "No shadowing, faça as 5 frases com a pronúncia entendida (verde em todas)." },
+      { icon: "🗣️", name: "Fala de ouro", desc: "Shadowing todo certo", got: goldenSpeech, have: goldenSpeech ? 1 : 0, need: 1, how: "No shadowing, faça as 5 frases com a pronúncia entendida, verde em todas." },
       { icon: "👂", name: "Ouvido afiado", desc: "Ditado e fofoca perfeitos na mesma lição", got: sharpEar, have: sharpEar ? 1 : 0, need: 1, how: "Na mesma lição, acerte o ditado inteiro e todas as perguntas da fofoca." },
-      { icon: "🔥", name: "Combo x5", desc: "5 acertos seguidos", got: comboBest >= 5, have: Math.min(comboBest, 5), need: 5, how: "Acerte 5 seguidos sem errar nenhum (lacunas e perguntas contam)." },
+      { icon: "🔥", name: "Combo x5", desc: "5 acertos seguidos", got: comboBest >= 5, have: Math.min(comboBest, 5), need: 5, how: "Acerte 5 seguidos sem errar nenhum. Lacunas e perguntas contam." },
       { icon: "⚡", name: "Relâmpago", desc: "5 acertos na rodada bônus", got: bonusBest >= 5, have: Math.min(bonusBest, 5), need: 5, how: "Acerte 5 na rodada bônus ⚡ que aparece no fim da lição." },
       { icon: "📅", name: "3 semanas seguidas", desc: "Fez lição 3 semanas sem parar", got: bestRun >= 3, have: Math.min(bestRun, 3), need: 3, how: "Conclua pelo menos 1 lição por semana, 3 semanas sem pular." },
       { icon: "🏆", name: "5 lições", desc: "Concluiu 5 lições", got: graded.length >= 5, have: Math.min(graded.length, 5), need: 5, how: "Conclua 5 lições." },
       { icon: "⏰", name: "Em dia", desc: "3 lições feitas e nenhuma atrasada", got: graded.length >= 3 && late === 0, have: late === 0 ? Math.min(graded.length, 3) : 0, need: 3, how: late === 0 ? "Conclua 3 lições sem deixar nenhuma atrasada." : "Você tem lição atrasada: recupere ela e depois conclua 3 lições em dia." },
+      ...(drillFixed === undefined ? [] : [{ icon: "🎯", name: "Caçador de erros", desc: "Corrigiu 20 erros no Treinar", got: drillFixed >= 20, have: Math.min(drillFixed, 20), need: 20, how: "No 🎯 Treinar, corrija 20 erros. Um erro conta como corrigido quando você acerta ele em 2 dias diferentes." }]),
     ],
   };
 }

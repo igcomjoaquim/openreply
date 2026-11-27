@@ -15,7 +15,22 @@
   // modo professor (link do painel): mostra tudo igual, mas não cria tentativa nem salva nada
   var PREVIEW = !!D.preview;
   // 🎙️ estilo WhatsApp (Thiago 26/11): grava → ouve/pausa → regrava (máx. 3) ou ✅ Enviar. Por enquanto só no Aluno Teste (?whats=1 força).
-  var WA = /[?&]whats=1/.test(location.search) || (/^aluno teste$/i.test(D.student || "") && !/[?&]whats=0/.test(location.search));
+  var DEMO = /^aluno teste$/i.test(D.student || "");
+  // 👀 opções escritas ANTES de ouvir (Thiago 27/11: "quando tem opção escrita, o ouvido abre mais") e
+  // 🔀 fofoca: ouvir → lacunas → shadowing → reconto (o ouvido chega aguçado no reconto) — só Aluno Teste até aprovar
+  var OPTS_FIRST = !/[?&]opcoes=0/.test(location.search); // liberado pra todos 27/11 (Thiago: "atualiza tudo em todas as lições")
+  var REORDER = !/[?&]ordem=0/.test(location.search); // liberado pra todos 27/11
+  // 🔗 ?passo=2 (professor/Aluno Teste): a cena já abre nas partes; ?passo=1 volta pro começo da cena
+  if ((PREVIEW || DEMO) && /[?&]passo=\d/.test(location.search)) {
+    try {
+      var SK = STORE + ":ouviu:";
+      localStorage.removeItem(SK + "scene-parts"); localStorage.removeItem(SK + "scene-q");
+      if (/[?&]passo=2/.test(location.search)) localStorage.setItem(SK + "scene", "1"); else localStorage.removeItem(SK + "scene");
+    } catch (e) {}
+  }
+  // ✂️ Cena real por partes (Thiago 26/11: "do jeito que eu ensino: pauso, ele entende, depois o áudio todo") — só Aluno Teste até aprovar
+  var PARTS = !/[?&]partes=0/.test(location.search); // liberado pra todos 26/11 ("Ficou muito bom")
+  var WA = !/[?&]whats=0/.test(location.search); // liberado pra todos 27/11
   var MAX_REDO = 3;
   var PQ = PREVIEW ? "professor=1" : "";
   // 📄 uma fase por tela (Thiago 26/11): em teste só no Aluno Teste; ?paginas=0/1 força
@@ -183,6 +198,7 @@
       el("b", { text: (st === 3 ? "🎉 Fase " : st === 2 ? "👏 Fase " : "💪 Fase ") + (i + 1) + " de " + steps.length + " completa!" }),
       el("span", { cls: "stars-big", text: starText(st) }),
       el("span", { cls: "small", text: pick(st === 3 ? CHEER3 : st === 2 ? CHEER2 : CHEER1) })));
+    var sc = !VIEW && skillCheer(step, pct); if (sc) step.sec.append(sc);
     if (!step.holdScroll) {
       var nx = all ? concludeSec : steps.slice(i + 1).filter(function (s) { return !s.done; })[0] || steps.filter(function (s) { return !s.done; })[0];
       if (nx) {
@@ -307,7 +323,17 @@
     refreshHud();
   }
   // tela em que a lição abre: a 1ª fase que falta (ou o fim, se já fez tudo)
+  // 🔗 link direto pra uma fase (Thiago 26/11: "pra eu não ter que fazer tudo de novo") — só modo professor ou Aluno Teste
+  function goFase() {
+    var FASE = Number((location.search.match(/[?&]fase=(\d+)/) || [])[1] || 0);
+    if (!FASE || !(PREVIEW || DEMO) || !steps[FASE - 1]) return false;
+    for (var fi = 0; fi < FASE; fi++) unlock(steps[fi], false);
+    if (PAGED) nav(steps[FASE - 1].sec, true); else setTimeout(function () { scrollTo(steps[FASE - 1].sec); }, 300);
+    return true;
+  }
+  if ((PREVIEW || DEMO) && /[?&]evoluir=1/.test(location.search)) setTimeout(function () { evolve("🌿", "🌳", "Árvore", "Ouvido"); }, 1200);
   function pagedStart() {
+    if (goFase()) return;
     if (!PAGED) return;
     var cur = steps.filter(function (s) { return !s.done; })[0];
     if (cur) { unlock(cur, false); nav(cur.sec, true); } else nav(delivered || saved.done ? resultSec : concludeSec, true);
@@ -712,7 +738,7 @@
     var tr = el("div", { cls: "transcript", html: '<span class="small">O que você falar aparece aqui.</span>' });
     var msg = el("p", { cls: "msg", hidden: "" });
     var box = el("div", { style: "display:flex;flex-direction:column;gap:10px" },
-      el("p", { cls: "hint", html: WA ? "🎙️ <b>1. Toque em Gravar</b>, espere o 🔴 e fale em inglês. <b>2. Toque de novo pra FINALIZAR</b> (se não tocar, continua gravando). <b>3. Ouça o seu áudio</b>: ▶️ Ouvir / ⏸ Pausar. <b>4. Toque em ✅ Enviar.</b> Não gostou? 🔁 Gravar de novo (até 3 vezes)." : "🎙️ <b>Segure o botão</b> (igual áudio de WhatsApp). Quando aparecer 🔴 FALE AGORA, fale em inglês, perto do celular, e <b>solte</b> no fim. Fala comprida? Dê um toque só, espere 3, 2, 1 e toque de novo para parar." }),
+      el("p", { cls: "hint", html: WA ? "🎙️ Toque pra gravar · toque de novo pra terminar · ouça e envie" : "🎙️ <b>Segure o botão</b> (igual áudio de WhatsApp). Quando aparecer 🔴 FALE AGORA, fale em inglês, perto do celular, e <b>solte</b> no fim. Fala comprida? Dê um toque só, espere 3, 2, 1 e toque de novo para parar." }),
       btn, level, el("div", { cls: "meter" }, tm, wc), tr, msg);
     var sess = null, timer = null, taken = "", tries = 0, valve = null, totalSecs = 0, redos = 0, reviewing = null;
     function offerValve() {
@@ -939,7 +965,7 @@
   });
   // 💡 dica: mostra a primeira letra das lacunas vazias; lacuna com dica vale meio ponto
   function hintBtn(box) {
-    var b = el("button", { cls: "ghost hint-btn", type: "button", text: "💡 Dica: ver a primeira letra (vale meio ponto)", onclick: function () {
+    var b = el("button", { cls: "ghost hint-btn", type: "button", text: "💡 Dica: ver a primeira letra · vale ½ ponto", onclick: function () {
       [].forEach.call(box.querySelectorAll("input.gap"), function (i) {
         if (i.value.trim() || i.disabled) return;
         var a = i.getAttribute("data-a").split("|")[0].trim();
@@ -1039,6 +1065,77 @@
     a.addEventListener("timeupdate", chk); a.addEventListener("ended", chk);
   }
 
+  // 🎚️ FASES POR HABILIDADE (Thiago 27/11) — só Aluno Teste até aprovar (?nivel=1..4 força todas)
+  var SK = {}; (D.skills || []).forEach(function (x) { SK[x.key] = x; });
+  function skPhase(k) { return SK[k] ? SK[k].phase : 0; }
+  // 🎉 EVOLUIU! (Thiago 27/11: "tipo Pokémon evoluindo"): tela cheia, a planta crescendo, confete e som
+  function evolve(fromIcon, toIcon, toName, label) {
+    var ov = el("div", { cls: "evo-ov", role: "dialog" },
+      el("div", { cls: "evo-card" },
+        el("p", { cls: "evo-top", text: "✨ Você evoluiu em " + label + "!" }),
+        el("div", { cls: "evo-anim" }, el("span", { cls: "evo-from", text: fromIcon }), el("span", { cls: "evo-arrow", text: "→" }), el("span", { cls: "evo-to", text: toIcon })),
+        el("b", { cls: "evo-name", text: "Agora você é uma " + toName }),
+        el("p", { cls: "small", text: "Na próxima lição o desafio fica um pouco maior. É assim que o seu inglês cresce! 🌱" }),
+        el("button", { cls: "btn", type: "button", text: "Bora! 💪", onclick: function () { ov.remove(); } })));
+    document.body.append(ov);
+    try { SFX.stage(); } catch (e) {} buzz([60, 40, 120]); confetti();
+  }
+  // aviso bonito no próprio site (no lugar da janelinha cinza do navegador)
+  function notice(txt) {
+    var n = el("div", { cls: "notice", text: txt }); document.body.append(n);
+    setTimeout(function () { n.classList.add("go"); }, 3800); setTimeout(function () { n.remove(); }, 4400);
+  }
+  // 🎚️ selo de uma linha (Thiago 27/11: "o aluno bate o olho e entende; clean"): "🌿 Plantinha · Lacunas ●●○○ ⓘ"
+  function badge(icon, name, label, phase, how) {
+    var dots = ""; for (var i = 1; i <= 4; i++) dots += i <= phase ? "●" : "○";
+    var tip = el("p", { cls: "badge-tip", hidden: "", html: how });
+    var b = el("button", { cls: "evo-badge", type: "button", onclick: function () { tip.hidden = !tip.hidden; } },
+      el("span", { cls: "evo-ic", text: icon }), el("b", { text: name }), el("span", { cls: "evo-lab", text: label }), el("span", { cls: "evo-dots", text: dots }), el("span", { cls: "evo-i", text: "ⓘ" }));
+    return el("div", { cls: "evo-wrap" }, b, tip);
+  }
+  function skillBanner(k) {
+    var x = SK[k]; if (!x) return "";
+    var f = x.fases[x.phase - 1], n = x.fases[x.phase] || null;
+    return badge(f.icon, f.name, x.label.replace(/^\S+\s/, ""), x.phase,
+      "Agora: " + esc(f.desc) + "." + (n ? "<br>Pra evoluir pra " + n.icon + " " + esc(n.name) + ": " + esc(x.rule.replace(/ em 2 lições seguidas/, "")) + " em 2 lições." + (x.streak ? " Falta 1! 🔥" : "") : "<br>🏆 Evolução máxima!"));
+  }
+  var STEP_SK = { dictation: "ditado", gossip: "fofoca", story: "lacunas", retell: "reconto", read: "leitura", writing: "writing", realtime: "realtime" };
+  function skillCheer(step, pct) {
+    var x = SK[STEP_SK[step.key]]; if (!x) return null;
+    var n = x.fases[x.phase] || null; if (!n) return el("p", { cls: "pt-up", html: "🍎 Você é uma Árvore com frutos em " + x.label + ". Mandou bem!" });
+    if (pct >= 0.8 && x.streak + 1 >= 2) { var f0 = x.fases[x.phase - 1]; setTimeout(function () { evolve(f0.icon, n.icon, n.name, x.label.replace(/^\S+\s/, "")); }, 900); return el("p", { cls: "pt-up", html: "🎉 <b>Evoluiu!</b> Agora você é uma " + n.icon + " <b>" + esc(n.name) + "</b> em " + x.label + "! Próxima lição: " + esc(n.desc) + "." }); }
+    if (pct >= 0.8) return el("p", { cls: "pt-up", html: "🔥 <b>Mandou bem!</b> Mais 1 lição assim e você evolui pra " + n.icon + " " + esc(n.name) + "." });
+    return el("p", { cls: "pt-up", html: "💪 Hoje: " + Math.round(pct * 100) + "%. Pra subir: 80% em 2 lições." });
+  }
+  var FOF_MAX = [0, 0, 5, 3, 2][skPhase("fofoca")] || 0; // 0 = à vontade
+
+  // 🎧 quantas vezes ouviu a fofoca inteira (Thiago 26/11: ouvir pelo menos 5 vezes e depois recontar)
+  var GOAL = FOF_MAX || 5, gossipCounters = [];
+  function gossipN() { try { return Number(localStorage.getItem(heardKey("gossip-n"))) || 0; } catch (e) { return 0; } }
+  function countListens(a) {
+    var counted = false;
+    if (FOF_MAX) a.addEventListener("play", function () {
+      if (gossipN() >= FOF_MAX && a.currentTime < 1) { a.pause(); notice("🎚️ Na sua fase da Fofoca são no máximo " + FOF_MAX + " escutas. Agora é com o seu ouvido! 💪"); }
+    });
+    a.addEventListener("timeupdate", function () {
+      if (!a.duration) return;
+      var f = a.currentTime / a.duration;
+      if (f < 0.1) counted = false;
+      if (!counted && f >= 0.92) { counted = true; try { localStorage.setItem(heardKey("gossip-n"), String(gossipN() + 1)); } catch (e) {} gossipCounters.forEach(function (fn) { fn(); }); }
+    });
+  }
+  function listenCounter(after) {
+    var dots = el("span", { cls: "dots" }), txt = el("span");
+    var box = el("div", { cls: "listen-count" }, el("span", { text: "🎧" }), dots, txt);
+    function paint() {
+      var n = gossipN(); dots.replaceChildren();
+      for (var i = 0; i < GOAL; i++) dots.append(el("i", { cls: i < n ? "on" : "" }));
+      txt.textContent = n >= GOAL ? "Ouviu " + n + " vezes ✅ " + (after || "") : "Ouviu " + n + " de " + GOAL + " vezes";
+    }
+    gossipCounters.push(paint); paint();
+    return box;
+  }
+
   function buildDictation() {
     var step = { key: "dictation", title: "Ditado", minutes: 4, max: 5, skill: "ouvir" };
     var sec = section(step, "1. Ouça 🎧");
@@ -1063,7 +1160,13 @@
       });
     } });
     sec.append(el("p", { cls: "small", text: n + " frases seguidas, no ritmo normal. Ouça quantas vezes quiser, pause quando precisar, e escreva tudo." }),
-      (function () { var a = el("audio", { controls: "", preload: "none", src: FILE(C.dictation.audio) }); return el("div", { cls: "a-wrap" }, a, audioTools(a)); })(), ta, ONCE(), btn, msg, out);
+      skillBanner("ditado"),
+      (function () {
+        var a = el("audio", { controls: "", preload: "none", src: FILE(C.dictation.audio) }), tools = audioTools(a), ph = skPhase("ditado"), plays = 0;
+        if (ph >= 2) [].forEach.call(tools.querySelectorAll("button"), function (b) { if (/0\.75/.test(b.textContent)) b.remove(); });
+        if (ph >= 4) { a.addEventListener("ended", function () { plays++; }); a.addEventListener("play", function () { if (plays >= 2 && a.currentTime < 1) { a.pause(); notice("🍎 No máximo 2 escutas no ditado. Agora escreva o que você pegou! 💪"); } }); }
+        return el("div", { cls: "a-wrap" }, a, tools);
+      })(), ta, ONCE(), btn, msg, out);
   }
 
   function buildGossip() {
@@ -1089,9 +1192,10 @@
       [qbox ? el("p", { cls: "small", html: LEVEL === "A1" ? "Responda <b>sem ler nada</b>, só com o que você ouviu:" : "Responda <b>com as suas palavras, em inglês</b>, só com o que você ouviu:" }) : "", qbox || "",
         el("p", { cls: "small", text: "🔑 Palavra secreta:" }), inp, btn, msg]);
     whenHeard(ga, function () { gate.unlock(true); });
-    sec.append(el("p", { cls: "small", html: "Daqui até a leitura em voz alta, <b>tudo é sobre esta fofoca</b>: ouvir, imitar, recontar, completar e ler." }),
-      el("p", { html: "🚫 <b>Não escreva a história.</b> Ouça 2 vezes, sem ler nada. 🔑 No fim tem uma <b>palavra secreta</b>." }),
-      el("div", { cls: "a-wrap" }, ga, audioTools(ga)), gate.box);
+    if (PARTS) countListens(ga);
+    sec.append(el("p", { cls: "small", html: REORDER ? "Daqui até a leitura em voz alta, <b>tudo é sobre esta fofoca</b>: ouvir, completar ouvindo, imitar, recontar e ler." : "Daqui até a leitura em voz alta, <b>tudo é sobre esta fofoca</b>: ouvir, imitar, recontar, completar e ler." }),
+      el("p", { html: PARTS ? "🚫 <b>Não escreva a história.</b> Ouça <b>5 vezes</b>, sem ler nada: na 1ª você pega a ideia, nas outras você pega os detalhes (pode pausar e voltar 5 s). Depois você vai <b>recontar</b>. 🔑 No fim tem uma <b>palavra secreta</b>." : "🚫 <b>Não escreva a história.</b> Ouça 2 vezes, sem ler nada. 🔑 No fim tem uma <b>palavra secreta</b>." }),
+      skillBanner("fofoca"), el("div", { cls: "a-wrap" }, ga, audioTools(ga)), PARTS ? listenCounter("Agora você está pronto pra recontar!") : "", gate.box);
     setTimeout(function () { if (step.done) gate.unlock(false); }, 1500);
   }
 
@@ -1111,6 +1215,22 @@
     var cover = el("div", { cls: "cover" }, el("div", { cls: "cover-in" }, el("span", { cls: "cover-play", text: "🎧" }), el("span", { text: "Tela coberta — só ouvido" })));
     var wrap = el("div", { cls: "yt-wrap" }, holder, cover);
     var player = null, slow = false, sceneGate = null, scenePlayed = false;
+    var segStop = 0, segEnd = null, segAt = 0, againGate = null, againOn = false, onTick = null;
+    // ⏱️ barrinha de tempo do que está tocando (Thiago 26/11: "o aluno fica perdido, não sabe até quando vai tocar")
+    function miniBar() {
+      var fill = el("i"), lab = el("span", { cls: "mb-lab", text: "" }), tm = el("span", { cls: "mb-tm", text: "" });
+      var box = el("div", { cls: "mini-bar", hidden: "" }, el("div", { cls: "mb-top" }, lab, tm), el("div", { cls: "mb-track" }, fill));
+      function mm(t) { t = Math.max(0, Math.round(t)); return Math.floor(t / 60) + ":" + String(t % 60).padStart(2, "0"); }
+      return {
+        box: box,
+        set: function (from, to, cur, playing, name) {
+          var len = Math.max(1, to - from), done = Math.min(len, Math.max(0, cur - from)), f = done / len;
+          box.hidden = false; fill.style.width = (f * 100) + "%";
+          lab.textContent = f >= 0.98 ? "✅ Terminou: " + name : playing ? "🔊 Tocando: " + name : "⏸ Pausado: " + name;
+          tm.textContent = mm(done) + " / " + mm(len);
+        },
+      };
+    }
     function withPlayer(fn) {
       if (player) { fn(player); return; }
       loadYT().then(function (YT) {
@@ -1136,6 +1256,10 @@
       var st = player.getPlayerState ? player.getPlayerState() : -1;
       if (st === 1 && cur > 1) scenePlayed = true;
       if (sceneGate && scenePlayed && (f >= 0.95 || st === 0)) sceneGate.unlock(true);
+      if (onTick) onTick(player.getCurrentTime(), st);
+      // a parte acabou: chegou no fim pedido OU o vídeo parou sozinho no fim da cena (a última parte termina junto com a cena)
+      if (segStop && Date.now() - segAt > 700 && (player.getCurrentTime() >= segStop || st === 0 || player.getCurrentTime() >= S.end - 0.15)) { player.pauseVideo(); segStop = 0; if (segEnd) { var fe = segEnd; segEnd = null; fe(); } }
+      if (againGate && againOn && (f >= 0.95 || st === 0)) { againOn = false; againGate.unlock(true); }
       state.textContent = st === 1 ? "🔊 Tocando…" : st === 3 ? "⏳ Carregando…" : f >= 0.98 || st === 0 ? "✅ Terminou — toque em ↺ pra ouvir de novo" : "⏸ Pausado";
       if (tlines.length) {
         var abs = player.getCurrentTime(), cur2 = -1;
@@ -1157,7 +1281,7 @@
     var sceneRest = el("button", { cls: "ghost rest-btn", type: "button", hidden: "", text: "☕ Descansar e continuar depois", onclick: function () {
       withPlayer(function (p) { p.pauseVideo(); }); pauseBox(true);
     } });
-    var goOn = el("button", { cls: "btn", hidden: "", text: "Pronto, vamos para a fofoca →", onclick: function () {
+    var goOn = el("button", { cls: "btn", hidden: "", text: REORDER ? "Pronto, vamos para o ditado →" : "Pronto, vamos para a fofoca →", onclick: function () {
       withPlayer(function (p) { p.pauseVideo(); });
       var nx = steps[nextIdx()]; if (PAGED) nav(nx ? nx.sec : concludeSec); else if (nx) scrollTo(nx.sec); else if (concludeSec) scrollTo(concludeSec);
     } });
@@ -1216,10 +1340,291 @@
       gapCheck(step, box, btn, "Cena real", " só de ouvido 👂");
       if (step.done) { showVocab(); show.hidden = false; scrollTo(show); }
     } });
-    sceneGate = listenGate("scene", "Primeiro <b>ouça o trecho inteiro</b> (tela coberta, sem ler nada). As perguntas aparecem quando ele terminar.",
-      [el("p", { cls: "small", html: "Responda só com o que você <b>ouviu</b>:" }), box, box.querySelector("input.gap") ? hintBtn(box) : "", ONCE(), btn]);
+    var qParts = [el("p", { cls: "small", html: "Responda só com o que você <b>ouviu</b>:" }), box, box.querySelector("input.gap") ? hintBtn(box) : "", ONCE(), btn];
+    var TL = (S.transcript || []).filter(function (x) { return x && x.en && typeof x.t === "number"; });
+    if (PARTS && (S.parts || []).length) {
+      // ✂️ 1) ouve tudo · 2) no máximo 5 partes: ouve quantas vezes quiser e ESCOLHE a frase que ouviu · 3) tudo de novo e responde · 4) com imagem
+      var PP = [];
+      if ((S.parts || []).length) {
+        PP = S.parts.map(function (x) { return { t: x.t, end: x.end, options: x.options, answer: x.answer, prompt: x.prompt, hard: x.hard, comp: x.comp, lines: x.en ? [{ t: x.t, en: x.en, pt: x.pt }] : null }; });
+      } else {
+        var NG = Math.min(5, TL.length), per = TL.length / NG;
+        for (var g = 0; g < NG; g++) PP.push({ lines: TL.slice(Math.round(g * per), Math.round((g + 1) * per)) });
+        PP.forEach(function (x, k) {
+          x.t = x.lines[0].t; x.end = k + 1 < PP.length ? PP[k + 1].lines[0].t : S.end;
+          var others = TL.filter(function (l) { return x.lines.indexOf(l) < 0; }).map(function (l) { return l.en.replace(/\*\*|\+\+/g, ""); });
+          var r0 = (k * 7 + 3) % Math.max(1, others.length);
+          x.options = [x.lines[0].en.replace(/\*\*|\+\+/g, "")].concat([others[r0], others[(r0 + 2) % others.length]].filter(Boolean));
+          x.answer = 0;
+        });
+      }
+      // 🎧 FASES DO OUVIDO: as 5 partes viram 4 (🌿 ~11 s) ou 3 (🌳 ~15 s) partes maiores; 🚀 = cena inteira sem partes
+      // só no Aluno Teste até o Thiago aprovar (?fases=1 força); os outros seguem com 5 partes, sem o quadro
+      var SHOW_EAR = !!D.ear; // liberado pra todos 27/11
+      var EAR = SHOW_EAR ? D.ear : { phase: 1, icon: "🌱", name: "Começando", parts: 5, seg: "~9 s", streak: 0, next: null, rule: "" };
+      PP.forEach(function (x) { x.lines = x.lines || TL.filter(function (l) { return l.t >= x.t - 0.5 && l.t < x.end - 0.5; }); x.qs = (x.comp || []).map(function (c) { return { options: c.options, answer: c.answer, comp: c.q, en: c.en, said: c.said, said_pt: c.said_pt }; }).concat([{ options: x.options, answer: x.answer, prompt: x.prompt, hard: x.hard }]); });
+      if (EAR.parts && EAR.parts < PP.length) {
+        var G = [], base = Math.floor(PP.length / EAR.parts), rem = PP.length % EAR.parts, at = 0;
+        for (var gi = 0; gi < EAR.parts; gi++) {
+          var sz = base + (gi < rem ? 1 : 0), grp = PP.slice(at, at + sz); at += sz;
+          G.push({ t: grp[0].t, end: grp[grp.length - 1].end, lines: [].concat.apply([], grp.map(function (y) { return y.lines; })), qs: [].concat.apply([], grp.map(function (y) { return y.qs; })), options: grp[0].options, answer: grp[0].answer });
+        }
+        PP = G;
+      }
+      PP.forEach(function (x) {
+        x.qs.forEach(function (q, qn) {
+          var idx = q.options.map(function (_, k) { return k; }), seed = Math.round(x.t * 13) + 5 + qn * 17;
+          for (var k2 = idx.length - 1; k2 > 0; k2--) { seed = (seed * 9301 + 49297) % 233280; var jj = Math.floor(seed / 233280 * (k2 + 1)), tmp = idx[k2]; idx[k2] = idx[jj]; idx[jj] = tmp; }
+          q.order = idx;
+        });
+      });
+      var qi = 0;
+      var pi = 0, firstTry = 0, tries = 0, pHeard = false;
+      var pCount = el("span", { cls: "pt-count" }), pDots = el("div", { cls: "pt-dots" });
+      var pText = el("div", { cls: "pt-text", hidden: "" }), pPt = el("p", { cls: "pt-pt", hidden: "" });
+      var pMsg = el("p", { cls: "small pt-msg" }), pQ = el("div", { cls: "pt-q", hidden: "" });
+      function playPart(rate) {
+        var x = PP[pi]; barMode = "part";
+        withPlayer(function (p) {
+          p.setPlaybackRate(rate || 1); p.seekTo(Math.max(S.start, x.t - 0.3), true); p.playVideo();
+          segAt = Date.now(); segStop = Math.min(S.end + 0.5, x.end + 0.8); /* folga: nunca cortar o fim da frase (Thiago 27/11) */ segEnd = function () { p.setPlaybackRate(slow ? 0.75 : 1); if (!pHeard) { pHeard = true; pQ.hidden = false; [].forEach.call(pQ.querySelectorAll(".pt-opt.wait"), function (o) { o.classList.remove("wait"); }); pMsg.textContent = "Qual delas você ouviu? Pode ouvir de novo quantas vezes quiser antes de escolher."; } };
+        });
+      }
+      function renderQ() {
+        var x = PP[pi], q = x.qs[qi];
+        var more = x.qs.length > 1 ? " <span class=\"q-count\">" + (qi + 1) + "/" + x.qs.length + "</span>" : "";
+        if (q.comp) pQ.replaceChildren(el("p", { cls: "pt-qt", html: "🧠 <b>O que aconteceu?</b>" + more }), el("p", { cls: "comp-q", text: "❓ " + q.comp }));
+        else if (q.prompt) pQ.replaceChildren(el("p", { cls: "pt-qt", html: "👂 <b>Complete o pedaço difícil</b>" + more }), el("p", { cls: "pt-gap", html: esc(q.prompt).replace("___", "<span class=\"gapline\">______</span>") }));
+        else pQ.replaceChildren(el("p", { cls: "pt-qt", html: "👂 <b>Qual destas frases você ouviu?</b>" + more }));
+        q.order.forEach(function (k) {
+          var b = el("button", { cls: "pt-opt" + (pHeard || !OPTS_FIRST ? "" : " wait"), type: "button" }, q.options[k], q.en && q.en[k] ? el("span", { cls: "opt-en", text: q.en[k] }) : null); // português em cima, inglês embaixo, sempre (Thiago 27/11)
+          b.addEventListener("click", function () {
+            if (b.disabled) return;
+            if (b.classList.contains("wait")) { pMsg.textContent = "🎧 Primeiro ouça a parte " + (pi + 1) + " no botão amarelo. Depois escolha."; partBtn.classList.add("pulse"); return; }
+            tries++;
+            if (k === q.answer) {
+              b.classList.add("ok"); hit(true);
+              [].forEach.call(pQ.querySelectorAll(".pt-opt"), function (o) { o.disabled = true; });
+              if (q.said && qi + 1 < x.qs.length) {
+                var nq = x.qs[qi + 1];
+                pQ.append(el("p", { cls: "said-box", html: "✅ Isso! 🗣️ No áudio: <i></i>" + (q.said_pt ? "<small></small>" : "") }), el("button", { cls: "btn mini", type: "button", text: nq.comp ? "Próxima pergunta →" : "Agora o pedaço difícil →", onclick: function () { qi++; renderQ(); } }));
+                pQ.querySelector(".said-box i").textContent = "“" + q.said + "”"; if (q.said_pt) pQ.querySelector(".said-box small").textContent = "🇧🇷 " + q.said_pt; pMsg.textContent = "";
+                return;
+              }
+              if (qi + 1 < x.qs.length) { qi++; pMsg.textContent = x.qs[qi].comp ? "✅ Isso! Próxima pergunta (pode ouvir de novo)." : x.qs[qi].prompt ? "✅ Isso! Agora o pedaço mais difícil desta parte (pode ouvir de novo)." : "✅ Isso! Agora a próxima frase desta mesma parte (pode ouvir de novo)."; setTimeout(renderQ, 700); return; }
+              if (tries === x.qs.length) firstTry++;
+              var full = x.lines.length ? x.lines.map(function (l) { return markChunks(l.en); }).join(" ") : esc(x.options[x.answer]);
+              pText.innerHTML = "📝 " + full; pText.hidden = false;
+              raio.replaceChildren(); raio.hidden = true;
+              x.qs.forEach(function (qq) { if (qq.hard) { raio.append(raioX(qq.hard)); raio.hidden = false; } });
+              if (WHOLE && x.lines.length) { pText.hidden = true; whole.replaceChildren(wholePart(x)); whole.hidden = false; }
+              var pts = x.lines.map(function (l) { return l.pt; }).filter(Boolean).join(" ");
+              pPt.textContent = pts ? "🇧🇷 " + pts : ""; pPt.hidden = true; ptB.hidden = !pts; ptB.textContent = "🇧🇷 Ver a tradução";
+              pMsg.textContent = tries === x.qs.length ? "✅ Isso! Você ouviu certinho. Agora ouça de novo lendo o texto." : "✅ Agora sim! Ouça de novo lendo o texto pra fixar.";
+              nextP.hidden = false; cutB.hidden = true; nextP.textContent = pi + 1 < PP.length ? "Próxima parte (" + (pi + 2) + " de " + PP.length + ") →" : "✅ Terminei as " + PP.length + " partes";
+              paintDots(true);
+            } else {
+              b.classList.add("bad"); b.disabled = true; hit(false);
+              pMsg.textContent = "❌ Não foi essa. Ouça a parte de novo (pode usar o 🐢 devagar) e escolha outra.";
+            }
+          });
+          pQ.append(b);
+        });
+      }
+      var doneDots = [];
+      function paintDots(okNow) {
+        if (okNow) doneDots[pi] = tries === PP[pi].qs.length ? "ok" : "meh";
+        pDots.replaceChildren();
+        PP.forEach(function (_, k) { pDots.append(el("i", { cls: k === pi && !okNow ? "cur" : doneDots[k] || "" , text: String(k + 1) })); });
+      }
+      var ptB = el("button", { cls: "ghost", type: "button", text: "🇧🇷 Ver a tradução", hidden: "", onclick: function () { pPt.hidden = !pPt.hidden; ptB.textContent = pPt.hidden ? "🇧🇷 Ver a tradução" : "🇧🇷 Esconder a tradução"; } });
+      // ✂️ "O áudio cortou a frase" (Thiago 27/11: "não dá pra cobrar uma coisa que está cortada"): a parte NÃO conta
+      // como erro, o aluno vê o texto e o aviso fica guardado pra corrigir o corte (rotina semanal)
+      var cortes = [];
+      var cutB = el("button", { cls: "ghost cut-btn", type: "button", hidden: "", text: "✂️ O áudio cortou a frase antes de acabar?", onclick: function () {
+        var x = PP[pi]; cutB.hidden = true; doneDots[pi] = "skip";
+        [].forEach.call(pQ.querySelectorAll(".pt-opt"), function (o) { o.disabled = true; });
+        pText.innerHTML = "📝 " + (x.lines.length ? x.lines.map(function (l) { return markChunks(l.en); }).join(" ") : esc(x.qs[0].options[x.qs[0].answer])); pText.hidden = false;
+        pMsg.textContent = "Obrigado por avisar! 🙏 Essa parte não conta como erro, e o seu professor vai arrumar o corte. Veja o texto e ouça de novo.";
+        nextP.hidden = false; nextP.textContent = pi + 1 < PP.length ? "Próxima parte (" + (pi + 2) + " de " + PP.length + ") →" : "✅ Terminei as " + PP.length + " partes";
+        cortes.push({ t: x.t, end: x.end }); paintDots(false);
+        if (att && !PREVIEW) post("/api/licao/attempt/" + att.id + "/progress", { token: att.token, step: "_cortes", score: 0, max: 0, data: { yt: S.youtubeId, parts: cortes } });
+      } });
+      var nextP = el("button", { cls: "btn", type: "button", hidden: "", onclick: function () {
+        withPlayer(function (p) { p.pauseVideo(); }); segStop = 0; segEnd = null;
+        if (pi + 1 < PP.length) { pi++; renderPart(); return; }
+        var nSkip = doneDots.filter(function (d) { return d === "skip"; }).length, nCount = Math.max(1, PP.length - nSkip);
+        var rate = firstTry / nCount, msgUp = "";
+        if (SHOW_EAR && EAR.next) {
+          if (rate >= 0.8 && EAR.streak + 1 >= 2) setTimeout(function () { evolve(EAR.icon, EAR.next.icon, EAR.next.name, "Ouvido"); }, 900);
+          if (rate >= 0.8 && EAR.streak + 1 >= 2) msgUp = "🎉 <b>Evoluiu!</b> Agora você é uma " + EAR.next.icon + " <b>" + EAR.next.name + "</b> no Ouvido! Na próxima lição, partes maiores.";
+          else if (rate >= 0.8) msgUp = "🔥 <b>Mandou bem!</b> Mais 1 lição assim e você evolui pra " + EAR.next.icon + " " + EAR.next.name + ".";
+          else msgUp = "💪 Hoje: " + firstTry + " de " + nCount + " de primeira. Pra subir: 4 de 5, em 2 lições.";
+        }
+        partsBox.replaceChildren(el("p", { cls: "pt-done", html: "✅ <b>As " + PP.length + " partes estão feitas!</b> Você acertou de primeira " + firstTry + " de " + PP.length + "." }), msgUp ? el("p", { cls: "pt-up", html: msgUp }) : "");
+        // 🎯 guarda quais partes ele errou de primeira: viram treino no "Treinar meu ouvido" (com trechos NOVOS de outros vídeos)
+        if (att && !PREVIEW) post("/api/licao/attempt/" + att.id + "/progress", { token: att.token, step: "_partes", score: 0, max: 0, data: { parts: PP.map(function (x, k) { return { i: k, t: x.t, end: x.end, ok: doneDots[k] === "ok" || doneDots[k] === "skip", skip: doneDots[k] === "skip" }; }) } });
+        markHeard("scene-parts"); againBox.hidden = false; scrollTo(againBox);
+      } });
+      function renderPart() {
+        pHeard = false; tries = 0; qi = 0; pCount.textContent = "Parte " + (pi + 1) + " de " + PP.length;
+        pBar.box.hidden = true; barMode = null;
+        partBtn.textContent = "▶ Ouvir a parte " + (pi + 1); partBtn.classList.add("pulse");
+        cutB.hidden = true; whole.hidden = true; pText.hidden = true; pPt.hidden = true; ptB.hidden = true; ptB.textContent = "🇧🇷 Ver a tradução"; pQ.hidden = !OPTS_FIRST; nextP.hidden = true; raio.hidden = true;
+        pMsg.textContent = OPTS_FIRST ? (PP[pi].qs[0].comp ? "👀 Leia a pergunta e toque no botão amarelo pra ouvir." : PP[pi].qs.length > 1 ? "👀 Esta parte é maior: ela tem " + PP[pi].qs.length + " frases pra achar. Leia as opções, toque no botão amarelo e ouça a parte inteira sem pausa." : "👀 Leia as 3 frases aqui embaixo. Depois toque no botão amarelo e descubra qual delas ele fala.") : "👆 Toque no botão amarelo e ouça só a parte " + (pi + 1) + " (a tela continua coberta). Depois você escolhe a frase que ouviu.";
+        renderQ(); paintDots(false);
+        if (OPTS_FIRST) [].forEach.call(pQ.querySelectorAll(".pt-opt"), function (o) { o.classList.add("wait"); });
+      }
+      var pBar = miniBar(), aBar = miniBar(), barMode = null;
+      onTick = function (cur, st) {
+        if (barMode === "part") { var x = PP[pi]; pBar.set(x.t, x.end, cur, st === 1 && segStop > 0, "parte " + (pi + 1)); }
+        else if (barMode === "all") aBar.set(S.start, S.end, cur, st === 1, "a cena inteira");
+      };
+      // 🎧 PARTE INTEIRA (Thiago 27/11: "a divisão não contempla o áudio todo; quando ouve tudo, muita coisa não foi praticada"):
+      // depois do pedaço difícil, o texto da parte com 3 lacunas espalhadas; ele toca as palavras NA ORDEM em que ouve;
+      // depois "▶ Ouvir lendo" acende o texto palavra por palavra (karaokê) — assim a parte toda é trabalhada.
+      var WHOLE = true; // liberado pra todos 27/11
+      var whole = el("div", { cls: "whole", hidden: "" });
+      function plainWords(x) { return x.lines.map(function (l) { return l.en.replace(/\*\*|\+\+/g, ""); }).join(" ").split(/\s+/).filter(Boolean); }
+      function wholePart(x) {
+        var toks = plainWords(x), hardW = {};
+        x.qs.forEach(function (q) { if (q.hard) words(q.hard.text).forEach(function (w) { hardW[w] = 1; }); });
+        var cand = []; toks.forEach(function (t, i) { var w = norm(t); if (w.length >= 4 && STOP.indexOf(w) < 0 && !hardW[w] && !/\d/.test(w)) cand.push(i); });
+        var pickI = []; if (cand.length) { [0.15, 0.5, 0.85].forEach(function (f) { var c = cand[Math.min(cand.length - 1, Math.floor(f * cand.length))]; if (pickI.indexOf(c) < 0) pickI.push(c); }); }
+        pickI = []; // sem lacunas (Thiago 27/11: dá pra resolver lendo) — aqui é só aprender o som
+        var box = el("div", { cls: "wp" }, el("b", { text: "📖 Leia ouvindo, pra aprender o som" }), el("p", { cls: "small", html: "Ouça lendo e repare no que soa diferente do que está escrito." }));
+        var txt = el("p", { cls: "wp-txt" }), slots = [];
+        toks.forEach(function (t, i) {
+          if (i) txt.append(" ");
+          if (pickI.indexOf(i) > -1) { var m = t.match(/^([^A-Za-z0-9']*)(.+?)([^A-Za-z0-9']*)$/) || ["", "", t, ""]; var sl = el("span", { cls: "wp-slot", text: "____" }); sl.dataset.a = m[2]; slots.push(sl); txt.append(m[1], sl, m[3]); }
+          else txt.append(el("span", { cls: "wp-w", text: t }));
+        });
+        var bank = el("div", { cls: "pt-play wp-bank" }), msg = el("p", { cls: "small", hidden: "" }), k = 0, errs = 0;
+        slots.map(function (sl) { return sl.dataset.a; }).sort(function (a, b) { return (a.length * 7) % 5 - (b.length * 7) % 5 || (a < b ? 1 : -1); }).forEach(function (w) {
+          var bt = el("button", { cls: "soft", type: "button", text: w });
+          bt.addEventListener("click", function () {
+            if (!slots[k]) return;
+            if (norm(w) === norm(slots[k].dataset.a)) { slots[k].textContent = w; slots[k].classList.add("ok"); bt.disabled = true; k++; hit(true);
+              if (k === slots.length) { msg.hidden = false; msg.textContent = errs ? "✅ Completo! Agora ouça lendo, pra ligar o som ao texto." : "🎉 Na ordem certinha! Agora ouça lendo, pra ligar o som ao texto."; kara.hidden = false; nextP.hidden = false; ptB.hidden = !x.lines.some(function (l) { return l.pt; }); } }
+            else { errs++; hit(false); msg.hidden = false; msg.textContent = "❌ Essa vem depois. Ouça de novo e preste atenção na ordem."; }
+          });
+          bank.append(bt);
+        });
+        // ▶ ouvir lendo: acende as palavras acompanhando o áudio (aproximado pelo tempo)
+        var spans = [].slice.call(txt.querySelectorAll(".wp-w,.wp-slot"));
+        var kara = el("button", { cls: "btn mini", type: "button", hidden: "", text: "▶ Ouvir lendo (karaokê)", onclick: function () {
+          withPlayer(function (p) {
+            p.setPlaybackRate(1); p.seekTo(Math.max(S.start, x.t - 0.3), true); p.playVideo(); segAt = Date.now(); segStop = Math.min(S.end + 0.5, x.end + 0.8); segEnd = null;
+            var tot = spans.reduce(function (a, s2) { return a + s2.textContent.length + 1; }, 0);
+            var iv = setInterval(function () {
+              var cur = p.getCurrentTime ? p.getCurrentTime() : 0, f = (cur - x.t) / Math.max(1, x.end - x.t), acc = 0;
+              spans.forEach(function (s2) { var w2 = (s2.textContent.length + 1) / tot; s2.classList.toggle("lit", f >= acc && f < acc + w2); acc += w2; });
+              if (f >= 1 || !segStop) { clearInterval(iv); spans.forEach(function (s2) { s2.classList.remove("lit"); }); }
+            }, 120);
+          });
+        } });
+        if (!slots.length) { kara.hidden = false; nextP.hidden = false; ptB.hidden = !x.lines.some(function (l) { return l.pt; }); kara.textContent = "▶ Ouvir lendo"; }
+        box.append(txt, bank, msg, kara);
+        return box;
+      }
+      // 🔍 RAIO-X DO SOM: o pedaço difícil, como ele SOA de verdade, por quê, e ouvir só ele (normal e devagar)
+      var raio = el("div", { cls: "raiox", hidden: "" });
+      function playBit(h, rate) { barMode = null; withPlayer(function (p) { p.setPlaybackRate(rate); p.seekTo(Math.max(S.start, h.t - 0.3), true); p.playVideo(); segAt = Date.now(); segStop = h.end + 0.5; segEnd = function () { p.setPlaybackRate(1); }; }); }
+      function raioX(h) {
+        var b = el("div", { cls: "rx-item" }, el("b", { text: "🔍 Raio-X do som" }));
+        var l1 = el("p", { html: "Escrito: <b></b><br>Soa como: <b class=\"rx-som\"></b>" }); l1.querySelector("b").textContent = h.text; l1.querySelector(".rx-som").textContent = "“" + h.som + "”";
+        b.append(l1, el("p", { cls: "small", text: "💡 " + h.porque }),
+          el("div", { cls: "pt-play" }, el("button", { cls: "btn mini", type: "button", text: "🔁 Ouvir só esse pedaço", onclick: function () { playBit(h, 1); } }), el("button", { cls: "soft", type: "button", text: "🐢 Devagar", onclick: function () { playBit(h, 0.75); } })));
+        return b;
+      }
+      // 🎯 PROVA DO OUVIDO SEM TEXTO: os pedaços difíceis tocam fora de ordem, nada escrito na tela; ele escreve o que ouviu
+      var HARDS = PP.reduce(function (a, x) { return a.concat(x.qs.filter(function (q) { return q.hard; }).map(function (q) { return { h: q.hard, options: q.options, answer: q.answer }; })); }, []);
+      function provaBox() {
+        if (!HARDS.length) return "";
+        // curta (Thiago 27/11: "depois de 5 partes, escrever fica muito difícil"): 3 pedaços, fora de ordem, ouvir e TOCAR na certa
+        var list = HARDS.slice().sort(function (a, b) { return (a.h.t * 7) % 5 - (b.h.t * 7) % 5; }).slice(0, 3), got = 0, done = 0;
+        var box = el("div", { cls: "prova" }, el("b", { text: "🎯 Prova do ouvido · rapidinha" }),
+          el("p", { cls: "small", html: "3 pedaços difíceis da cena, <b>fora de ordem</b>. Toque em 🔊, ouça e escolha o que ele fala. Assim você descobre se o ouvido pegou de verdade." }));
+        var sum = el("p", { cls: "msg", hidden: "" });
+        list.forEach(function (it, k) {
+          var m = el("p", { cls: "small", hidden: "" }), tries = 0, row = el("div", { cls: "pt-q" });
+          var order = it.options.map(function (_, i) { return i; }).sort(function (a, b) { return ((a + k * 2) % 3) - ((b + k * 2) % 3); });
+          order.forEach(function (i) {
+            var bt = el("button", { cls: "pt-opt", type: "button", text: it.options[i] });
+            bt.addEventListener("click", function () {
+              if (bt.disabled) return; tries++;
+              if (i === it.answer) {
+                bt.classList.add("ok"); [].forEach.call(row.querySelectorAll(".pt-opt"), function (o) { o.disabled = true; }); hit(true); done++; if (tries === 1) got++;
+                m.hidden = false; m.innerHTML = (tries === 1 ? "✅ Pegou de primeira! " : "✅ Isso. ") + "Soa “<i></i>”"; m.querySelector("i").textContent = it.h.som;
+                if (done === list.length) { sum.hidden = false; sum.className = "msg " + (got >= 2 ? "good" : "bad"); sum.textContent = got === list.length ? "🎉 Seu ouvido pegou os 3 de primeira! Agora responda as perguntas." : "Seu ouvido pegou " + got + " de " + list.length + " de primeira. Tudo bem: são os pedaços mais difíceis. Ouça de novo no Raio-X e responda as perguntas."; }
+              } else { bt.classList.add("bad"); bt.disabled = true; hit(false); m.hidden = false; m.textContent = "❌ Não foi essa. Ouça de novo."; }
+            });
+            row.append(bt);
+          });
+          box.append(el("div", { cls: "prova-it" }, el("div", { cls: "pt-play" }, el("b", { text: (k + 1) + "." }), el("button", { cls: "btn mini", type: "button", text: "🔊 Ouvir", onclick: function () { playBit(it.h, 1); } }), el("button", { cls: "soft", type: "button", text: "🐢", onclick: function () { playBit(it.h, 0.75); } })), row, m));
+        });
+        box.append(sum);
+        return box;
+      }
+      // sem as perguntas de interpretação do final quando as partes já têm as delas (Thiago 27/11: "é too much")
+      var HAS_COMP = PP.some(function (x) { return x.qs.some(function (q) { return q.comp; }); });
+      if (HAS_COMP) {
+        var concl = el("button", { cls: "btn", type: "button", text: "✅ Concluir a cena", onclick: function () {
+          if (step.done) return;
+          var okN = PP.filter(function (_, k) { return doneDots[k] === "ok" || doneDots[k] === "skip"; }).length;
+          var pts = Math.max(1, Math.round(step.max * okN / Math.max(1, PP.length)));
+          concl.disabled = true; finish(step, pts, { parts: okN + "/" + PP.length });
+          showVocab(); show.hidden = false; scrollTo(show);
+        } });
+        qParts = [provaBox(), el("p", { cls: "small", text: "As perguntas de cada parte já mediram o que você entendeu. Agora é só concluir e assistir com imagem 👀" }), concl];
+      } else if (HARDS.length) qParts.unshift(provaBox());
+      var partBtn = el("button", { cls: "btn pt-big pulse", type: "button", text: "▶ Ouvir a parte 1", onclick: function () { partBtn.classList.remove("pulse"); playPart(1); } });
+      var earBox = badge(EAR.icon, EAR.name, "Ouvido", EAR.phase,
+        "Agora: " + esc(EAR.seg) + "." + (EAR.next ? "<br>Pra evoluir pra " + EAR.next.icon + " " + EAR.next.name + ": acerte 4 de 5 partes de primeira em 2 lições." + (EAR.streak ? " Falta 1! 🔥" : "") : "<br>🏆 Evolução máxima!"));
+      var partsBox = el("div", { cls: "pt-box" }, SHOW_EAR ? earBox : "",
+        el("div", { cls: "pt-head" }, el("b", { text: "✂️ Passo 2 · A cena em " + PP.length + " partes" }), pCount),
+        pDots,
+        el("div", { cls: "pt-play" },
+          partBtn,
+          el("button", { cls: "soft", type: "button", text: "🐢 Devagar", onclick: function () { playPart(0.75); } })),
+        pBar.box, pMsg, pQ, cutB, raio, whole, pText, ptB, pPt, nextP);
+      renderPart();
+      againGate = listenGate("scene-q", HAS_COMP ? "Ouça <b>tudo de novo</b>. A prova rapidinha aparece quando terminar." : "Ouça <b>tudo de novo, sem parar</b>. As perguntas aparecem quando terminar.", qParts);
+      // ⏸ ⏪ ⏩ no "ouvir tudo de novo" (Thiago 27/11): pode pausar, voltar e avançar
+      var pauseB = el("button", { cls: "soft", type: "button", text: "⏸ Pausar", onclick: function () {
+        withPlayer(function (p) { var st = p.getPlayerState ? p.getPlayerState() : -1; if (st === 1) { p.pauseVideo(); pauseB.textContent = "▶ Continuar"; } else { barMode = "all"; segStop = 0; p.playVideo(); pauseB.textContent = "⏸ Pausar"; } });
+      } });
+      function jump(d) { withPlayer(function (p) { barMode = "all"; segStop = 0; var t = Math.min(S.end - 0.5, Math.max(S.start, p.getCurrentTime() + d)); p.seekTo(t, true); p.playVideo(); pauseB.textContent = "⏸ Pausar"; }); }
+      var againCtl = el("div", { cls: "pt-play ag-ctl" }, el("button", { cls: "soft", type: "button", text: "⏪ 5 s", onclick: function () { jump(-5); } }), pauseB, el("button", { cls: "soft", type: "button", text: "⏩ 5 s", onclick: function () { jump(5); } }));
+      var againBox = el("div", { cls: "pt-again", hidden: "" },
+        el("b", { text: "🎧 Passo 3 · Tudo de novo, sem parar" }),
+        el("p", { cls: "small", html: "Agora que você entendeu as partes, ouça o trecho inteiro (tela coberta) e veja quanto você pega. <b>Tente a 1ª vez sem pausar</b>; depois, se precisar, pause e volte. Aí responda." }),
+        el("button", { cls: "btn pt-big", type: "button", text: "▶ Ouvir tudo de novo", onclick: function () { againOn = true; segStop = 0; barMode = "all"; withPlayer(function (p) { p.seekTo(S.start, true); p.playVideo(); }); } }),
+        aBar.box, againCtl, againGate.box);
+      if (wasHeard("scene-parts")) { partsBox.replaceChildren(el("p", { cls: "pt-done", html: "✅ <b>Partes feitas!</b>" })); againBox.hidden = false; }
+      if (!EAR.parts) { // 🚀 fase máxima: sem partes, a cena inteira sem pausa
+        partsBox.replaceChildren(earBox, el("p", { cls: "pt-up", html: "🍎 <b>Você é uma Árvore com frutos no Ouvido:</b> nada de partes! Ouça a cena inteira sem pausa. É assim que funciona na vida real." }));
+        againBox.hidden = false;
+      }
+      // durante as partes o player de cima some (senão o aluno toca tudo de novo sem querer); volta no "assistir com imagem"
+      var topCtl = [ctrl, timeline];
+      function hideTop(h) { topCtl.forEach(function (n) { n.hidden = h; }); }
+      show.addEventListener("click", function () { hideTop(false); });
+      var origGate = null;
+      sceneGate = listenGate("scene", "<b>Passo 1:</b> ouça o trecho <b>inteiro</b>, tela coberta. Não se preocupe se não entender quase nada: é normal! O passo 2 abre quando terminar.",
+        [partsBox, againBox]);
+      origGate = sceneGate.unlock;
+      sceneGate.unlock = function (scroll) { origGate(scroll); if (!step.done) hideTop(true); };
+      if (sceneGate.box.querySelector(".listen-gated") && !sceneGate.box.querySelector(".listen-gated").hidden && !step.done) hideTop(true);
+      sec.append(el("p", { html: rich(S.intro) }),
+        el("ol", { cls: "pt-steps" }, el("li", { html: "🎧 <b>Ouça tudo</b> uma vez" }), el("li", { html: "✂️ <b>Em " + PP.length + " partes</b>, com perguntas" }), el("li", { html: "🎧 <b>Tudo de novo</b>" }), el("li", { html: "👀 <b>Assista com imagem</b>" })),
+        wrap, timeline, ctrl, sceneGate.box, vbox || "", show, tbox || "", goOn, sceneRest);
+      setTimeout(function () { if (step.done) { againGate.unlock(false); partsBox.replaceChildren(el("p", { cls: "pt-done", html: "✅ <b>Partes feitas!</b>" })); againBox.hidden = false; } }, 1500);
+    } else {
+    sceneGate = listenGate("scene", "Primeiro <b>ouça o trecho inteiro</b> (tela coberta, sem ler nada). As perguntas aparecem quando ele terminar.", qParts);
     sec.append(el("p", { html: rich(S.intro) + " Primeiro <b>só ouça</b>: a imagem fica escondida. Ouça 3 vezes (pode usar 0.75× na 2ª)." }),
       wrap, timeline, ctrl, sceneGate.box, vbox || "", show, tbox || "", goOn, sceneRest);
+    }
     setTimeout(function () { if (step.done) sceneGate.unlock(false); }, 1500);
     setTimeout(function () { if (step.done) { showVocab(); showTranscript(); } }, 1500); // voltou numa lição em que já fez a cena
   }
@@ -1235,7 +1640,7 @@
     var myVoice = el("button", { cls: "soft", text: "🎧 Minha voz", hidden: "" }), myUrl = null;
     var myAudio = null, myLead = 0;
     myVoice.onclick = function () { if (!myAudio) return; if (!myAudio.paused) { myAudio.pause(); return; } [].forEach.call(document.querySelectorAll("audio"), function (a) { try { a.pause(); } catch (e) {} }); try { myAudio.currentTime = myLead; } catch (e) {} myAudio.play().catch(function () {}); };
-    var rec = el("button", { cls: "rec sh-rec", text: "🎤 Segure e fale" }), next = el("button", { cls: "btn", hidden: "", text: "Próxima frase →" });
+    var rec = el("button", { cls: "rec sh-rec", text: WA ? "🎙️ Toque pra gravar" : "🎤 Segure e fale" }), next = el("button", { cls: "btn", hidden: "", text: "Próxima frase →" });
     SH.forEach(function () { dots.append(el("span")); });
     function render() {
       count.textContent = "Frase " + (si + 1) + " de " + SH.length; pt.textContent = SH[si].pt ? "🇧🇷 " + SH[si].pt : "";
@@ -1244,7 +1649,7 @@
       text.classList.toggle("sh-blind", blind); pt.hidden = blind;
       text.title = blind ? "Ouça a frase primeiro" : "";
       [].forEach.call(dots.children, function (d, i) { d.className = i === si ? "cur" : res[i] === undefined ? "" : res[i] >= 0.95 ? "ok" : "meh"; });
-      rec.disabled = false; rec.textContent = "🎤 Segure e fale"; next.hidden = true; say(msg, "");
+      rec.disabled = false; rec.textContent = WA ? "🎙️ Toque pra gravar" : "🎤 Segure e fale"; next.hidden = true; say(msg, "");
     }
     function playIt(isSlow) {
       var spans = [].slice.call(text.children), lens = spans.map(function (s) { return s.textContent.length + 1; });
@@ -1262,7 +1667,7 @@
     }
     function judge(said, final) {
       if (final && SR && isPortuguese(said)) {
-        rec.textContent = "🎤 Segure e fale"; rec.classList.remove("live");
+        rec.textContent = WA ? "🎙️ Toque pra gravar" : "🎤 Segure e fale"; rec.classList.remove("live");
         say(msg, "Parece que você falou em português 🙂 Repita a frase em inglês.");
         return;
       }
@@ -1350,14 +1755,17 @@
     var relisten = "";
     if (C.gossip && C.gossip.audio) {
       var ra = el("audio", { controls: "", preload: "none", src: FILE(C.gossip.audio) });
+      if (PARTS) countListens(ra);
       relisten = el("div", { cls: "relisten-wrap retell-relisten" },
-        el("p", { cls: "listen-fill", html: "🎧 <b>Esqueceu alguma parte?</b> Ouça a fofoca de novo antes de recontar (pode pausar e voltar 5 s)." }),
-        el("div", { cls: "a-wrap" }, ra, audioTools(ra)));
+        el("p", { cls: "listen-fill", html: PARTS ? "🎧 <b>Antes de recontar, ouça a fofoca 5 vezes</b> (contando as das outras fases). Pode pausar e voltar 5 s." : "🎧 <b>Esqueceu alguma parte?</b> Ouça a fofoca de novo antes de recontar (pode pausar e voltar 5 s)." }),
+        el("div", { cls: "a-wrap" }, ra, audioTools(ra)), PARTS ? listenCounter("Pode recontar!") : "");
     }
+    var rph = skPhase("reconto"), rsec = [30, 30, 45, 60, 60][rph] || 30;
     speakingStep("retell", "Reconte a fofoca", 2, 5, "falar", null,
-      [relisten, el("p", { text: "Aperte o botão e fale, sem pressa:" }), el.apply(null, ["ul", { cls: "q" }].concat(R.prompts.map(function (p) { return el("li", { html: rich(p) }); })))],
+      [skillBanner("reconto"), relisten, el("p", { text: rph ? "Aperte o botão e fale, sem pressa · pelo menos " + rsec + " s:" : "Aperte o botão e fale, sem pressa:" }),
+        rph >= 4 ? el("p", { cls: "small", text: "🚀 Fase Quase nativo: sem perguntas de apoio. Conte a fofoca do começo ao fim, do seu jeito." }) : el.apply(null, ["ul", { cls: "q" }].concat(R.prompts.map(function (p) { return el("li", { html: rich(p) }); })))],
       {
-        minWords: R.minWords, minSeconds: 30, unlockLive: true,
+        minWords: R.minWords, minSeconds: rsec, unlockLive: true,
         check: function (t) {
           var sw = storyWords(), n = words(t), hits = sw.filter(function (w) { return n.indexOf(w) > -1; }).length;
           return n.length >= R.minWords && norm(t).indexOf(secret) > -1 && hits >= Math.min(LEVEL === "A1" ? 2 : 3, sw.length);
@@ -1387,33 +1795,39 @@
     var again = null;
     if (C.gossip && C.gossip.audio) {
       var ga = el("audio", { controls: "", preload: "none", src: FILE(C.gossip.audio) });
+      if (PARTS) countListens(ga); // ouvir aqui também conta pras 5 vezes antes do reconto
       again = el("div", { cls: "relisten-wrap" },
         el("p", { cls: "listen-fill", html: "🎧 <b>Ouça a fofoca e complete o que falta.</b> Pause quando precisar e volte 5 s pra ouvir de novo." }),
-        el("div", { cls: "a-wrap" }, ga, audioTools(ga)));
+        el("div", { cls: "a-wrap" }, ga, audioTools(ga)), PARTS && REORDER ? listenCounter("Seu ouvido está pronto pro reconto!") : "");
     }
-    sec.append(el("p", { cls: "small", html: rich(S.intro) }), again || "", S.vocab.length ? voc : "", box, box.querySelector("input.gap") ? hintBtn(box) : "", ONCE(), btn);
+    var lph = skPhase("lacunas");
+    if (lph >= 4 && ga) { var lplays = 0; ga.addEventListener("ended", function () { lplays++; }); ga.addEventListener("play", function () { if (lplays >= 2 && ga.currentTime < 1) { ga.pause(); notice("🍎 No máximo 2 escutas nas lacunas. Agora complete com o que você pegou! 💪"); } }); }
+    sec.append(skillBanner("lacunas"), el("p", { cls: "small", html: rich(S.intro) }), again || "", S.vocab.length && lph < 2 ? voc : "", box, box.querySelector("input.gap") && lph < 3 ? hintBtn(box) : "", ONCE(), btn);
   }
 
   function buildRead() {
     var R = C.readAloud, rt = el("div", { cls: "readtext" });
     paint(rt, R.text, ""); [].forEach.call(rt.querySelectorAll(".miss"), function (s) { s.className = ""; });
+    var rdph = skPhase("leitura"), rdMax = Math.max(12, Math.round(words(R.text).length * 0.6)); // ritmo natural ≈ 1,7 palavra/s
     speakingStep("read", "🗣️ Leia em voz alta", 1, 5, "ler", null,
-      [el("p", { html: "Leia este trecho em voz alta. As palavras que a página entender ficam <b>verdes</b>." }), rt],
+      [skillBanner("leitura"), el("p", { html: rdph >= 2 ? "Leia este trecho em voz alta" + (rdph >= 3 ? ", <b>no ritmo natural</b> (até uns " + rdMax + " s)" : "") + ". No fim você vê o que a página entendeu." : "Leia este trecho em voz alta. As palavras que a página entender ficam <b>verdes</b>." }), rt],
       {
         minWords: R.minWords, minSeconds: 15,
-        live: function (t) { if (SR) paint(rt, R.text, t); },
+        live: function (t) { if (SR && rdph < 2) paint(rt, R.text, t); },
         check: function (t) { return words(t).length >= R.minWords; },
         hint: function () { return "Leia o trecho inteiro."; },
         score: function (t, s, noText) {
           if (noText) return { pts: 3, msg: "Enviado! Seu professor vai ouvir.", data: { transcript: "" } };
-          var r = paint(rt, R.text, t), pts = Math.max(0, Math.min(5, Math.round((r.pct - 0.5) * 10)));
-          return { pts: pts, msg: "Você leu " + Math.round(r.pct * 100) + "% certinho." + (r.miss.length ? " Treine: " + r.miss.slice(0, 6).join(", ") : ""), data: { transcript: t, missed: r.miss } };
+          var r = paint(rt, R.text, t), pts = Math.max(0, Math.min(5, Math.round((r.pct - 0.5) * 10))), extra = "";
+          if (rdph >= 3 && s > rdMax) { pts = Math.max(0, pts - 1); extra = " ⏱️ Ficou um pouco devagar (" + Math.round(s) + " s): tente no ritmo natural, até uns " + rdMax + " s."; }
+          if (rdph >= 4 && r.pct < 0.9) { pts = Math.min(pts, 3); extra += " 🍎 Na Árvore com frutos a meta é 90% entendido."; }
+          return { pts: pts, msg: "Você leu " + Math.round(r.pct * 100) + "% certinho." + (r.miss.length ? " Treine: " + r.miss.slice(0, 6).join(", ") : "") + extra, data: { transcript: t, missed: r.miss } };
         },
       });
   }
 
   function buildWriting() {
-    var W = C.writing, step = { key: "writing", title: "Sua vez de escrever", minutes: 3, max: 5, skill: "escrever" };
+    var W = C.writing, step = { key: "writing", title: PARTS && C.writing.minWords >= 30 ? "Conte uma história por escrito" : "Sua vez de escrever", minutes: PARTS && C.writing.minWords >= 30 ? 8 : 3, max: 5, skill: "escrever" };
     var sec = section(step, "3. Escreva ✍️");
     var ta = el("textarea", { placeholder: "Escreva aqui…" }), chips = el("div", { cls: "chips", hidden: "" }), msg = el("p", { cls: "msg", hidden: "" });
     var btn = el("button", { cls: "btn", text: "Enviar", onclick: function () {
@@ -1426,6 +1840,41 @@
       var pts = W.keys.length ? Math.min(5, 2 + Math.round(used / W.keys.length * 3)) : 4;
       finish(step, pts, { text: t.trim(), wrongs: findMistakes(t, W.mistakes) });
     } });
+    var wph = skPhase("writing");
+    if (wph) W = Object.assign({}, W, { minWords: [0, 35, 50, 70, 100][wph], prompts: wph >= 4 ? [] : W.prompts });
+    if (PARTS && W.minWords >= 30) {
+      // ✍️ escrita de verdade (Thiago 26/11): contar uma história, formar um texto, com as palavras obrigatórias da aula
+      var kchips = el("div", { cls: "w-keys" }), wc = el("p", { cls: "w-count" }), warned = false;
+      function live() {
+        var n = words(ta.value).length;
+        wc.textContent = n + " de " + W.minWords + " palavras" + (n >= W.minWords ? " ✅" : "");
+        wc.classList.toggle("ok", n >= W.minWords);
+        if (W.keys.length) keysCheck(ta.value, W.keys, kchips);
+      }
+      ta.addEventListener("input", function () { warned = false; live(); });
+      ta.rows = 8; ta.placeholder = "Conte aqui, em inglês… (frases completas, uma depois da outra)";
+      var btn2 = el("button", { cls: "btn", text: "Enviar" });
+      btn2.addEventListener("click", function () {
+        var t = ta.value;
+        if (words(t).length < W.minWords) { say(msg, "Conte um pouco mais: faltam " + (W.minWords - words(t).length) + " palavras."); return; }
+        var miss = W.keys.filter(function (k, i) { return !keysCheck(t, W.keys, kchips)[i]; }).map(function (k) { return k.name; });
+        if (miss.length && !warned) { warned = true; say(msg, "Faltou usar: " + miss.join(", ") + ". Tente encaixar no texto! (Se quiser enviar assim mesmo, toque em Enviar de novo.)"); return; }
+        var g = W.keys.length ? keysCheck(t, W.keys, kchips) : [];
+        ta.disabled = true; btn2.disabled = true; btn2.textContent = "✅ Enviado";
+        var used = g.filter(Boolean).length;
+        say(msg, "Recebido!" + (W.keys.length ? " Você usou " + used + " de " + W.keys.length + " palavras obrigatórias." : "") + " Seu professor corrige o texto e a correção aparece aqui.", true);
+        var pts = W.keys.length ? Math.min(5, 1 + Math.round(used / W.keys.length * 4)) : 4;
+        finish(step, pts, { text: t.trim(), wrongs: findMistakes(t, W.mistakes) });
+      });
+      live();
+      sec.append(el("p", { html: rich(W.intro) }),
+        W.keys.length ? el("p", { cls: "small", html: "📌 <b>Use estas palavras no seu texto</b> (elas ficam verdes quando você usa):" }) : "", kchips,
+        W.prompts.length ? el("p", { cls: "small", html: "💡 <b>Ideias pra te guiar</b> (não precisa responder uma por uma: é pra contar a história):" }) : "",
+        W.prompts.length ? el.apply(null, ["ul", { cls: "w-guide" }].concat(W.prompts.map(function (p) { return el("li", { html: rich(p.q) + (p.hint ? ' <i class="small">' + esc(p.hint) + "</i>" : "") }); }))) : "",
+        ta, wc, btn2, msg);
+      if (wph) sec.insertBefore(skillBanner("writing"), sec.children[1] || null);
+      return;
+    }
     sec.append(el("p", { html: rich(W.intro) }),
       el.apply(null, ["ol", { cls: "items" }].concat(W.prompts.map(function (p) { return el("li", { html: rich(p.q) + (p.hint ? ' <i class="small">' + esc(p.hint) + "</i>" : "") }); }))),
       ta, btn, chips, msg);
@@ -1433,17 +1882,20 @@
 
   function buildRealtime() {
     var R = C.realtime, chips = el("div", { cls: "chips", hidden: "" }), model = el("div", { cls: "model", hidden: "", html: "<b>Uma resposta possível:</b> " + esc(R.model) });
+    var rtph = skPhase("realtime");
     var s = speakingStep("realtime", "Real Time — fale em inglês", 2, 5, "falar", "4. Fale de novo 🎤",
-      [R.vocab ? el("p", { cls: "small", text: "Mini vocabulário: " + R.vocab }) : "", el("p", { html: "Leia em português e <b>fale direto em inglês</b>, sem escrever:" }), el("p", { cls: "story", html: "<i>" + esc(R.pt) + "</i>" })],
+      [skillBanner("realtime"), R.vocab && rtph < 2 ? el("p", { cls: "small", text: "Mini vocabulário: " + R.vocab }) : "", el("p", { html: "Leia em português e <b>fale direto em inglês</b>, sem escrever" + (rtph >= 3 ? ", usando <b>todas as estruturas</b> da aula" : "") + (rtph >= 4 ? " (fale pelo menos 20 s)" : "") + ":" }), el("p", { cls: "story", html: "<i>" + esc(R.pt) + "</i>" })],
       {
-        minWords: R.minWords, minSeconds: 12,
+        minWords: R.minWords, minSeconds: rtph >= 4 ? 20 : 12,
         check: function (t) { return words(t).length >= R.minWords && keysHit(t, R.keys) >= Math.ceil(R.keys.length / 2); },
         hint: function () { return "Fale o texto todo em inglês."; },
         score: function (t, s2, noText) {
           model.hidden = false;
           if (noText) return { pts: 3, msg: "Enviado! Seu professor vai ouvir.", data: { transcript: "" } };
           var g = keysCheck(t, R.keys, chips);
-          return { pts: Math.round(g.filter(Boolean).length / R.keys.length * 5), msg: "Você usou " + g.filter(Boolean).length + " de " + R.keys.length + " estruturas.", data: { transcript: t, wrongs: findMistakes(t, R.mistakes) } };
+          var used = g.filter(Boolean).length, rpts = Math.round(used / R.keys.length * 5);
+          if (rtph >= 3 && used < R.keys.length) rpts = Math.min(rpts, 3);
+          return { pts: rpts, msg: "Você usou " + used + " de " + R.keys.length + " estruturas." + (rtph >= 3 && used < R.keys.length ? " 🌳 Na sua fase, pra nota cheia precisa usar todas." : ""), data: { transcript: t, wrongs: findMistakes(t, R.mistakes) } };
         },
       });
     s.sec.append(chips, model);
@@ -1751,7 +2203,7 @@
       markDone("treino" + (v + 1)); SFX.stage(); confetti();
       fin.hidden = false;
       fin.replaceChildren(el("b", { text: "🎉 Treino " + (v + 1) + " feito!" }),
-        el("p", { text: v < NT - 1 ? "Quando quiser, faça o Treino " + (v + 2) + ": são outras frases e outras palavras, do que você mais precisa. E tem as lições extras aqui embaixo." : "Você fez os " + NT + " treinos! Quer mais? Faça as lições extras aqui embaixo. Falou, validou! 🚀" }));
+        el("p", { text: v < NT - 1 ? "Quando quiser, faça o Treino " + (v + 2) + ": são outras frases e outras palavras, do que você mais precisa. E tem " + "o 🎧 Inglês de verdade" + " aqui embaixo." : "Você fez os " + NT + " treinos! Quer mais? Faça as lições extras aqui embaixo. Falou, validou! 🚀" }));
       paintTrainingButtons();
     }
     // 1. 🎧 ouça e escreva (2 frases que a página menos entendeu)
@@ -1841,9 +2293,10 @@
     if (!extrasSec) return;
     var X = C.extras || [];
     if (!X.length || !(delivered || VIEW)) { extrasSec.hidden = true; return; }
-    extrasSec.replaceChildren(el("span", { cls: "eyebrow", text: "🎧 Lições extras · opcionais" }),
-      el("h2", { text: "Quer mais? Treine o ouvido" }),
-      el("p", { cls: "small", html: "Trechos novos, de gente falando de verdade, com o que você mais precisa. <b>Ouça cada frase e complete o que falta</b>; depois repita. Faça quando quiser, uma por dia." }));
+    // nomes novos (Thiago 27/11): extras = "🎧 Inglês de verdade" (≠ "📘 Corrigir meus erros" do Treinar) — Aluno Teste primeiro
+    extrasSec.replaceChildren(el("span", { cls: "eyebrow", text: "🎧 Inglês de verdade · opcional" }),
+      el("h2", { text: "Trechos reais pra treinar o ouvido" }),
+      el("p", { cls: "small", html: true ? "Vlogs, séries e gente na rua falando <b>sobre o tema desta aula</b>, do jeito que o nativo fala. <b>Ouça cada frase e complete o que falta</b>; depois repita. Faça quando quiser, um por dia. (Pra treinar o que <b>você</b> errou, use o 📘 Corrigir meus erros, na aba 🎯 Treinar.)" : "Trechos novos, de gente falando de verdade, com o que você mais precisa. <b>Ouça cada frase e complete o que falta</b>; depois repita. Faça quando quiser, uma por dia." }));
     var d = doneSet();
     X.forEach(function (x, xi) {
       var k = "extra" + (xi + 1);
@@ -1965,7 +2418,7 @@
         el("li", { html: "🔥 Acertos seguidos viram <b>combo</b> e dão XP extra. No fim tem a <b>rodada bônus</b> ⚡." }),
         el("li", { html: WA ? "🎤 Nas fases de fala (igual áudio de WhatsApp): <b>toque em Gravar</b>, espere o 🔴 e fale. <b>Toque de novo pra finalizar</b> (se não tocar, continua gravando). Depois <b>ouça o seu áudio</b> (▶️ Ouvir / ⏸ Pausar) e toque em <b>✅ Enviar</b>. Não gostou? 🔁 Grave de novo (até 3 vezes)." : "🎤 Nas fases de fala: toque em Gravar, espere o <b>3, 2, 1</b> e fale quando aparecer 🔴." }),
         el("li", { html: "☕ Terminou uma fase? Pode <b>descansar e continuar depois</b> (até em outro dia): o site <b>guarda onde você parou</b>." }),
-        el("li", { html: "🔁 No fim tem <b>treinos dos seus erros</b> e <b>lições extras</b> pra fazer nos outros dias (opcionais)." })),
+        el("li", { html: true ? "🔁 No fim tem <b>treinos dos seus erros</b> e <b>🎧 Inglês de verdade</b> (trechos reais do tema da aula) pra fazer nos outros dias (opcionais)." : "🔁 No fim tem <b>treinos dos seus erros</b> e <b>lições extras</b> pra fazer nos outros dias (opcionais)." })),
       el("button", { cls: "btn", type: "button", text: "Entendi, bora! 🚀", onclick: function () {
         try { localStorage.setItem("licao_comojogar", "1"); } catch (e) {}
         SFX.go(); card.remove();
@@ -1988,9 +2441,11 @@
     if (!VIEW) howTo();
     if (D.prev && D.prev.items && D.prev.items.length && !VIEW) buildPrev();
     if (C.review) buildReview();
-    buildDictation(); if (C.scene) buildScene();
+    // ordem (Thiago 27/11): a cena (o mais pesado pro ouvido) logo depois da revisão, com a cabeça fresca; o ditado dá um respiro
+    if (REORDER && C.scene) { buildScene(); buildDictation(); } else { buildDictation(); if (C.scene) buildScene(); }
     // tudo da fofoca em sequência, pro aluno não esquecer a história
-    buildGossip(); buildShadowing(); buildRetell(); buildStory(); buildRead();
+    if (REORDER) { buildGossip(); buildStory(); buildShadowing(); buildRetell(); buildRead(); }
+    else { buildGossip(); buildShadowing(); buildRetell(); buildStory(); buildRead(); }
     buildWriting(); buildRealtime();
     steps.forEach(function (s) { track.append(el("span", { title: s.title, onclick: function () { if (!s.sec.classList.contains("locked")) nav(s.sec); } })); });
     bars = [].slice.call(track.children);
@@ -2008,6 +2463,7 @@
     app.append(concludeSec, resultSec, fbSec, extrasSec, el("footer", { text: "Falou, validou! 🚀" }));
     unlock(steps[0], false);
     if (PAGED) { document.body.classList.add("paged"); nav(steps[0].sec, true); }
+    setTimeout(goFase, 0);
   }
   // 👀 Revisão da lição feita (Thiago 26/11): em cada parte o aluno VÊ o que respondeu, o que errou e o certo (sem poder mudar)
   function showMine(s, d) {

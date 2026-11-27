@@ -1,0 +1,68 @@
+{
+ "id": "was-were",
+ "title": "Was ou were?",
+ "level": "A1",
+ "regra": "Pra falar do passado do verbo <b>to be</b>: com <b>I / he / she / it</b> (uma pessoa ou coisa) → <b>was</b>. Com <b>you / we / they</b> e com <b>plural</b> (my parents, my friends) → <b>were</b>.",
+ "exemplos": [
+  {
+   "en": "My brother was at home.",
+   "pt": "Meu irmão estava em casa.",
+   "audio": "42c1d541d43550a8255e7637d3bbc7e5.mp3"
+  },
+  {
+   "en": "My parents were at the beach.",
+   "pt": "Meus pais estavam na praia.",
+   "audio": "ad9d95c4e733e7d063d79c073637127c.mp3"
+  }
+ ],
+ "fofoca": {
+  "audio": "84f32360aeaa3a3c239a23bfd25d8c02.mp3",
+  "gaps": "Last Saturday, my parents [[were]] at the beach. My brother [[was]] at home, alone. He [[was]] bored, so he called his friends. But his friends [[were]] busy. They [[were]] at a party! So my brother [[was]] alone all day. Poor guy!"
+ },
+ "ouvir": [
+  {
+   "options": [
+    "My friends were at the party.",
+    "My friends was at the party.",
+    "My friend was at the party."
+   ],
+   "answer": 0,
+   "audio": "3dfad575e2808ecf3eba5fa5682734ae.mp3"
+  },
+  {
+   "options": [
+    "My parents were at home.",
+    "My parents was at home.",
+    "My parent was at home."
+   ],
+   "answer": 0,
+   "audio": "b7102d68c6d9605340bd0f1e6ef198de.mp3"
+  },
+  {
+   "options": [
+    "We were really tired.",
+    "We was really tired.",
+    "He was really tired."
+   ],
+   "answer": 0,
+   "audio": "42e5332739bd1d46df6c8881bb5e8521.mp3"
+  }
+ ],
+ "falar": [
+  {
+   "pt": "Meus pais estavam em casa.",
+   "en": "My parents were at home.",
+   "audio": "4fb908773a813a76a690311af6136b8d.mp3"
+  },
+  {
+   "pt": "Nós estávamos muito cansados.",
+   "en": "We were really tired.",
+   "audio": "bd1733a7fd666ef49a165c8cab227656.mp3"
+  },
+  {
+   "pt": "O meu irmão estava sozinho.",
+   "en": "My brother was alone.",
+   "audio": "7dd2dbda25fcd4f6193f2c391434cbbb.mp3"
+  }
+ ]
+}

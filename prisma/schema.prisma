@@ -555,3 +555,57 @@ model LessonRecording {
 
   @@index([attemptId])
 }
+
+/// 🔓 DESTRAVANDO (produto público): conta do aluno = cadastro (lead) + login com senha + progresso salvo.
+/// Separado do homework (Student/Lesson): nada aqui aparece pros alunos particulares nem o contrário.
+model DtvUser {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  name         String
+  passwordHash String
+  whatsapp     String?
+  gender       String?
+  ageRange     String?
+  state        String?
+  city         String?
+  goal         String?
+  howFound     String?
+  selfLevel    String?
+  testLevel    String?
+  marketingOk  Boolean   @default(false)
+  consentAt    DateTime  @default(now())
+  /// Progresso do treino (o mesmo objeto que fica no aparelho), pra não perder ao trocar de celular.
+  progress     Json?
+  progressAt   DateTime?
+  lastSeenAt   DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  sessions DtvSession[]
+  resets   DtvReset[]
+}
+
+model DtvSession {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      DtvUser  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+/// "Esqueci a senha": código de 6 números por e-mail, vale 20 minutos, 5 tentativas.
+model DtvReset {
+  id        String    @id @default(cuid())
+  userId    String
+  codeHash  String
+  attempts  Int       @default(0)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  user      DtvUser   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}

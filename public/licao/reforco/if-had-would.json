@@ -1,0 +1,68 @@
+{
+ "id": "if-had-would",
+ "title": "If I had… I would…",
+ "level": "A2",
+ "regra": "No <b>2º condicional</b> (uma situação imaginária), depois do <b>if</b> vem o <b>passado</b>: <b>had</b>, <b>were</b>, <b>didn't</b>… E na outra parte vem <b>would</b>. Mesmo falando de agora: <b>If I had</b> time, <b>I would</b> travel.",
+ "exemplos": [
+  {
+   "en": "If I had time, I would travel.",
+   "pt": "Se eu tivesse tempo, eu viajaria.",
+   "audio": "182bee04fb3d7baf1f592c221834977e.mp3"
+  },
+  {
+   "en": "If I were rich, I wouldn't work.",
+   "pt": "Se eu fosse rico, eu não trabalharia.",
+   "audio": "1aec6361c7892b2d1691bac3efcb0678.mp3"
+  }
+ ],
+ "fofoca": {
+  "audio": "364049b5e24e7c3685ba6fe628f89a70.mp3",
+  "gaps": "My friend Ana always says: if I [[had]] money, I [[would]] travel. If I [[had]] time, I would learn Japanese. If I [[were]] rich, I wouldn't work! But she spends all her money on shoes. If she [[didn't]] buy so many shoes, she would have money to travel!"
+ },
+ "ouvir": [
+  {
+   "options": [
+    "If I had time, I would travel.",
+    "If I have time, I would travel.",
+    "If I had time, I will travel."
+   ],
+   "answer": 0,
+   "audio": "980ed93c584245022165897e406738ea.mp3"
+  },
+  {
+   "options": [
+    "If I were rich, I wouldn't work.",
+    "If I am rich, I wouldn't work.",
+    "If I were rich, I won't work."
+   ],
+   "answer": 0,
+   "audio": "a33605d67b2c62b72852cf792c98e109.mp3"
+  },
+  {
+   "options": [
+    "If she didn't buy shoes, she would have money.",
+    "If she doesn't buy shoes, she would have money.",
+    "If she didn't buy shoes, she will have money."
+   ],
+   "answer": 0,
+   "audio": "bfd5b1e07fe4b0667e415e802824c5fb.mp3"
+  }
+ ],
+ "falar": [
+  {
+   "pt": "Se eu tivesse tempo, eu viajaria.",
+   "en": "If I had time, I would travel.",
+   "audio": "740e1d940302ba84c75699846f2df324.mp3"
+  },
+  {
+   "pt": "Se eu fosse rico, eu não trabalharia.",
+   "en": "If I were rich, I wouldn't work.",
+   "audio": "37e691619599f0b172d80d36c578c5a0.mp3"
+  },
+  {
+   "pt": "Se ela não comprasse sapatos, ela teria dinheiro.",
+   "en": "If she didn't buy shoes, she would have money.",
+   "audio": "9e84f6293d43a4ef8e7a90eddf4b2e2b.mp3"
+  }
+ ]
+}

@@ -32,7 +32,7 @@ export async function POST(request: NextRequest, { params }: Params) {
     take: 20,
   });
   const parts = (p: unknown) =>
-    p && typeof p === "object" ? Object.keys(p as Record<string, unknown>).filter((k) => k !== "combo" && k !== "_days" && !/^(treino|extra)\d/.test(k)).length : 0;
+    p && typeof p === "object" ? Object.keys(p as Record<string, unknown>).filter((k) => k !== "combo" && !k.startsWith("_") && !/^(treino|extra)\d/.test(k)).length : 0;
   const best = open.reduce<(typeof open)[number] | null>((acc, a) => (!acc || parts(a.progress) > parts(acc.progress) ? a : acc), null);
   if (best) {
     return NextResponse.json({ id: best.id, token: best.token, progress: best.progress, review: best.review });

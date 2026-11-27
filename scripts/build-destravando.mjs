@@ -28,6 +28,31 @@ writeFileSync(join(out, "aprender/index.html"), html("app/aprender/route.ts"));
 // /academia antigo continua abrindo a Academia
 mkdirSync(join(out, "academia"), { recursive: true });
 writeFileSync(join(out, "academia/index.html"), html("app/academia/route.ts"));
+// política de privacidade na raiz (link do cadastro)
+cpSync(join(root, "public/academia/privacidade.html"), join(out, "privacidade.html"));
+// 🔐 /api/* do Destravando → servidor do projeto (contas, leads, progresso). O aluno só vê o endereço do Destravando.
+writeFileSync(
+  join(out, "_worker.js"),
+  `const BACK = "https://homework.inglescomjoaquim.com/api/destravando";
+export default {
+  async fetch(req, env) {
+    const u = new URL(req.url);
+    if (u.pathname.startsWith("/api/")) {
+      const h = new Headers(req.headers);
+      h.delete("host"); h.delete("cookie");
+      h.set("x-forwarded-for", req.headers.get("cf-connecting-ip") || "");
+      const r = await fetch(BACK + u.pathname.slice(4) + u.search, {
+        method: req.method, headers: h, redirect: "manual",
+        body: req.method === "GET" || req.method === "HEAD" ? undefined : await req.arrayBuffer(),
+      });
+      const rh = new Headers(r.headers); rh.set("Cache-Control", "no-store");
+      return new Response(r.body, { status: r.status, headers: rh });
+    }
+    return env.ASSETS.fetch(req);
+  },
+};
+`
+);
 writeFileSync(
   join(out, "_headers"),
   [

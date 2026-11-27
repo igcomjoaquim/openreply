@@ -62,7 +62,7 @@ export type LessonRow = {
   partsDone: number;
 };
 
-const EXTRA_KEYS = new Set(["combo", "bonus", "done", "_days"]);
+const EXTRA_KEYS = new Set(["combo", "bonus", "done", "_days", "_drill", "_partes", "_cortes"]);
 
 /** Lições do aluno, da mais nova para a mais antiga, com a nota que vale. */
 export async function studentLessons(studentId: string): Promise<LessonRow[]> {

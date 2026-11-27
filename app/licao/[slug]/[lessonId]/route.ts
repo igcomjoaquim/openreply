@@ -4,6 +4,8 @@ import { getPrisma } from "@/lib/db/client";
 import { HTML_HEADERS, dayMonth, page } from "@/lib/licao/html";
 import { gradedAttempt } from "@/lib/licao/summary";
 import { studentStreak } from "@/lib/licao/streak";
+import { EAR_PHASES, EAR_RULE, earPhaseOf } from "@/lib/licao/ear";
+import { skillPhases } from "@/lib/licao/skills";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -41,11 +43,23 @@ export async function GET(request: NextRequest, { params }: Params) {
     view: graded ? { progress: graded.progress, review: graded.review } : null,
     prev,
     streak: await studentStreak(lesson.studentId),
+    // 🎚️ fases das outras habilidades (só Aluno Teste até aprovar; ?nivel=1..4 força todas pra demonstrar)
+    skills: await skillPhases(lesson.studentId, lesson.id, isDemoStudent(lesson.student.name) ? (() => { const n = Number(request.nextUrl.searchParams.get("nivel")); return n >= 1 && n <= 4 ? n : undefined; })() : undefined), // liberado pra todos 27/11
+    // 🎧 fase do ouvido (partes da cena crescem conforme ele acerta); Aluno Teste aceita ?ouvido=1..4 pra demonstrar
+    ear: await (async () => {
+      const e = await earPhaseOf(lesson.studentId, lesson.id);
+      const force = Number(request.nextUrl.searchParams.get("ouvido"));
+      if (isDemoStudent(lesson.student.name) && force >= 1 && force <= EAR_PHASES.length) {
+        const P = EAR_PHASES[force - 1], N = EAR_PHASES[force] ?? null;
+        return { ...e, phase: force, icon: P.icon, name: P.name, parts: P.parts, seg: P.seg, next: N ? { icon: N.icon, name: N.name, seg: N.seg } : null, rule: EAR_RULE, phases: EAR_PHASES };
+      }
+      return { ...e, rule: EAR_RULE, phases: EAR_PHASES };
+    })(),
   };
   const json = JSON.stringify(data).replace(/</g, "\\u003c");
   const body = `<div class="wrap" id="app"><p class="loading">Carregando a sua lição…</p></div>
 <script id="lesson-data" type="application/json">${json}</script>
-<script src="/licao/app.js?v=51"></script>`;
+<script src="/licao/app.js?v=83"></script>`;
   return new NextResponse(page(`${lesson.title} — ${lesson.student.name}`, body), { headers: HTML_HEADERS });
 }
 

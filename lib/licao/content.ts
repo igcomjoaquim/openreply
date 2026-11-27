@@ -67,6 +67,23 @@ export const lessonContentSchema = z.object({
       vocab: z.array(z.array(z.string()).min(2).max(3)).max(14).default([]),
       /** Texto do trecho pra acompanhar depois de assistir: t = segundo do vídeo; **chunk** marca a expressão da aula. */
       transcript: z.array(z.object({ t: z.number().min(0), en: z.string().min(1), pt: z.string().optional() })).max(40).default([]),
+      /**
+       * ✂️ Cena por partes (Thiago 26/11): no máximo 5 partes. Em cada uma o aluno ouve (quantas vezes quiser)
+       * e escolhe a frase que ouviu: options[answer] é a frase certa (inteira, curta), as outras são quase iguais
+       * (uma ou duas palavras trocadas que soam parecido) — assim ele precisa OUVIR, não ler.
+       * Cada parte com NO MÁXIMO ~7 s (Thiago 26/11: "o aluno entende umas duas frases seguidas"). en/pt = o texto exato da parte.
+       */
+      parts: z
+        .array(z.object({ t: z.number().min(0), end: z.number().positive(), en: z.string().optional(), pt: z.string().optional(), options: z.array(z.string().min(1)).min(2).max(4), answer: z.number().int().min(0),
+            /** 🔍 Raio-X (Thiago 27/11): a pergunta vai no pedaço MAIS DIFÍCIL da parte. prompt = a frase com "___" no lugar dele
+             *  (options = só o que vai na lacuna); hard = o pedaço (t/end ~2 s) + como soa + por quê. */
+            prompt: z.string().optional(),
+            /** 🧠 entendimento (Thiago 27/11): 2 perguntas EM PORTUGUÊS sobre o começo e o fim da parte — sem inglês na tela,
+             *  só acerta quem entendeu o áudio. Vêm antes do pedaço difícil; o texto só aparece depois de responder tudo. */
+            comp: z.array(z.object({ q: z.string().min(1), options: z.array(z.string().min(1)).min(2).max(4), answer: z.number().int().min(0), /** inglês de cada opção (aparece do lado) */ en: z.array(z.string()).optional(), /** o trecho do áudio que prova a resposta (aparece depois) + tradução */ said: z.string().optional(), said_pt: z.string().optional() })).max(3).optional(),
+            hard: z.object({ t: z.number().min(0), end: z.number().positive(), text: z.string(), som: z.string(), porque: z.string() }).optional() }))
+        .max(5)
+        .optional(),
     })
     .optional(),
   shadowing: z

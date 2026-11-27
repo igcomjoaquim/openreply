@@ -48,3 +48,21 @@ export async function PUT(request: NextRequest, { params }: Params) {
   });
   return NextResponse.json({ ok: true });
 }
+
+/**
+ * Só o nome da matéria (content.subject): é rótulo, não mexe em exercício nem nota,
+ * então vale também pra lição já concluída. Body: { subject: string }.
+ */
+export async function PATCH(request: NextRequest, { params }: Params) {
+  if (!isAuthorizedServiceRequest(request.headers.get("authorization"))) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const { id } = await params;
+  const parsed = z.object({ subject: z.string().min(1).max(140) }).safeParse(await request.json().catch(() => null));
+  if (!parsed.success) return NextResponse.json({ error: "Invalid subject" }, { status: 400 });
+  const prisma = getPrisma();
+  const lesson = await prisma.lesson.findUnique({ where: { id }, select: { content: true } });
+  if (!lesson) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  await prisma.lesson.update({ where: { id }, data: { content: { ...(lesson.content as object), subject: parsed.data.subject } } });
+  return NextResponse.json({ ok: true });
+}

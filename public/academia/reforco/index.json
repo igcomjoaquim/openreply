@@ -1,0 +1,29 @@
+[
+ {
+  "id": "was-were",
+  "title": "Was ou were?",
+  "level": "A1",
+  "match": {
+   "said": "\\bwas\\b",
+   "right": "\\bwere\\b"
+  }
+ },
+ {
+  "id": "if-had-would",
+  "title": "If I had… I would…",
+  "level": "A2",
+  "match": {
+   "said": "\\bif\\b.*\\b(have|has|am|is|are|don't|doesn't)\\b",
+   "right": "\\bif\\b.*\\b(had|were|didn't)\\b"
+  }
+ },
+ {
+  "id": "would-sem-to",
+  "title": "Would + verbo sem to",
+  "level": "A2",
+  "match": {
+   "said": "\\b(would|wouldn't|would not) to\\b",
+   "right": "\\b(would|wouldn't)\\b"
+  }
+ }
+]

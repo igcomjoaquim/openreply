@@ -271,22 +271,35 @@
     var w = screen(); w.classList.add("land");
     function sec(eyebrow, title, cls) { var x = el("section", { cls: "land-sec " + (cls || "") }, el("span", { cls: "eyebrow", text: eyebrow }), title ? el("h2", { html: title }) : null); return x; }
     function cta(txt) { return el("button", { cls: "btn big gold", type: "button", text: txt || "Quero destravar meu inglês →", onclick: startFlow }); }
-    // prévia de verdade: um trecho da fofoca do tema 4 e uma pergunta, igual ao treino
-    var DEMO = "/aprender/audio/u03-gl0_2-f483b62a.mp3", heard = false, answered = false;
+    // prévia de verdade (Thiago 28/11: "um áudio mais autêntico e um pouco mais difícil"): entrevista de rua nos EUA,
+    // Easy English, tela coberta igual ao treino. O moço inventa um plano e a amiga desmente na hora.
+    var DEMO_ID = "OlyYE6USuO0", D0 = 110.2, D1 = 129.75, heard = false, answered = false, playing = false;
+    var dHolder = el("div"), dCover = el("div", { cls: "yt-cover2" }, el("span", { cls: "cv-ic", text: "🎧" }), el("span", { text: "Tela coberta · só ouvido" }));
+    var dBox = el("div", { cls: "yt yt-wrap2 land-yt" }, dHolder, dCover), DY = null;
     var opts = el("div", { cls: "pt-q" }), dmsg = el("div", { cls: "small" });
-    [["Quatro em ponto", "Four o'clock", true], ["Catorze horas", "Fourteen o'clock", false], ["Quarenta minutos", "Forty minutes", false]].forEach(function (o) {
+    var DEMO_TX = [["I'm gonna ride my bike home and then walk my dog and then take a nap.", "Vou pra casa de bicicleta, depois passear com o meu cachorro e depois tirar um cochilo."], ["That's not true at all!", "Isso não é verdade de jeito nenhum!"], ["You don't even have a dog?", "Você nem tem cachorro?"], ["No. And I don't have a bike.", "Não. E eu não tenho bicicleta."], ["And you never sleep.", "E você nunca dorme."], ["I'm definitely going to take a nap.", "Eu com certeza vou tirar um cochilo."], ["At least it's partially true.", "Pelo menos é meio verdade."]];
+    function demoReveal() {
+      var box = el("div", { cls: "said-box land-tx" }, el("b", { text: "🗣️ O que eles falaram:" }));
+      DEMO_TX.forEach(function (l) { box.append(el("i", { text: "“" + l[0] + "”" }), el("small", { text: "🇧🇷 " + l[1] })); });
+      dCover.remove(); dmsg.replaceChildren(box, el("button", { cls: "btn ghost", type: "button", text: "🎬 Ver a cena de novo, agora sem a capa", onclick: function () { DY.play(D0, D1, 1); } }));
+    }
+    [["Era mentira: ele não tem cachorro nem bicicleta", "He doesn't have a dog or a bike", true], ["Era verdade: ele vai pra casa de bicicleta", "He's riding his bike home", false], ["Ela vai cuidar do cachorro dele", "She's walking his dog", false]].forEach(function (o) {
       var b = el("button", { cls: "pt-opt wait", type: "button" }, o[0], el("span", { cls: "opt-en", text: o[1] }));
       b.onclick = function () {
         if (!heard) { dmsg.textContent = "🎧 Primeiro toque em ▶ pra ouvir."; return; }
         if (answered) return;
-        if (o[2]) { answered = true; b.classList.add("ok"); fb(true); dmsg.replaceChildren(el("span", { cls: "said-box" }, "✅ Isso! 🗣️ No áudio: ", el("i", { text: "“Woof! Woof! Max! What time is it? Four o'clock!”" }), el("small", { text: "🇧🇷 Au! Au! O Max! Que horas são? Quatro em ponto!" }))); }
-        else { b.classList.add("bad"); b.disabled = true; fb(false); dmsg.textContent = "❌ Não foi essa. Ouça de novo."; }
+        if (o[2]) { answered = true; b.classList.add("ok"); fb(true); demoReveal(); }
+        else { b.classList.add("bad"); b.disabled = true; fb(false); dmsg.textContent = "❌ Não foi essa. Ouça de novo: preste atenção no que a amiga responde."; }
       };
       opts.append(b);
     });
-    var playB = el("button", { cls: "btn pt-big pulse", type: "button", text: "▶ Ouvir o trecho", onclick: function () {
-      playB.classList.remove("pulse"); var a = playUrl(DEMO); a.onended = a.onerror = function () { heard = true; [].forEach.call(opts.children, function (c) { c.classList.remove("wait"); }); if (!answered) dmsg.textContent = "Agora escolha: que horas são na história?"; };
-    } });
+    function demoPlay() {
+      if (!DY) DY = ytScene(dHolder, DEMO_ID, D0, D1);
+      if (playing) { DY.pause(); playing = false; playB.textContent = "▶ Ouvir de novo"; heroPlay.textContent = "▶"; return; }
+      playing = true; playB.classList.remove("pulse"); playB.textContent = "⏸ Pausar"; heroPlay.textContent = "❚❚";
+      DY.play(D0, D1, 1, function () { playing = false; heard = true; playB.textContent = "▶ Ouvir de novo"; heroPlay.textContent = "▶"; [].forEach.call(opts.children, function (c) { c.classList.remove("wait"); }); if (!answered) dmsg.textContent = "Agora escolha: o plano dele era verdade?"; });
+    }
+    var playB = el("button", { cls: "btn pt-big pulse", type: "button", text: "▶ Ouvir o trecho", onclick: demoPlay });
     var faq = el("div", { cls: "land-faq" });
     [["Eu sou muito iniciante. Isso funciona pra mim?", "Funciona. O teste de nível mostra por onde você começa, e a trilha vai do A1 ao A2, um tema por vez. No começo tudo vem com a tradução do lado, sem pressão e sem vergonha."],
      ["Quanto tempo por dia eu preciso?", "Uns 15 minutos. O treino do dia é feito de fases curtas. O que muda o jogo não é o tempo, é a constância: treinar um pouquinho todo dia."],
@@ -298,21 +311,20 @@
     });
     // 🧭 menu com abas, igual ao inglescomjoaquim.com (no celular abre pelo ☰)
     var NAV = [["Como funciona", "como-funciona"], ["Prévia", "previa"], ["O método", "metodo"], ["Quem é o Joaquim", "professor"], ["Assinatura", "assinatura"], ["Dúvidas", "faq"]];
-    function go(id) { menu.classList.remove("open"); burger.textContent = "☰"; var t = document.getElementById(id); if (!t) return; var y = t.getBoundingClientRect().top + window.scrollY - 70, y0 = window.scrollY; window.scrollTo({ top: y, behavior: "smooth" }); setTimeout(function () { if (Math.abs(window.scrollY - y0) < 5) window.scrollTo(0, y); }, 450); }
+    function go(id) { menu.classList.remove("open"); burger.textContent = "☰ Menu"; var t = document.getElementById(id); if (!t) return; var y = t.getBoundingClientRect().top + window.scrollY - 70, y0 = window.scrollY; window.scrollTo({ top: y, behavior: "smooth" }); setTimeout(function () { if (Math.abs(window.scrollY - y0) < 5) window.scrollTo(0, y); }, 450); }
     var menu = el("nav", { cls: "land-nav" });
     NAV.forEach(function (n) { menu.append(el("button", { type: "button", text: n[0], onclick: function () { go(n[1]); } })); });
     if (!PROF && CONTA_OK) menu.append(el("button", { cls: "nav-login", type: "button", text: "Entrar na minha conta", onclick: function () { menu.classList.remove("open"); loginFromLanding(); } }));
-    var burger = el("button", { cls: "land-burger", type: "button", "aria-label": "Abrir menu", text: "☰", onclick: function () { menu.classList.toggle("open"); burger.textContent = menu.classList.contains("open") ? "✕" : "☰"; } });
+    var burger = el("button", { cls: "land-burger", type: "button", "aria-label": "Abrir menu", text: "☰ Menu", onclick: function () { menu.classList.toggle("open"); burger.textContent = menu.classList.contains("open") ? "✕ Fechar" : "☰ Menu"; } });
     var top = el("header", { cls: "land-top" }, el("img", { cls: "land-logo", src: SITE + "logo.png", alt: "Inglês com Joaquim" }), menu,
       el("div", { cls: "land-top-r" }, PROF || !CONTA_OK ? null : el("button", { cls: "btn ghost sm hide-m", type: "button", text: "Entrar", onclick: loginFromLanding }),
         el("button", { cls: "btn gold sm hide-m", type: "button", text: "Começar agora →", onclick: startFlow }), burger));
     // 📸 cartão com a foto do Joaquim e o áudio da prévia (como o cartão do site)
-    var heroA = null, heroPlay = el("button", { cls: "hc-play", type: "button", "aria-label": "Ouvir", text: "▶" });
-    heroPlay.onclick = function () { if (heroA && !heroA.paused) { heroA.pause(); heroPlay.textContent = "▶"; return; } heroA = playUrl(DEMO); heroPlay.textContent = "❚❚"; heroA.onended = heroA.onerror = function () { heroPlay.textContent = "▶"; heard = true; [].forEach.call(opts.children, function (c) { c.classList.remove("wait"); }); }; };
+    var heroPlay = el("button", { cls: "hc-play", type: "button", "aria-label": "Ouvir a prévia", text: "▶", onclick: function () { go("previa"); demoPlay(); } });
     var wave = el("span", { cls: "hc-wave" }); for (var wi = 0; wi < 26; wi++) wave.append(el("i", { style: "height:" + (6 + Math.round(Math.abs(Math.sin(wi * 1.7)) * 18)) + "px" }));
     var heroCard = el("div", { cls: "land-hcard" }, el("img", { src: SITE + "profile.png", alt: "Joaquim sorrindo" }),
-      el("div", { cls: "hc-tag" }, el("small", { text: "TEMA 4 · FOFOCA" }), el("b", { text: "Que horas são no prédio do Carlos?" }), el("span", { text: "What time is it? · o'clock" })),
-      el("div", { cls: "hc-bar" }, heroPlay, wave, el("span", { cls: "hc-t", text: "0:08" })),
+      el("div", { cls: "hc-tag" }, el("small", { text: "CENA REAL · EUA" }), el("b", { text: "O plano dele é verdade?" }), el("span", { text: "Entrevista de rua · Easy English" })),
+      el("div", { cls: "hc-bar" }, heroPlay, wave, el("span", { cls: "hc-t", text: "0:19" })),
       el("span", { cls: "hc-badge", text: "Falou, validou!" }));
     // ➖ faixa que corre
     var mq = el("div", { cls: "land-marquee" }), mqIn = el("div", { cls: "mq-in" });
@@ -372,10 +384,10 @@
           el("li", null, el("i", { text: "03" }), el("b", { text: "Treina todo dia" }), el("span", { text: "Cena real, ditado, fofoca, shadowing, leitura em voz alta e Real Time, em fases curtas." })),
           el("li", null, el("i", { text: "04" }), el("b", { text: "Evolui e valida" }), el("span", { text: "O que você erra volta até acertar. Falou, validou. Aí vem o próximo tema." }))));
         return x; })(),
-      (function () { var x = sec("Prévia · experimenta agora", "Ouça a fofoca do prédio", "land-demo"); x.id = "previa";
-        x.append(el("p", { cls: "small", text: "O Carlos mora no apartamento 6 com o cachorro, o Max. Ouça o trecho, sem ler nada, e responda." }),
-          playB, el("p", { cls: "comp-q", text: "❓ Que horas são na história?" }), opts, dmsg,
-          el("p", { cls: "small", text: "É assim o treino inteiro: primeiro você ouve, depois entende, e só então vê o texto." }));
+      (function () { var x = sec("Prévia · experimenta agora", "Nativo de verdade, na rua, sem roteiro", "land-demo"); x.id = "previa";
+        x.append(el("p", { cls: "small", text: "Numa entrevista de rua nos EUA, perguntam os planos pro resto do dia. Um moço responde, e a amiga dele comenta. Ouça com a tela coberta, sem ler nada, e responda." }),
+          dBox, playB, el("p", { cls: "comp-q", text: "❓ O plano dele era verdade?" }), opts, dmsg,
+          el("p", { cls: "small", text: "Achou rápido? É assim que nativo fala de verdade. No treino, a cena vem em partes, com o Raio-X do som, até você entender tudo." }));
         return x; })(),
       (function () { var x = sec("O método por trás", "Não é sorte. É um jeito de ensinar que respeita como o cérebro aprende."); x.id = "metodo";
         x.append(el("div", { cls: "land-cards three" },

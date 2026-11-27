@@ -241,3 +241,23 @@ body.premium .land-hero .land-badges{align-items:center}
 body.premium .land-hero .land-badges span:not(.stars){background:none!important;border:0!important;padding:0!important;font-size:14px;color:#4A4030}
 body.premium .land-hero > p.small{font-size:14px;color:var(--muted)}
 body.premium .land-nav.open{background:#FBF7EF!important}
+
+/* 🍷 menu em marsala, com cara de clicável (Thiago 28/11) */
+body.premium .land-burger{width:auto;height:42px;padding:0 16px;border-radius:999px;border:0;background:var(--marsala);color:#FBF7EF;font:600 14px var(--f-body);gap:6px;box-shadow:0 8px 20px -10px rgba(111,42,61,.7)!important}
+body.premium .land-nav.open button{color:var(--marsala);font-weight:600;display:flex;justify-content:space-between;align-items:center}
+body.premium .land-nav.open button::after{content:"→";color:var(--gold-txt);font-weight:700}
+body.premium .land-nav.open .nav-login{background:var(--marsala);color:#FBF7EF!important;border-radius:999px;justify-content:center;margin-top:12px}
+body.premium .land-nav.open .nav-login::after{display:none}
+@media (min-width:900px){
+  body.premium .land-nav button{color:var(--marsala)!important;font-weight:600!important;border-radius:999px!important;padding:8px 14px!important;background:rgba(111,42,61,.07)!important;transition:background .15s,color .15s}
+  body.premium .land-nav button:hover{background:var(--marsala)!important;color:#FBF7EF!important}
+}
+/* prévia com vídeo de verdade */
+body.premium .land-yt{border-radius:18px;overflow:hidden}
+body.premium .land-tx{display:flex;flex-direction:column;gap:4px;text-align:left}
+body.premium .land-tx i{display:block;margin-top:6px}
+body.premium .land-tx small{display:block;color:var(--muted)}
+@media (min-width:900px){
+  body.premium .land-nav button{background:rgba(111,42,61,.1)!important;border:1px solid rgba(111,42,61,.35)!important}
+  body.premium .land-nav button:hover{border-color:var(--marsala)!important}
+}

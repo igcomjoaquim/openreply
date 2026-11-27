@@ -1,0 +1,89 @@
+/* ✨ TEMA PREMIUM (Thiago 27/11): a estética do inglescomjoaquim.com na Destravando.
+   Fraunces nos títulos, Inter no texto, Caveat à mão; creme #FBF7EF, dourado #D4A843, vinho #6F2A3D;
+   cantos arredondados, sombras macias, botões em pílula. Continua irreverente (emojis, "Falou, validou.").
+   Liga com body.premium (?tema=premium). */
+body.premium{
+  --paper:#F4ECDD; --card:#FFFDF8; --ink:#211A10; --muted:#7F735C; --line:#E4DED2;
+  --marsala:#6F2A3D; --yellow:#D4A843; --wood:#B8925A; --caramel:#A0741F; --mustard:#C39A3A;
+  --ok:#3E7B55; --okbg:#E8F1E6; --badbg:#F5E4E6;
+  --gold-1:#EDC55F; --gold-2:#D4A843; --gold-3:#BF922F; --gold-ink:#2B2008; --gold-soft:#F3E4BC; --gold-txt:#A0741F;
+  --f-display:"Fraunces",Georgia,serif; --f-body:"Inter",system-ui,sans-serif; --f-hand:"Caveat",cursive;
+  background:#FBF7EF;
+  background-image:radial-gradient(120% 60% at 100% 0%,#F6E6E4 0%,rgba(246,230,228,0) 60%),radial-gradient(90% 50% at 0% 0%,#F7EDD6 0%,rgba(247,237,214,0) 55%);
+  background-attachment:fixed;
+  color:var(--ink);
+}
+/* sombras duras de "adesivo" saem; entram sombras macias */
+body.premium *{box-shadow:none!important}
+body.premium h1,body.premium h2,body.premium .evo-name,body.premium .st-big,body.premium .bonus-title,body.premium .howto-title,body.premium .land-end h2,body.premium .daily b,body.premium .stage-clear b,body.premium .self-opt b{font-family:var(--f-display)!important;font-weight:600;letter-spacing:-.02em}
+body.premium h1{font-size:32px;line-height:1.08}
+body.premium .land-hero h1{font-size:38px}
+body.premium .eyebrow{color:var(--gold-txt);letter-spacing:.16em;font-weight:700}
+body.premium .hand{font-family:var(--f-hand);color:var(--marsala)}
+body.premium mark,body.premium .hero mark,body.premium h1 mark,body.premium .land-end mark{background:none;color:var(--gold-txt);font-style:italic;position:relative;padding:0}
+body.premium h1 mark::after,body.premium .land-end mark::after{content:"";position:absolute;left:0;right:0;bottom:.06em;height:2px;background:var(--gold-2);border-radius:2px;opacity:.8}
+
+/* cartões: claros, borda fina, canto arredondado, sombra macia */
+body.premium .card,body.premium .daily,body.premium .station,body.premium .prob,body.premium .paused-card,body.premium .self-opt,body.premium .stage-clear,body.premium .howto,body.premium .plan,body.premium .bonus,body.premium .streak,body.premium .sheet,body.premium .var,body.premium .tnode .disc,body.premium .prova,body.premium .land-demo,body.premium .self-cmp,body.premium .lv-row,body.premium .medal,body.premium .rule-card,body.premium .acc-card{
+  background:var(--card)!important;border:1px solid var(--line)!important;border-radius:18px!important;
+  box-shadow:0 1px 0 rgba(255,255,255,.7) inset,0 10px 30px -18px rgba(60,40,10,.25)!important}
+body.premium .daily{background:linear-gradient(160deg,#FFF9EA,#F6E9C9)!important;border-color:#EAD7A3!important}
+body.premium .daily .go{background:var(--ink);color:#FBF7EF;border-radius:999px}
+body.premium .land-demo,body.premium .self-cmp,body.premium .plan,body.premium .howto,body.premium .rule-card{border-color:#E6CFA0!important}
+body.premium .sheet.good{background:#F1F6EE!important}
+body.premium .stage-clear.s3{background:#F1F6EE!important}body.premium .stage-clear.s1{background:#FFF7E6!important}
+
+/* botões em pílula: preto (principal) e dourado (tocar/ouvir), contorno fino (secundário) */
+body.premium .btn{background:var(--ink)!important;color:#FBF7EF!important;border:0!important;border-radius:999px!important;font-weight:600;letter-spacing:.01em;box-shadow:0 10px 24px -14px rgba(33,26,16,.6)!important}
+body.premium .btn.big{padding:16px 22px}
+body.premium .btn.ghost,body.premium .btn.ghost:hover{background:transparent!important;color:var(--ink)!important;border:1px solid #D9CDB4!important;box-shadow:none!important}
+body.premium .sheet .btn{background:var(--ink)!important}
+body.premium .pt-big,body.premium .pt-play .btn.mini,body.premium .pbtn,body.premium .pbtn.sm,body.premium .btn.pulse,body.premium .wa-play,body.premium .tab-tip button{
+  background:linear-gradient(180deg,var(--gold-1),var(--gold-2) 55%,var(--gold-3))!important;color:var(--gold-ink)!important;border:0!important;border-radius:999px!important;
+  box-shadow:0 1px 0 rgba(255,255,255,.5) inset,0 12px 30px -12px rgba(212,168,67,.7)!important}
+body.premium .ear,body.premium .soft,body.premium .ptools button,body.premium .ears button,body.premium .chip{background:#FFFDF8!important;color:var(--ink)!important;border:1px solid #E2D4B5!important;border-radius:999px!important;font-weight:600}
+body.premium .chip.on{background:var(--gold-soft)!important;border-color:var(--gold-2)!important}
+body.premium .linkish{color:var(--marsala);text-decoration-color:rgba(111,42,61,.35)}
+body.premium .back,body.premium .pause,body.premium .stat,body.premium .stat.snd{background:#FFFDF8!important;border:1px solid #E2D4B5!important;border-radius:999px!important;color:var(--ink)!important}
+body.premium .pause{background:var(--gold-soft)!important}
+
+/* opções e perguntas */
+body.premium .pt-opt,body.premium .opt{background:#FFFDF8!important;border:1px solid #E2D4B5!important;border-radius:14px!important}
+body.premium .pt-opt.ok,body.premium .opt.ok{background:#EEF5EA!important;border-color:#9CC3A6!important;color:var(--ok)!important}
+body.premium .pt-opt.bad,body.premium .opt.bad{background:#F8ECEE!important;border-color:#D9A8B2!important}
+body.premium .comp-q{background:var(--marsala)!important;border-radius:14px!important;font-family:var(--f-body)}
+body.premium .said-box{background:#EEF5EA!important;border-radius:14px}
+body.premium .rx-item,body.premium .evo-up,body.premium .hint{background:#FBF1D9!important;border:1px solid #EDD9A6!important;border-radius:14px!important}
+body.premium .wp,body.premium .mini-bar,body.premium .transcript,body.premium .land-steps li,body.premium .land-grid div,body.premium .prova-it,body.premium .badge-tip{background:#F7F0E2!important;border-radius:14px!important}
+body.premium .mb-track{background:#EADFCB}
+body.premium .mb-track i,body.premium .md-bar i,body.premium .pbar2 i{background:linear-gradient(90deg,var(--gold-2),var(--gold-3))!important}
+body.premium .comp-q,body.premium .pt-gap{font-size:16px}
+
+/* selo de evolução e trilha */
+body.premium .evo-badge{background:#FFFDF8!important;border:1px solid #E6CFA0!important}
+body.premium .evo-dots{color:var(--gold-txt)}
+body.premium .tnode.here .disc,body.premium .tnode.done .disc{background:linear-gradient(180deg,var(--gold-1),var(--gold-2))!important;border-color:var(--gold-3)!important}
+body.premium .bubble{background:var(--ink)!important;color:#FBF7EF!important;border-radius:999px}
+body.premium .wd.on i{filter:none}
+body.premium .lvl-badge{background:var(--ink)!important;color:#FBF7EF!important;border-radius:999px}
+
+/* menu de baixo: escuro e dourado, discreto */
+body.premium .tabbar{background:rgba(33,26,16,.94)!important;border:1px solid rgba(212,168,67,.45)!important;border-radius:999px!important;backdrop-filter:blur(8px);box-shadow:0 14px 34px -14px rgba(33,26,16,.7)!important}
+body.premium .tab{color:#EFE5CF!important;border-radius:999px!important}
+body.premium .tab.on{background:linear-gradient(180deg,var(--gold-1),var(--gold-2))!important;color:var(--gold-ink)!important;transform:none}
+body.premium .tab-n{background:var(--gold-1)!important;color:var(--gold-ink)!important}
+body.premium .tab-tip{background:#FFFDF8!important;border:1px solid #E6CFA0!important;border-radius:999px!important}
+
+/* formulários */
+body.premium .fld input,body.premium .fld select,body.premium .dit-ta{background:#FFFDF8!important;border:1px solid #E2D4B5!important;border-radius:14px!important}
+body.premium .fld input:focus,body.premium .fld select:focus,body.premium .dit-ta:focus{border-color:var(--gold-2)!important;outline:3px solid rgba(212,168,67,.18)}
+body.premium .comp-q,body.premium .form-err{border-radius:14px}
+body.premium .prof-bar{background:var(--ink)!important;color:#EFE5CF!important}
+body.premium .evo-card{border-radius:24px;background:#FFFDF8!important}
+body.premium .notice{background:var(--ink)!important;border-radius:999px!important}
+body.premium .brand{background:none!important;font-family:var(--f-display)!important;font-weight:600;font-size:20px;letter-spacing:-.01em;padding:0}
+body.premium .top{background:rgba(251,247,239,.88)!important;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:0!important;border-bottom:1px solid rgba(228,222,210,.7)!important}
+body.premium .wd.td{border:1px solid var(--gold-2)!important;border-radius:12px}
+body.premium .steps .st.now{background:var(--gold-2)!important;border-color:var(--gold-3)!important}
+body.premium .steps .st.done{background:var(--ink)!important}
+body.premium .pill{background:var(--ink)!important;color:#FBF7EF!important;border-radius:999px}

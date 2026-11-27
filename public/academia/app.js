@@ -17,6 +17,8 @@
   function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
   var KEY = PROF ? "academia:professor" : "academia:v1";
   var ALL = Q.get("tudo") === "1" || (PROF && lsGet("prof:tudo") === "1"); // tudo aberto
+  // ✨ tema premium (estética do inglescomjoaquim.com): ?tema=premium liga, ?tema=classico volta
+  (function () { var t = Q.get("tema"); try { if (t) localStorage.setItem("destravando:tema", t); t = localStorage.getItem("destravando:tema") || t; } catch (e) {} if (t !== "classico") document.body.classList.add("premium"); })(); // premium é o padrão desde 27/11 (aprovado pelo Thiago)
 
   // ---------- helpers ----------
   function el(tag, attrs) {

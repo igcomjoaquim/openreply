@@ -400,7 +400,7 @@
       (function () { var x = sec("Como funciona na prática", "Quatro passos. Todo dia. Quinze minutos.", "land-how"); x.id = "como-funciona";
         x.append(el("ol", { cls: "land-steps" },
           el("li", null, el("i", { text: "01" }), el("b", { text: "Você cria sua conta" }), el("span", { text: "Assim o seu progresso fica salvo e você continua de qualquer aparelho." })),
-          el("li", null, el("i", { text: "02" }), el("b", { text: "Faz o teste de nível" }), el("span", { text: "Só ouvindo e falando, uns 10 minutos. Ele mostra onde você está e o que mais te trava." })),
+          el("li", null, el("i", { text: "02" }), el("b", { text: "Faz o teste de nível (uma vez só)" }), el("span", { text: "Só no começo: uns 10 minutos, só ouvindo e falando. Ele mostra onde você está e o que mais te trava." })),
           el("li", null, el("i", { text: "03" }), el("b", { text: "Treina todo dia" }), el("span", { text: "Cena real, ditado, fofoca, shadowing, leitura em voz alta e Real Time, em fases curtas." })),
           el("li", null, el("i", { text: "04" }), el("b", { text: "Evolui e valida" }), el("span", { text: "O que você erra volta até acertar. Falou, validou. Aí vem o próximo tema." }))));
         return x; })(),
@@ -685,7 +685,7 @@
     var D = todayPlan(), plan = D.plan, doneToday = (S.dailyDone === today()), roundOver = D.i >= plan.length, resume = D.i > 0 && !roundOver;
     w.append(topBar(),
       el("section", { cls: "hello" }, el("p", { cls: "hand", text: "Bora treinar" + (S.name ? ", " + S.name : "") + "!" }),
-        el("div", { cls: "lvl" }, el("span", { cls: "lvl-badge", text: LVL === "b2" ? "B2 · intermediário superior" : LVL === "b1" ? "B1 · intermediário" : LVL === "a2" ? "A2 · pré-intermediário" : BANDS[S.test.band] }), S.test.skipped ? el("button", { cls: "linkish", type: "button", text: "Fazer o teste de nível", onclick: runTest }) : el("span", { cls: "small", text: "foco: " + PROB[focusProb()].emoji + " " + PROB[focusProb()].name.toLowerCase() }))),
+        el("div", { cls: "lvl" }, el("span", { cls: "lvl-badge", text: LVL === "b2" ? "B2 · intermediário superior" : LVL === "b1" ? "B1 · intermediário" : LVL === "a2" ? "A2 · pré-intermediário" : BANDS[S.test.band] }), S.test.skipped ? el("span", { cls: "small", text: "começando pelo tema 1" }) : el("span", { cls: "small", text: "foco: " + PROB[focusProb()].emoji + " " + PROB[focusProb()].name.toLowerCase() }))),
       howTo(),
       streakCard(),
       S.paused ? el("button", { cls: "paused-card", type: "button", onclick: resumePaused }, el("span", { cls: "pe", text: "☕" }),
@@ -739,7 +739,7 @@
       el("button", { cls: "station errs", type: "button", onclick: extrasPage }, el("span", { cls: "se", text: "🎧" }), el("span", { cls: "tt" }, el("b", { text: "Inglês de verdade" }), el("span", { cls: "small", text: "entrevista de rua, série, vlog: ouvir e escolher" }))),
       el("h3", { cls: "sec", text: "O que mais trava você?" }), probs, er,
       el("h3", { cls: "sec", text: "Nível" }), lvSw,
-      el("button", { cls: "linkish", type: "button", text: "Refazer o teste de nível", onclick: runTest }));
+      el("button", { cls: "linkish", type: "button", text: S.test && S.test.skipped ? "📝 Teste de nível (opcional · faz uma vez só, se quiser saber seu nível)" : "📝 Refazer o teste de nível (opcional · só se quiser medir de novo)", onclick: runTest }));
     w.append(more, menuBar("home"));
   }
   // 🔓 tema novo liberado: comemora na hora, não deixa o aluno descobrir sozinho

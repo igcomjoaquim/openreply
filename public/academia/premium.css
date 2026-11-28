@@ -334,3 +334,18 @@ body.premium .tab.on::before{background:linear-gradient(110deg,#F3D77A,var(--gol
 body.premium .tnode.here .disc{position:relative;isolation:isolate;transform:rotate(-3deg)}
 body.premium .tnode.here .disc::before{content:"";position:absolute;inset:-12px;z-index:-1;border-radius:30px;background:var(--blur-gm);filter:blur(14px);opacity:.8}
 body.premium .tnode.here .bubble{background:var(--marsala)!important;transform:rotate(-2deg)}
+
+/* 💬 aba "Achou um problema?" na lateral (some na página de apresentação) */
+.fb-tab{position:fixed;right:0;top:46%;z-index:45;transform:translateY(-50%);border:0;cursor:pointer;padding:12px 7px;border-radius:14px 0 0 14px;background:linear-gradient(180deg,#EDC55F,#D4A843 45%,#8E3A52);color:#FFF8EC;font:700 12px/1 "Inter",system-ui,sans-serif;text-shadow:0 1px 2px rgba(60,20,30,.45);box-shadow:-6px 8px 22px -10px rgba(111,42,61,.7)}
+.fb-tab span{writing-mode:vertical-rl;transform:rotate(180deg);display:block;letter-spacing:.02em}
+body:has(.land) .fb-tab{display:none}
+.fb-ov{position:fixed;inset:0;z-index:60;background:rgba(33,26,16,.45);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);display:flex;align-items:flex-end;justify-content:center;padding:12px}
+@media (min-width:700px){.fb-ov{align-items:center}}
+.fb-card{position:relative;width:100%;max-width:520px;background:#FFFDF8;border-radius:24px;padding:22px 20px 18px;display:flex;flex-direction:column;gap:10px;box-shadow:0 30px 60px -20px rgba(33,26,16,.5);color:#211A10}
+.fb-card h2{margin:0;font-family:"Fraunces",Georgia,serif;font-size:26px}
+.fb-card .eyebrow{color:#A0741F}
+.fb-card textarea,.fb-card input{width:100%;box-sizing:border-box;border:1px solid #E2D4B5;border-radius:14px;background:#FFFDF8;padding:12px 14px;font:16px "Inter",system-ui,sans-serif;color:#211A10}
+.fb-card textarea:focus,.fb-card input:focus{outline:3px solid rgba(212,168,67,.25);border-color:#D4A843}
+.fb-where{margin:0;font-size:12px;color:#7F735C}
+.fb-x{position:absolute;right:12px;top:12px;width:36px;height:36px;border-radius:50%;border:1px solid #E4DED2;background:#FFFDF8;cursor:pointer;font-size:15px}
+.fb-card .big-emoji{font-size:44px;text-align:center}

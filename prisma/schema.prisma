@@ -558,6 +558,20 @@ model LessonRecording {
 
 /// 🔓 DESTRAVANDO (produto público): conta do aluno = cadastro (lead) + login com senha + progresso salvo.
 /// Separado do homework (Student/Lesson): nada aqui aparece pros alunos particulares nem o contrário.
+/// 💬 Destravando: "Achou um problema? Me conta" (o aluno manda de dentro da plataforma; aparece no painel)
+model DtvFeedback {
+  id        String   @id @default(cuid())
+  userId    String?
+  name      String?
+  email     String?
+  screen    String?
+  text      String
+  device    String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
+
 model DtvUser {
   id           String    @id @default(cuid())
   email        String    @unique

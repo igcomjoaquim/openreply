@@ -2573,7 +2573,38 @@
   }
   // ☁️ salva o progresso na conta (alguns segundos depois de cada mudança e ao sair da página)
   var pushT = null;
-  function snapshot() { var c = JSON.parse(JSON.stringify(S)); return c; }
+  function snapshot() { var c = JSON.parse(JSON.stringify(S)); try { var u = INDEX && INDEX[S.theme || 0]; if (u) c.temaNome = u.title; } catch (e) {} return c; }
+  // 💬 "Achou um problema? Me conta" (Thiago 28/11, teste com os amigos): aba na lateral de toda tela; a mensagem vai pro painel com a tela onde a pessoa estava
+  function whereNow() {
+    var parts = [];
+    [".top .brand", ".eyebrow", "h1", "h2", ".comp-q"].forEach(function (q) { var e = root.querySelector(q); if (e && e.textContent.trim()) parts.push(e.textContent.trim().replace(/\s+/g, " ").slice(0, 60)); });
+    return parts.filter(function (x, i) { return parts.indexOf(x) === i; }).join(" › ").slice(0, 190) || "início";
+  }
+  function feedbackOpen() {
+    var where = whereNow(), ta = el("textarea", { cls: "fb-ta", rows: "5", maxlength: "3000", placeholder: "Ex.: cliquei em gravar e não aconteceu nada. Ou: não entendi o que era pra fazer nessa tela." });
+    var nm = el("input", { type: "text", placeholder: "Seu nome (opcional)", autocomplete: "name" }), em = el("input", { type: "email", placeholder: "Seu e-mail (opcional)", autocomplete: "email" });
+    var msg = el("p", { cls: "small" }), send = el("button", { cls: "btn big gold", type: "button", text: "Enviar pro Joaquim →" });
+    var card = el("div", { cls: "fb-card", role: "dialog", "aria-label": "Achou um problema?" },
+      el("button", { cls: "fb-x", type: "button", "aria-label": "Fechar", text: "✕", onclick: close }),
+      el("span", { cls: "eyebrow", text: "Achou um problema?" }), el("h2", { text: "Me conta o que aconteceu" }),
+      el("p", { cls: "small", text: "Pode ser erro, coisa confusa, chata ou que você amou. A mensagem chega direto pra mim, já com a tela onde você está." }),
+      ta, ACC ? null : nm, ACC ? null : em, el("p", { cls: "fb-where", text: "📍 " + where }), send, msg);
+    var ov = el("div", { cls: "fb-ov", onclick: function (e) { if (e.target === ov) close(); } }, card);
+    function close() { ov.remove(); }
+    send.onclick = function () {
+      var t = ta.value.trim(); if (t.length < 2) { msg.textContent = "Escreve o que aconteceu 🙂"; ta.focus(); return; }
+      send.disabled = true; send.textContent = "Enviando…";
+      api("feedback", "POST", { text: t, screen: where, name: nm.value.trim(), email: em.value.trim() }).then(function (r) {
+        if (r && r.ok) { card.replaceChildren(el("div", { cls: "big-emoji", text: "💛" }), el("h2", { text: "Valeu! Chegou pra mim." }), el("p", { cls: "small", text: "Vou olhar com carinho. Falou, validou!" }), el("button", { cls: "btn big", type: "button", text: "Voltar pro treino", onclick: close })); }
+        else { send.disabled = false; send.textContent = "Enviar pro Joaquim →"; msg.textContent = (r && r.error) || "Não consegui enviar agora. Tenta de novo daqui a pouco."; }
+      });
+    };
+    document.body.append(ov); setTimeout(function () { ta.focus(); }, 150);
+  }
+  function feedbackTab() {
+    if (document.querySelector(".fb-tab")) return;
+    document.body.append(el("button", { cls: "fb-tab", type: "button", "aria-label": "Achou um problema? Me conta", onclick: feedbackOpen }, el("span", { text: "💬 Achou um problema?" })));
+  }
   function pushNow() {
     clearTimeout(pushT); pushT = null; if (!ACC || PROF) return;
     api("progresso", "PUT", { progress: snapshot(), testLevel: S.test && !S.test.skipped ? BANDS[S.test.band] : null, selfLevel: S.self != null && SELF[S.self] ? SELF[S.self].t : null });
@@ -2731,6 +2762,7 @@
 
   // ---------- início ----------
   Promise.all([loadIndex(), loadParts(), probeConta()]).then(function () {
+    if (CONTA_OK && !PROF) feedbackTab();
     if (Q.get("teste") === "1") return runTest();
     if (Q.get("resultado") === "1" && S.test) return result();
     // 🔐 quem já treina sem conta: cria a conta (o progresso do aparelho vai junto)

@@ -936,7 +936,7 @@
       F.parts.forEach(function (P) { var v = res[P.key] || 0, pct = Math.round(v / 25 * 100), weak = low.indexOf(P) > -1;
         bars.append(el("div", { cls: "skill" + (weak ? " weak" : "") }, el("div", { cls: "skrow" }, el("b", { text: P.emoji + " " + P.title }), el("span", { text: v + "/25" })),
           el("div", { cls: "pbar2" }, el("i", { style: "width:" + Math.max(4, pct) + "%" })), el("p", { cls: "small", text: pct >= 70 ? "Muito bom! ✅" : weak ? "Abaixo do mínimo. " + P.focus : "Ok, mas dá pra melhorar. " + P.focus }))); });
-      w.append(bars, pass ? el("button", { cls: "btn big", type: "button", text: "Ir pro " + NEXT_LV[LVL].toUpperCase() + " →", onclick: function () { setLevel(NEXT_LV[LVL]); } })
+      w.append(pass ? certCard(LVL, total) : null, bars, pass ? el("button", { cls: "btn big", type: "button", text: "Ir pro " + NEXT_LV[LVL].toUpperCase() + " →", onclick: function () { setLevel(NEXT_LV[LVL]); } })
         : el("button", { cls: "btn big", type: "button", text: "Voltar a treinar →", onclick: home }),
         el("p", { cls: "small", text: "A nota da fala é automática, pelo reconhecimento de voz: é uma estimativa." }));
     }
@@ -1121,6 +1121,38 @@
     list.forEach(function (x) { var lk = String(x.k).toLowerCase(); if (!S.caderno.some(function (c) { return String(c.k).toLowerCase() === lk; })) S.caderno.push({ k: x.k, pt: x.pt, tag: x.tag, ex: x.ex, exPt: x.exPt, uid: u.id, lv: LVL, at: today(), ok: 0 }); });
     persist();
   }
+  // 🎯 MISSÃO DA VIDA REAL (1 minuto, fora do app) + compartilhar no WhatsApp: pratica e divulga
+  // 🎓 CERTIFICADO pra postar no story (1080×1920), na identidade da marca
+  function certCard(lv, total) {
+    var cv = el("canvas", { width: "1080", height: "1920", cls: "cert-cv" }), ctx = cv.getContext("2d"), nm = (S.name || (ACC && ACC.name) || "Aluno").split(" ")[0];
+    function draw() {
+      var g = ctx.createLinearGradient(0, 0, 1080, 1920); g.addColorStop(0, "#FBF7EF"); g.addColorStop(0.55, "#F6E9E4"); g.addColorStop(1, "#F3E4BC"); ctx.fillStyle = g; ctx.fillRect(0, 0, 1080, 1920);
+      function blob(x, y, r, c) { var rg = ctx.createRadialGradient(x, y, 0, x, y, r); rg.addColorStop(0, c); rg.addColorStop(1, "rgba(255,255,255,0)"); ctx.fillStyle = rg; ctx.fillRect(x - r, y - r, r * 2, r * 2); }
+      blob(880, 300, 420, "rgba(237,197,95,.55)"); blob(180, 1650, 480, "rgba(111,42,61,.22)");
+      ctx.textAlign = "center"; ctx.fillStyle = "#A0741F"; ctx.font = "700 40px Inter, sans-serif"; ctx.fillText("CERTIFICADO DE DESTRAVE", 540, 420);
+      ctx.fillStyle = "#211A10"; ctx.font = "600 150px Fraunces, Georgia, serif"; ctx.fillText(nm, 540, 720);
+      ctx.font = "500 64px Fraunces, Georgia, serif"; ctx.fillText("destravou o", 540, 860);
+      ctx.fillStyle = "#6F2A3D"; ctx.font = "italic 700 260px Fraunces, Georgia, serif"; ctx.fillText(lv.toUpperCase(), 540, 1140);
+      ctx.fillStyle = "#7F735C"; ctx.font = "500 44px Inter, sans-serif"; ctx.fillText("Teste final · " + total + "/100 · " + brDate(today()) + "/" + today().slice(0, 4), 540, 1270);
+      ctx.fillStyle = "#6F2A3D"; ctx.font = "700 96px Caveat, cursive"; ctx.fillText("Falou, validou!", 540, 1480);
+      ctx.fillStyle = "#211A10"; ctx.font = "700 44px Inter, sans-serif"; ctx.fillText("🔓 Destravando · Inglês com Joaquim", 540, 1740);
+    }
+    (document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve()).then(draw);
+    function blobOut(cb) { cv.toBlob(function (b) { cb(b); }, "image/png"); }
+    return el("div", { cls: "card cert" }, el("span", { cls: "eyebrow", text: "🎓 Seu certificado" }), el("p", { cls: "small", text: "Poste no story e marque @inglescomjoaquim. Você merece!" }), cv,
+      el("div", { cls: "row2" },
+        el("button", { cls: "btn gold", type: "button", text: "📲 Compartilhar", onclick: function () { blobOut(function (b) { var f = new File([b], "destravei-" + lv + ".png", { type: "image/png" }); if (navigator.canShare && navigator.canShare({ files: [f] })) navigator.share({ files: [f], text: "Destravei o " + lv.toUpperCase() + "! 🔓 #destravando" }).catch(function () {}); else { var a = el("a", { href: URL.createObjectURL(b), download: f.name }); document.body.append(a); a.click(); a.remove(); } }); } }),
+        el("button", { cls: "btn ghost", type: "button", text: "⬇️ Baixar", onclick: function () { blobOut(function (b) { var a = el("a", { href: URL.createObjectURL(b), download: "destravei-" + lv + ".png" }); document.body.append(a); a.click(); a.remove(); }); } })));
+  }
+  function missionCard(u) {
+    var C = (u.lesson && u.lesson.chunks) || []; if (!C.length) return null;
+    var c = C[new Date().getDate() % C.length], k = String(c.chunk).split(/\s*\/\s*/)[0].replace(/[…]|\.\.\./g, "").trim();
+    var msg = "Tô treinando inglês todo dia na Destravando 🔓 Hoje aprendi: “" + k + "” (" + c.pt + "). Bora treinar comigo? https://destravando.inglescomjoaquim.com";
+    return el("div", { cls: "card mission" }, el("span", { cls: "eyebrow", text: "🎯 Missão da vida real · 1 minuto" }),
+      el("h2", { html: "Mande um áudio em inglês pra alguém usando <mark class=\"ck\">" + esc(k) + "</mark>" }),
+      el("p", { cls: "small", text: "Pode ser bobo, pode ser curto. O que vale é usar fora daqui. Falou, validou! 😎" }),
+      el("a", { cls: "btn gold", href: "https://wa.me/?text=" + encodeURIComponent(msg), target: "_blank", rel: "noopener", text: "📲 Abrir o WhatsApp" }));
+  }
   function keepCard(u) {
     var L = keepList(u); if (!L.length) return null; saveKeep(u, L);
     var box = el("div", { cls: "keep-list" });
@@ -1170,10 +1202,42 @@
     }); });
     return box;
   }
+  // 🎙️ SUA VOZ: dia 1 × hoje (prova emocional de progresso). A gravação fica só no aparelho (IndexedDB), nunca vai pro servidor.
+  var VOZ_FRASE = "Hi! My name is ___. I'm learning English, and I'm not giving up!";
+  function vozDB(fn) { try { var r = indexedDB.open("destravando-voz", 1); r.onupgradeneeded = function () { r.result.createObjectStore("v"); }; r.onsuccess = function () { fn(r.result); }; r.onerror = function () { fn(null); }; } catch (e) { fn(null); } }
+  function vozPut(key, blob, cb) { vozDB(function (db) { if (!db) return cb && cb(false); var tx = db.transaction("v", "readwrite"); tx.objectStore("v").put(blob, key); tx.oncomplete = function () { cb && cb(true); }; }); }
+  function vozGet(key, cb) { vozDB(function (db) { if (!db) return cb(null); var q = db.transaction("v").objectStore("v").get(key); q.onsuccess = function () { cb(q.result || null); }; q.onerror = function () { cb(null); }; }); }
+  function vozCard() {
+    var V = S.voz || {}, t = today();
+    var dias = V.dia1 ? Math.floor((new Date(t) - new Date(V.dia1)) / 86400000) : 0, pronto = V.dia1 && dias >= 14 && (!V.ultima || Math.floor((new Date(t) - new Date(V.ultima)) / 86400000) >= 14);
+    var sub = !V.dia1 ? "Grave 10 segundos hoje. Daqui a 2 semanas você compara e escuta a diferença." : pronto ? "Já faz " + dias + " dias! Grave de novo e compare com o seu dia 1. 🔥" : "Dia 1 guardado. Compare de novo a partir de " + brDate(isoOf(new Date(new Date(V.ultima || V.dia1).getTime() + 14 * 86400000))) + ".";
+    return el("button", { cls: "card voz-card" + (pronto ? " ready" : ""), type: "button", onclick: function () { pushNav(); vozPage(); } }, el("b", { text: "🎙️ Sua voz: dia 1 × hoje" }), el("span", { cls: "small", text: sub }));
+  }
+  function vozPage() {
+    var w = screen(), V = S.voz || {}, box = el("div");
+    w.append(topBar(home), el("h1", { text: "🎙️ Sua voz" }), el("p", { cls: "small", text: "Leia a frase em voz alta. A gravação fica só no seu celular. Daqui a umas semanas, você vai ouvir a diferença." }),
+      el("div", { cls: "card" }, el("span", { cls: "eyebrow", text: "Sua frase" }), el("h2", { text: VOZ_FRASE.replace("___", S.name || "…") })), box, menuBar("prog"));
+    function players() {
+      box.replaceChildren();
+      ["dia1", "hoje"].forEach(function (k) { vozGet(k, function (b) { if (!b) return; var a = el("audio", { controls: true, src: URL.createObjectURL(b) }); box.append(el("div", { cls: "card voz-play" }, el("b", { text: k === "dia1" ? "📼 Dia 1 · " + brDate(V.dia1) : "🆕 Hoje · " + brDate(V.ultima || t()) }), a)); }); });
+    }
+    function t() { return today(); }
+    var key = !V.dia1 ? "dia1" : "hoje", rec = null, chunks = [], btn = el("button", { cls: "btn big", type: "button", text: key === "dia1" ? "🎙️ Gravar meu dia 1" : "🎙️ Gravar de novo e comparar" });
+    btn.onclick = function () {
+      if (rec && rec.state === "recording") { rec.stop(); return; }
+      navigator.mediaDevices.getUserMedia({ audio: true }).then(function (st) {
+        chunks = []; rec = new MediaRecorder(st); rec.ondataavailable = function (e) { if (e.data.size) chunks.push(e.data); };
+        rec.onstop = function () { st.getTracks().forEach(function (x) { x.stop(); }); var b = new Blob(chunks, { type: rec.mimeType || "audio/webm" });
+          vozPut(key, b, function (ok) { if (!ok) { notice("Não consegui salvar a gravação neste aparelho."); return; } S.voz = S.voz || {}; if (key === "dia1") S.voz.dia1 = today(); else S.voz.ultima = today(); persist(); SFX.win(); if (key === "hoje") confetti(); notice(key === "dia1" ? "📼 Dia 1 guardado! Volte em 2 semanas pra comparar." : "🎧 Agora escute o antes e o depois!"); vozPage(); }); };
+        rec.start(); btn.textContent = "⏹️ Parar gravação"; btn.classList.add("live"); setTimeout(function () { if (rec && rec.state === "recording") rec.stop(); }, 15000);
+      }).catch(function () { notice("Preciso do microfone pra gravar. Libere nas configurações do navegador."); });
+    };
+    box.after(btn); players();
+  }
   function myTiles() {
     var nC = (S.caderno || []).filter(function (c) { return !c.lv || c.lv === LVL; }).length, nE = myErrors().length;
     function tile(ic, t, sub, fn) { return el("button", { cls: "my-tile", type: "button", onclick: function () { pushNav(); fn(); } }, el("span", { cls: "mt-ic", text: ic }), el("b", { text: t }), el("span", { cls: "small", text: sub })); }
-    return el("section", { cls: "my-tiles" }, projection(), el("span", { cls: "eyebrow", text: "👤 Seu espaço" }),
+    return el("section", { cls: "my-tiles" }, projection(), vozCard(), el("span", { cls: "eyebrow", text: "👤 Seu espaço" }),
       el("div", { cls: "mt-row" },
         tile("📒", "Meu caderno", nC ? nC + " pra revisar" : "o que você guardar", cadernoPage),
         tile("🧠", "Meus erros", nE ? nE + " pra corrigir" : "nada pendente 🎉", function () { if (nE) runErrors(); else { notice("🎉 Nada pra revisar por enquanto!"); home(); } }),
@@ -1218,6 +1282,7 @@
     var D0 = S.daily && S.daily.plan && S.daily.plan[0]; var kuid = D0 && D0.uid && D0.uid !== GERAL.id ? D0.uid : INDEX[curTheme()].id;
     getUnit(kuid).then(function (u) {
       var k = keepCard(u); if (k && w.isConnected) w.insertBefore(k, w.querySelector(".bonus") || null);
+      var mi = missionCard(u); if (mi && w.isConnected) w.insertBefore(mi, w.querySelector(".bonus") || null);
       // 👀 gancho: a fofoca de amanhã (curiosidade traz o aluno de volta)
       var fv = nextVar("fofoca", u), G = fv >= 0 && u.gossips && u.gossips[fv];
       if (G && w.isConnected) w.insertBefore(el("div", { cls: "card teaser" }, el("span", { cls: "eyebrow", text: "👀 Amanhã no Sunset Building" }), el("h2", { text: "“" + G.title + "”" }),
@@ -1378,6 +1443,9 @@
         cd.children.length ? el("b", { text: "No fim, você vai conseguir:" }) : null, cd),
         el("p", { cls: "small", text: "Aquecimento rápido antes do treino: ouça, entenda pela tradução e já fale. Toque no 🔊 quantas vezes quiser." }),
         el("button", { cls: "btn big", type: "button", text: "Bora aquecer →", onclick: go }));
+      // 🎙️ recado do Joaquim (voz real): aparece só se existir /academia/voz/<tema>.mp3
+      var vz = "/academia/voz/" + u.id + ".mp3";
+      fetch(vz, { method: "HEAD" }).then(function (r) { if (r.ok && (r.headers.get("content-type") || "").indexOf("audio") > -1 && box.isConnected && step === 0) box.firstChild.after(el("div", { cls: "card voz-jq" }, el("b", { text: "🎙️ Recado do Joaquim" }), player(vz, {}))); }).catch(function () {});
     }
     function chunk(ci) {
       var C = CH[ci], ex = el("div", { cls: "vocab-list" });
@@ -3090,6 +3158,7 @@
   Promise.all([loadIndex(), loadParts(), probeConta()]).then(syncDown).then(function () {
     if (CONTA_OK && !PROF) feedbackTab();
     if (Q.get("teste") === "1") return runTest();
+    if (PROF && Q.get("cert")) { var cw = screen(); cw.append(topBar(home), certCard(Q.get("cert"), 82)); return; } // professor: ver o certificado
     if (Q.get("resultado") === "1" && S.test) return result();
     // 🔐 quem já treina sem conta: cria a conta (o progresso do aparelho vai junto)
     if (CONTA_OK && !ACC && !PROF && S.skipAccUntil !== today()) return landing();

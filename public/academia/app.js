@@ -3342,7 +3342,7 @@
   // 📲 APP INSTALÁVEL (Thiago 28/11: "não dá muito aquela impressão de aplicativo"): ícone na tela, tela cheia, sem barra do navegador
   var STANDALONE = (window.matchMedia && matchMedia("(display-mode: standalone)").matches) || navigator.standalone === true;
   if (STANDALONE) document.documentElement.classList.add("is-app");
-  var IOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  var IOS = !/Android/.test(navigator.userAgent) && (/iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1));
   var INSTALL_EVT = null;
   window.addEventListener("beforeinstallprompt", function (e) { e.preventDefault(); INSTALL_EVT = e; var b = document.querySelector(".inst-go"); if (b) b.hidden = false; });
   window.addEventListener("appinstalled", function () { S.installed = today(); persist(); var c = document.querySelector(".install-card"); if (c) c.remove(); notice("📲 Pronto! O Destravando está na sua tela de início."); });

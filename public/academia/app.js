@@ -851,9 +851,6 @@
         el("div", { cls: "lvl" }, el("span", { cls: "lvl-badge", text: LVL === "b2" ? "B2 · intermediário superior" : LVL === "b1" ? "B1 · intermediário" : LVL === "a2" ? "A2 · pré-intermediário" : BANDS[S.test.band] }), S.test.skipped ? el("span", { cls: "small", text: "começando pelo tema 1" }) : el("span", { cls: "small", text: "foco: " + PROB[focusProb()].emoji + " " + PROB[focusProb()].name.toLowerCase() }))),
       recadoCard(recadoHoje()),
       installCard() || pushCard(),
-      retroCard(),
-      foneCard(),
-      amigosCard(),
       howTo(),
       streakCard(),
       S.paused ? el("button", { cls: "paused-card", type: "button", onclick: resumePaused }, el("span", { cls: "pe", text: "☕" }),
@@ -882,6 +879,8 @@
     var NX = NEXT_LV[LVL] ? NEXT_LV[LVL].toUpperCase() : "", OKF = S[DONE_KEY[LVL]];
     tl.append(hasFinal() ? el("button", { cls: "tgoal final", type: "button", onclick: runFinal }, el("span", { cls: "disc" }, OKF ? "🎓" : "🏆"), el("b", { text: OKF ? "Teste final: aprovado ✅" : "🎓 Teste final do " + LVL.toUpperCase() }), el("span", { cls: "small", text: OKF ? NX + " liberado" : nDone >= INDEX.length ? "Bora! Quem passa libera o " + NX + " →" : "Recomendado depois do tema " + INDEX.length + " · passe e libere o " + NX }))
       : el("div", { cls: "tgoal" }, el("span", { cls: "disc" }, "🏆"), el("b", { text: nDone >= INDEX.length ? LVL.toUpperCase() + " completo!" : "🏁 Meta: o " + LVL.toUpperCase() + " inteiro" }), el("span", { cls: "small", text: nDone >= INDEX.length ? (LVL === "b2" ? "Você chegou ao topo da trilha. Falou, validou!" : "Próximo nível em breve") : "Faltam " + (INDEX.length - nDone) + " temas pra fechar a trilha" })));
+    // depois do treino de hoje: retrospectiva (na semana), treino no fone e desafio com amigos, em linhas compactas
+    w.append(el("div", { cls: "extra-rows" }, retroCard(), foneCard(), amigosCard()));
     w.append(myTiles(), el("h2", { cls: "sec", text: "🗺️ Sua trilha do " + LVL.toUpperCase() }),
       el("div", { cls: "trail-head" }, steps(t + 1, INDEX.length, "Tema"), el("p", { cls: "small", text: nDone + " de " + INDEX.length + " temas dominados. Cada tema abre o próximo quando você manda bem (70%+) em 2 Real Times dele." })), tl);
     // ➕ mais treinos: tudo que é opcional fica guardado aqui (menos escolha = mais treino)
@@ -3630,7 +3629,7 @@
       ["retro-s2", nd + " de 7 dias", frase, "🔥"],
       ["retro-s3", "+" + R0.xp + " XP", R0.best ? "Seu melhor dia foi " + DSEM[new Date(R0.best + "T12:00:00").getDay()] + " (" + R0.bestXp + " XP)." : "Bora somar mais XP essa semana!", "⭐"],
       ["retro-s4", R0.exp ? "“" + R0.exp.k + "”" : "Expressão da semana", R0.exp ? R0.exp.pt + " · sua expressão da semana" : "Termine treinos pra guardar expressões no caderno.", "💬"],
-      ["retro-s5", "🔥 " + streak() + (streak() === 1 ? " dia" : " dias") + " seguidos", "Falou, validou! Compartilha e marca @inglescomjoaquim 😉", null]
+      ["retro-s5", "🔥 " + streak() + (streak() === 1 ? " dia seguido" : " dias seguidos"), "Falou, validou! Compartilha e marca @inglescomjoaquim 😉", null]
     ];
     var i = 0, tmr = null, bars = el("div", { cls: "st-bars" }), body = el("div", { cls: "st-body" });
     SL.forEach(function () { bars.append(el("i", null, el("b"))); });
@@ -3655,13 +3654,13 @@
       c.fillStyle = "#211A10"; c.font = "800 190px Fraunces, Georgia, serif"; c.fillText(R0.dias.length + "/7", 540, 880);
       c.font = "600 52px Inter, sans-serif"; c.fillText("dias de treino", 540, 960);
       c.font = "800 110px Fraunces, Georgia, serif"; c.fillStyle = "#8E3A52"; c.fillText("+" + R0.xp + " XP", 540, 1160);
-      c.fillStyle = "#211A10"; c.font = "700 60px Inter, sans-serif"; c.fillText("🔥 " + streak() + " dias seguidos", 540, 1300);
+      c.fillStyle = "#211A10"; c.font = "700 60px Inter, sans-serif"; c.fillText("🔥 " + streak() + (streak() === 1 ? " dia seguido" : " dias seguidos"), 540, 1300);
       if (R0.exp) { c.font = "italic 600 58px Fraunces, Georgia, serif"; c.fillStyle = "#6F2A3D"; c.fillText("“" + R0.exp.k + "”", 540, 1460); c.font = "500 40px Inter, sans-serif"; c.fillStyle = "#5b5040"; c.fillText(R0.exp.pt, 540, 1520); }
       c.fillStyle = "#6F2A3D"; c.font = "700 92px Caveat, cursive"; c.fillText("Falou, validou!", 540, 1700);
-      c.fillStyle = "#211A10"; c.font = "600 40px Inter, sans-serif"; c.fillText("@inglescomjoaquim · destravando.inglescomjoaquim.com", 540, 1830);
-      cv.toBlob(function (b) { var f = new File([b], "minha-semana-destravando.png", { type: "image/png" });
+      c.fillStyle = "#211A10"; c.font = "700 44px Inter, sans-serif"; c.fillText("@inglescomjoaquim", 540, 1800); c.font = "500 34px Inter, sans-serif"; c.fillStyle = "#5b5040"; c.fillText("destravando.inglescomjoaquim.com", 540, 1852);
+      cv.toBlob(function (b) { var f = new File([b], "minha-semana-destravando.jpg", { type: "image/jpeg" });
         if (navigator.canShare && navigator.canShare({ files: [f] })) navigator.share({ files: [f], text: "Minha semana no Destravando 🔓 @inglescomjoaquim" }).catch(function () {});
-        else { var a = el("a", { href: URL.createObjectURL(b), download: "minha-semana-destravando.png" }); document.body.append(a); a.click(); a.remove(); } }, "image/png");
+        else { var a = el("a", { href: URL.createObjectURL(b), download: "minha-semana-destravando.jpg" }); document.body.append(a); a.click(); a.remove(); } }, "image/jpeg", 0.92);
     }; img.src = "/academia/app/icon-512.png";
   }
   // 🤝 DESAFIO COM AMIGO

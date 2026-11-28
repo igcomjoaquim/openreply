@@ -656,3 +656,48 @@ body:has(.upd) .fb-tab{display:none}
 .lp-notif{position:absolute;left:10px;right:10px;top:10px;background:rgba(255,248,236,.95);border-radius:14px;padding:8px 10px;display:flex;flex-direction:column;gap:1px;text-align:left;font-size:11px;color:#211A10;animation:sheetUp .6s ease both;animation-delay:.6s}
 .lp-notif small{font-size:10px;color:#5b5040}
 .land-phone{width:200px!important;height:390px!important}.lp-screen{padding-top:70px!important;gap:16px!important}body:has(.inst-page) .fb-tab{display:none}
+/* 🎨 ícones de traço (sistema único) */
+.icn{display:inline-flex;width:1.15em;height:1.15em;flex:none;vertical-align:-.18em}
+.icn svg{width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.top .brand{display:inline-flex!important;align-items:center;gap:8px}
+.brand-ic{width:28px;height:28px;border-radius:8px;box-shadow:0 4px 10px -5px rgba(111,42,61,.5)}
+.top .stats{display:flex;align-items:center;gap:6px}
+.top .stat{display:inline-flex!important;align-items:center;gap:5px;font-variant-numeric:tabular-nums}
+.top .stat.fire .icn{color:#C9972F}
+.top .stat.fire.lit .icn{color:#E07A1F}
+.top .stat.fire.lit .icn svg{fill:rgba(224,122,31,.25)}
+.top .stat.xp .icn{color:#C9972F}
+.top .stat.xp .icn svg{fill:rgba(237,197,95,.35)}
+.ico-btn{width:36px;height:36px;padding:0!important;justify-content:center;border-radius:50%!important;color:#6F2A3D;cursor:pointer}
+.ico-btn .icn{width:20px;height:20px}
+.top-r{display:flex;align-items:center;gap:8px}
+.top .pause{display:inline-flex!important;align-items:center;gap:6px}
+.top .pause .icn{width:16px;height:16px}
+/* cartão do treino: fases como ícones finos */
+.dlist{display:flex;gap:8px;flex-wrap:wrap}
+.dlist .dl-ic{width:34px;height:34px;border-radius:10px;display:grid!important;place-items:center;background:rgba(255,248,236,.75);border:1px solid rgba(201,151,47,.35);color:#6F2A3D}
+.dlist .dl-ic .icn{width:18px;height:18px}
+.dlist .dl-ic.dn{background:#6F2A3D;color:#FFF8EC;border-color:#6F2A3D}
+/* bolinhas de fase do exercício */
+.steps.emo .st{display:grid!important;place-items:center;color:#6F2A3D}
+.steps.emo .st .icn{width:16px;height:16px}
+.steps.emo .st.done{color:#FFF8EC}
+.eyebrow .eb-ic{width:14px;height:14px;margin-right:6px;vertical-align:-2px}
+/* "no fim, você vai conseguir": check fino */
+.aula-can{list-style:none;padding-left:0}
+.ok-li{display:flex;gap:10px;align-items:flex-start;margin:6px 0}
+.ok-li .icn{color:#3E7A4E;width:18px;height:18px;margin-top:2px}
+/* ofensiva com a chama desenhada */
+.streak .fire .icn{width:40px;height:40px;color:#C9972F}
+.streak.lit .fire .icn{color:#E07A1F}
+.streak .fire .icn svg,.streak.lit .fire .icn svg{fill:rgba(237,197,95,.3)}
+.week .wd i .icn{width:18px;height:18px;color:#E07A1F}
+.week .wd i .icn svg{fill:rgba(224,122,31,.25)}
+.toast-streak .fire .icn{width:44px;height:44px;color:#E07A1F}
+/* fases do treino de hoje: trilha de progresso (não parecem botões) */
+.dlist{gap:0!important;align-items:center;position:relative}
+.dlist .dl-ic{width:30px!important;height:30px!important;border-radius:50%!important;background:transparent!important;border:0!important;color:#8E7A5A!important;position:relative}
+.dlist .dl-ic+.dl-ic{margin-left:14px}
+.dlist .dl-ic+.dl-ic::before{content:"";position:absolute;left:-14px;top:50%;width:14px;height:1.5px;background:rgba(142,122,90,.35)}
+.dlist .dl-ic.dn{background:#6F2A3D!important;color:#FFF8EC!important}
+.dlist .dl-ic.nx{box-shadow:0 0 0 1.5px #6F2A3D;color:#6F2A3D!important}

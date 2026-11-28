@@ -42,7 +42,7 @@
     var E = EXPL[st], X = ST[st]; if (!E || !X) return;
     S.seenSt = S.seenSt || {}; if (S.seenSt[st] && !force) return; S.seenSt[st] = 1; persist();
     var ol = el("ol", { cls: "ex-how" }); E[1].forEach(function (t) { ol.append(el("li", { text: t })); });
-    var card = el("div", { cls: "fb-card ex-card" }, el("span", { cls: "ex-ic" }, icn(STICN[st] || "alvo")), el("span", { cls: "eyebrow", text: force ? "O que é isso?" : "Primeira vez aqui" }), el("h2", { text: X.name }),
+    var card = el("div", { cls: "fb-card ex-card", style: "--stc:" + (STC[st] || "#6F2A3D") }, el("span", { cls: "ex-ic" }, icn(STICN[st] || "alvo")), el("span", { cls: "eyebrow", text: force ? "O que é isso?" : "Primeira vez aqui" }), el("h2", { text: X.name }),
       el("p", { cls: "ex-what", text: E[0] }), el("b", { cls: "ex-sub", text: "Como funciona" }), ol, el("p", { cls: "ex-why" }, el("b", { text: "Por que treinar isso: " }), document.createTextNode(E[2])),
       el("button", { cls: "btn big gold", type: "button", text: "Entendi, bora!", onclick: function () { close(); } }));
     var ov = el("div", { cls: "fb-ov", onclick: function (e) { if (e.target === ov) close(); } }, card);
@@ -73,6 +73,8 @@
     revisar: '<path d="M20 12a8 8 0 1 1-2.4-5.7"/><path d="M20.3 3.8v4.7h-4.7"/>'
   };
   function icn(k, cls) { var x = document.createElement("span"); x.className = "icn" + (cls ? " " + cls : ""); x.innerHTML = SVGA + (ICN[k] || "") + SVGZ; return x; }
+  // 🎨 uma cor pra cada exercício (paleta própria que conversa com dourado e marsala)
+  var STC = { aula: "#B8871F", cena: "#2F6F7A", fofoca: "#C0653B", shadow: "#5F8A64", rt: "#A33352", leitura: "#6D4C7D", ditado: "#3F5E94", lacuna: "#A8742A", grudada: "#2E7A6B", pares: "#8B4F86", contar: "#56708A", erros: "#8E3A52" };
   var STICN = { aula: "chave", cena: "cena", fofoca: "fofoca", shadow: "repetir", rt: "raio", leitura: "livro", ditado: "lapis", lacuna: "peca", grudada: "elo", pares: "alvo", contar: "hash", erros: "revisar" };
   var EMOJI0 = /^(?:[\u{1F000}-\u{1FAFF}\u{2190}-\u{21FF}\u{2300}-\u{23FF}\u{25A0}-\u{25FF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{1F1E6}-\u{1F1FF}][\uFE0F\u200D\u{1F3FB}-\u{1F3FF}]*\s*)+/u;
   function noEmo(t) { var r = String(t).replace(EMOJI0, ""); return r.trim() ? r : t; }
@@ -922,7 +924,7 @@
       el("button", { cls: "daily" + (doneToday ? " done" : ""), type: "button", onclick: function () { if (roundOver) { S.daily = { date: today(), plan: dailyPlan(), i: 0 }; persist(); } runDaily(); } },
         el("span", { cls: "eyebrow", text: doneToday && !resume ? "✅ Treino de hoje feito · quer mais?" : doneToday ? "➕ Treino extra" : "▶️ Treino de hoje · ~15 min" }),
         el("b", { text: "Tema " + (t + 1) + " · " + I.title }),
-        el("span", { cls: "dlist" }, plan.map(function (x, k) { return el("span", { cls: (k < D.i && !roundOver ? "dn" : "") + (k === D.i && !roundOver ? " nx" : "") + " dl-ic", title: ST[x.st].name + (x.review ? " (revisão)" : "") }, icn(x.review ? "revisar" : (STICN[x.st] || "alvo"))); })),
+        el("span", { cls: "dlist" }, plan.map(function (x, k) { return el("span", { cls: (k < D.i && !roundOver ? "dn" : "") + (k === D.i && !roundOver ? " nx" : "") + " dl-ic", style: "--c:" + (STC[x.st] || "#6F2A3D"), title: ST[x.st].name + (x.review ? " (revisão)" : "") }, icn(x.review ? "revisar" : (STICN[x.st] || "alvo"))); })),
         resume ? el("span", { cls: "small", text: "⏸️ Você parou na fase " + (D.i + 1) + " de " + plan.length }) : null,
         el("span", { cls: "go", text: resume ? "Continuar →" : "Começar →" })));
     (function () { var h = w.querySelector("section.hello"), d = w.querySelector("button.daily"), pc = w.querySelector(".paused-card"); if (h && d) { h.after(d); if (pc) h.after(pc); } })();
@@ -1510,8 +1512,11 @@
     setTimeout(syncBadge, 300);
     setTimeout(function () { var st = streak(); if ([7, 14, 30, 50, 100, 200, 365].indexOf(st) > -1 && S.conqStreak !== st) { S.conqStreak = st; persist(); conquista("🔥 " + st + " dias seguidos!", "Isso é constância de verdade. Falou, validou!"); } }, 1500);
     var w = screen();
-    w.append(topBar(), el("section", { cls: "hero center" }, el("div", { cls: "big-emoji", text: "🏆" }), el("h1", { text: "Treino de hoje feito!" }),
-      el("p", { text: "🔥 Ofensiva de " + streak() + (streak() === 1 ? " dia" : " dias") + ". Amanhã tem mais, com outras variações — volta pra manter o fogo aceso!" }), el("p", { cls: "hand", text: "Falou, validou! 🚀" })),
+    setTimeout(function () { try { confetti(); SFX.win(); buzz([30, 40, 70]); } catch (e) {} }, 350);
+    var VIVA = ["Brabo demais! 🔥", "Nativo que lute. 😎", "Hoje você destravou mais um pouquinho. 🔓", "Tá voando, hein? 🚀", "Isso aqui é constância de gente grande. 🏆"];
+    w.append(topBar(), el("section", { cls: "hero center celeb" }, el("div", { cls: "celeb-stage", "aria-hidden": "true" }, el("span", { cls: "cg c1" }), el("span", { cls: "cg c2" }), el("span", { cls: "cg c3" }), el("img", { cls: "celeb-jump", src: "/academia/app/icon-192.png", alt: "" })),
+        el("p", { cls: "celeb-viva", text: VIVA[Math.floor(Math.random() * VIVA.length)] }), el("h1", { text: "Treino de hoje feito!" }),
+      el("p", { text: "🔥 Ofensiva de " + streak() + (streak() === 1 ? " dia" : " dias") + ". Amanhã tem mais, diferente do de hoje. Volta pra manter o fogo aceso!" }), el("p", { cls: "hand", text: "Falou, validou! 🚀" })),
       bonusCard(), rankingCard(),
       el("button", { cls: "btn big", type: "button", text: "Voltar pro início", onclick: home }));
     var D0 = S.daily && S.daily.plan && S.daily.plan[0]; var kuid = D0 && D0.uid && D0.uid !== GERAL.id ? D0.uid : INDEX[curTheme()].id;
@@ -1558,6 +1563,7 @@
     var w = screen(), X = ST[st], i = uidx(u.id);
     CURU = u; pushNav();
     CUR = { st: st, uid: u.id, v: v, i: 0, acc: 0, daily: !!(ctx && ctx.n), review: !!(ctx && ctx.review) };
+    w.classList.add("st-frame"); w.style.setProperty("--stc", STC[st] || "#6F2A3D");
     w.append(el("header", { cls: "top" },
       el("button", { cls: "back", type: "button", text: "‹ Sair", onclick: function () { if (onExit === home || !CUR) { CUR = null; home(); } else askExit(); } }),
       el("span", { cls: "top-r" }, CONTA_OK && !PROF ? el("button", { cls: "stat ico-btn", type: "button", "aria-label": "Achou um problema? Me conta", onclick: feedbackOpen }, icn("ajuda")) : null,
@@ -1639,7 +1645,8 @@
     var row = el("div", { cls: "steps" + (emojis ? " emo" : "") });
     for (var k = 1; k <= n; k++) { var em = emojis ? emojis[k - 1] : "", sk = null; for (var q in ST) if (ST[q].emoji === em) { sk = STICN[q]; break; }
       if (em === "REV") sk = "revisar";
-      var sp = el("span", { cls: "st" + (k < cur ? " done" : k === cur ? " now" : "") }); if (sk) sp.append(icn(sk)); else sp.textContent = em; row.append(sp); }
+      var stk = null; for (var q2 in STICN) if (STICN[q2] === sk) { stk = q2; break; }
+      var sp = el("span", { cls: "st" + (k < cur ? " done" : k === cur ? " now" : ""), style: stk && STC[stk] ? "--c:" + STC[stk] : null }); if (sk) sp.append(icn(sk)); else sp.textContent = em; row.append(sp); }
     return el("div", { cls: "progress" }, row, el("span", { cls: "pill", text: (label ? label + " " : "") + cur + " de " + n }));
   }
   // uma fase por tela: limpa tudo abaixo do cabeçalho (barra + título da estação)

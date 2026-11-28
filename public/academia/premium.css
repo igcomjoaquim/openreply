@@ -714,3 +714,39 @@ body:has(.upd) .fb-tab{display:none}
 .ex-how li{counter-increment:ex;display:flex;gap:10px;align-items:flex-start;line-height:1.35}
 .ex-how li::before{content:counter(ex);flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:#6F2A3D;color:#FFF8EC;font:800 12px "Inter",system-ui,sans-serif;margin-top:1px}
 .ex-why{margin:4px 0 6px;color:#5b5040;line-height:1.45;background:#FFF8EC;border-radius:14px;padding:10px 12px}
+/* 🎨 cor de cada exercício */
+.dlist .dl-ic{color:var(--c,#8E7A5A)!important}
+.dlist .dl-ic.dn{background:var(--c,#6F2A3D)!important;color:#FFF8EC!important}
+.dlist .dl-ic.nx{box-shadow:0 0 0 2px var(--c,#6F2A3D)!important;background:color-mix(in srgb,var(--c,#6F2A3D) 12%,transparent)!important}
+.dlist .dl-ic+.dl-ic::before{background:linear-gradient(90deg,rgba(142,122,90,.25),rgba(142,122,90,.45))}
+.steps.emo .st{color:var(--c,#6F2A3D)!important;border-color:color-mix(in srgb,var(--c,#6F2A3D) 35%,transparent)!important}
+.steps.emo .st.done{background:var(--c,#6F2A3D)!important;color:#FFF8EC!important;border-color:var(--c,#6F2A3D)!important}
+.steps.emo .st.now{background:color-mix(in srgb,var(--c,#6F2A3D) 16%,#fff)!important;box-shadow:0 0 0 2px var(--c,#6F2A3D)!important}
+.st-frame .thead .eyebrow{color:var(--stc)!important}
+.st-frame .lb-track i{background:linear-gradient(90deg,color-mix(in srgb,var(--stc) 55%,#EDC55F),var(--stc))!important}
+.st-frame .what-btn{color:var(--stc)}
+.ex-card .ex-ic{background:color-mix(in srgb,var(--stc) 16%,#FFF8EC)!important;color:var(--stc)!important}
+.ex-card .ex-how li::before{background:var(--stc)!important}
+.ex-card .eyebrow{color:var(--stc)!important}
+/* 🌅 fundo vivo no Treino de hoje (borrado que se mexe devagar) */
+body.premium .daily::before{animation:dtvBlob 9s ease-in-out infinite alternate}
+body.premium .daily::after{content:"";position:absolute;left:-40px;bottom:-60px;width:180px;height:180px;z-index:-1;border-radius:50%;background:radial-gradient(circle,rgba(142,58,82,.28),transparent 70%);filter:blur(6px);animation:dtvBlob2 11s ease-in-out infinite alternate}
+@keyframes dtvBlob{0%{transform:translate(0,0) scale(1)}50%{transform:translate(-40px,25px) scale(1.15)}100%{transform:translate(-10px,50px) scale(.95)}}
+@keyframes dtvBlob2{0%{transform:translate(0,0) scale(1)}100%{transform:translate(60px,-20px) scale(1.2)}}
+/* 🔥 chama com vida: acesa tremula; apagada "respira" */
+.stat.fire .icn,.streak .fire .icn,.week .wd i .icn{transform-origin:50% 90%}
+.stat.fire.lit .icn,.streak.lit .fire .icn,.week .wd.on i .icn{animation:dtvFlame 1.6s ease-in-out infinite}
+.stat.fire:not(.lit) .icn,.streak:not(.lit) .fire .icn{opacity:.55;animation:dtvBreath 2.8s ease-in-out infinite}
+@keyframes dtvFlame{0%,100%{transform:scale(1) rotate(-2deg)}30%{transform:scale(1.08,1.12) rotate(2deg)}60%{transform:scale(.96,1.04) rotate(-1deg)}}
+@keyframes dtvBreath{50%{opacity:.85;transform:scale(1.05)}}
+/* 🎉 comemoração do fim do treino: o bonequinho do logo pulando */
+.celeb{padding-top:8px}
+.celeb-stage{position:relative;width:180px;height:170px;margin:0 auto 4px}
+.celeb-jump{position:absolute;left:50%;bottom:0;width:120px;height:120px;margin-left:-60px;border-radius:28px;box-shadow:0 18px 34px -14px rgba(111,42,61,.55);animation:dtvJump 1.15s cubic-bezier(.3,.7,.4,1) .2s 3 both}
+@keyframes dtvJump{0%{transform:translateY(0) rotate(-4deg) scale(1)}35%{transform:translateY(-46px) rotate(6deg) scale(1.06)}60%{transform:translateY(0) rotate(-3deg) scale(.97,1.03)}75%{transform:translateY(-10px) rotate(2deg)}100%{transform:translateY(0) rotate(-4deg)}}
+.cg{position:absolute;border-radius:50%;filter:blur(18px);opacity:.75;animation:dtvBlob 6s ease-in-out infinite alternate}
+.cg.c1{width:120px;height:120px;left:-10px;top:10px;background:#EDC55F}
+.cg.c2{width:110px;height:110px;right:-10px;top:30px;background:#E9A6B3;animation-delay:-2s}
+.cg.c3{width:90px;height:90px;left:50px;bottom:-10px;background:#8E3A52;opacity:.45;animation-delay:-4s}
+.celeb-viva{font:700 30px/1.1 "Caveat",cursive;color:#8E3A52;margin:6px 0 0;transform:rotate(-3deg);animation:dtvPop .6s cubic-bezier(.2,1.6,.4,1) .9s both}
+@media (prefers-reduced-motion:reduce){body.premium .daily::before,body.premium .daily::after,.stat.fire .icn,.streak .fire .icn,.week .wd i .icn,.celeb-jump,.cg,.celeb-viva{animation:none!important}}

@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
   if (r.codeHash !== codeHash(code)) { await p.dtvReset.update({ where: { id: r.id }, data: { attempts: { increment: 1 } } }); return json(req, { error: "Código errado. Confira no e-mail." }, 400); }
   await p.$transaction([
     p.dtvReset.update({ where: { id: r.id }, data: { usedAt: new Date() } }),
-    p.dtvUser.update({ where: { id: u.id }, data: { passwordHash: await hashPassword(pw), lastSeenAt: new Date() } }),
+    p.dtvUser.update({ where: { id: u.id }, data: { passwordHash: await hashPassword(pw), lastSeenAt: new Date(), emailVerifiedAt: u.emailVerifiedAt ?? new Date() } }), // o código chegou no e-mail: confirma também
     p.dtvSession.deleteMany({ where: { userId: u.id } }),
   ]);
   return json(req, { token: await newSession(u.id), user: publicUser(u), progress: u.progress ?? null, progressAt: u.progressAt });

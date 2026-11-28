@@ -3154,10 +3154,11 @@
       var br = pais.value === "Brasil", num = wpp.value.replace(/\D/g, "");
       api("cadastro", "POST", { name: S.name, email: email.value.trim(), password: pw.input.value, whatsapp: num ? (ddi.value.replace(/[^\d]/g, "") ? "+" + ddi.value.replace(/[^\d]/g, "") + " " : "") + wpp.value.trim() : "", gender: gender.val(), ageRange: age.val(),
         country: pais.value === "Outro país" ? (paisOutro.value.trim() || "Outro país") : pais.value, state: br ? uf.value : ufTxt.value.trim(), city: city.value, goal: goal.val(), howFound: how.val(),
-        marketingOk: mk.checked, consent: true, selfLevel: S.self != null && SELF[S.self] ? SELF[S.self].t : null, testLevel: S.test && !S.test.skipped ? BANDS[S.test.band] : null, progress: snapshot() })
+        marketingOk: mk.checked, consent: true, confirma: true, selfLevel: S.self != null && SELF[S.self] ? SELF[S.self].t : null, testLevel: S.test && !S.test.skipped ? BANDS[S.test.band] : null, progress: snapshot() })
         .then(function (r) {
           go.disabled = false; go.textContent = "Criar minha conta →";
           if (r.token) { SFX.go(); afterLogin(r, after); return; }
+          if (r.verify) return codeScreen(r.email, after, r.mail);
           err.show(r.error || "Não deu certo. Tente de novo.");
           // servidor fora do ar: não prende o aluno (continua sem conta e pede de novo depois)
           if (!r._status || r._status === 404 || r._status === 429 || r._status >= 500) { err.append(" ", el("button", { cls: "linkish", type: "button", text: "Continuar sem conta por enquanto →", onclick: function () { S.skipAccUntil = today(); persist(); after(); } })); }
@@ -3191,7 +3192,7 @@
       err.show(""); go.disabled = true; go.textContent = "⏳ Entrando…";
       api("entrar", "POST", { email: email.value.trim(), password: pw.input.value }).then(function (r) {
         go.disabled = false; go.textContent = "Entrar →";
-        if (r.token) { SFX.go(); afterLogin(r, after); } else err.show(r.error || "Não deu certo. Tente de novo.");
+        if (r.token) { SFX.go(); afterLogin(r, after); } else if (r.verify) codeScreen(r.email, after, r.mail); else err.show(r.error || "Não deu certo. Tente de novo.");
       });
     } });
     pw.input.addEventListener("keydown", function (e) { if (e.key === "Enter") go.click(); });
@@ -3200,6 +3201,35 @@
         el("button", { cls: "linkish", type: "button", text: "🔑 Esqueci a senha", onclick: function () { forgotScreen(after, email.value.trim()); } })),
       el("button", { cls: "linkish", type: "button", text: "Ainda não tenho conta · Criar", onclick: function () { signupScreen(after); } }));
     setTimeout(function () { (pre ? pw.input : email).focus(); }, 250);
+  }
+  // 📩 CONFIRMAR O E-MAIL (Thiago 28/11: "todo lugar é assim"): código de 6 números → confirma → entra
+  function codeScreen(mail, after, st) {
+    after = after || function () { location.reload(); };
+    var w = screen(), err = errBox(), wait = 60, tmr = null;
+    var code = el("input", { type: "text", inputmode: "numeric", autocomplete: "one-time-code", maxlength: "6", placeholder: "••••••", cls: "code-in" });
+    var go = el("button", { cls: "btn big", type: "button", text: "Confirmar e entrar →", disabled: true, onclick: function () {
+      err.show(""); go.disabled = true; go.textContent = "⏳ Conferindo…";
+      api("confirmar", "POST", { email: mail, code: code.value }).then(function (r) {
+        go.disabled = false; go.textContent = "Confirmar e entrar →";
+        if (r.token) { clearInterval(tmr); SFX.win(); try { confetti(); } catch (e) {} notice("✅ E-mail confirmado! Bem-vindo(a) ao Destravando."); afterLogin(r, after); }
+        else { err.show(r.error || "Não deu certo. Tente de novo."); code.select(); }
+      });
+    } });
+    code.addEventListener("input", function () { code.value = code.value.replace(/\D/g, "").slice(0, 6); go.disabled = code.value.length !== 6; if (code.value.length === 6) go.click(); });
+    var again = el("button", { cls: "linkish", type: "button", disabled: true, onclick: function () {
+      again.disabled = true; err.show("");
+      api("reenviar", "POST", { email: mail }).then(function (r) { if (r.ok) { notice("📩 Mandei outro código. Confira também o spam."); count(60); } else { err.show(r.error || "Não deu certo. Tente de novo."); count(30); } });
+    } });
+    function count(n) { wait = n; clearInterval(tmr); again.disabled = true; again.textContent = "Mandar outro código (" + wait + " s)"; tmr = setInterval(function () { if (!again.isConnected) return clearInterval(tmr); wait--; if (wait <= 0) { clearInterval(tmr); again.disabled = false; again.textContent = "📩 Mandar outro código"; } else again.textContent = "Mandar outro código (" + wait + " s)"; }, 1000); }
+    w.append(el("section", { cls: "hero" }, el("span", { cls: "eyebrow", text: "Destravando · confirme seu e-mail" }),
+        el("h1", { html: "Falta só <mark>confirmar o seu e-mail</mark>." }),
+        el("p", { html: "Mandei um código de 6 números para <b>" + esc(mail) + "</b>. Ele chega em até 1 minuto." })),
+      el("div", { cls: "card form" }, field("Código do e-mail", code), err, go,
+        el("p", { cls: "small", text: "Não chegou? Olhe na caixa de spam ou em Promoções (no Gmail). O e-mail vem de nao-responda@destravando.inglescomjoaquim.com." }), again),
+      el("button", { cls: "linkish", type: "button", text: "Errei o e-mail · voltar pro cadastro", onclick: function () { clearInterval(tmr); signupScreen(after); } }));
+    if (st === "falhou") err.show("Não consegui mandar o e-mail agora. Toque em “Mandar outro código” daqui a pouco.");
+    count(st === "falhou" ? 5 : 60);
+    setTimeout(function () { code.focus(); }, 250);
   }
   // 🔑 ESQUECI A SENHA: código de 6 números no e-mail → senha nova → já entra
   function forgotScreen(after, pre) {

@@ -1,7 +1,7 @@
 import { type NextRequest } from "next/server";
 import { Prisma } from "@/app/generated/prisma/client";
 import { getPrisma } from "@/lib/db/client";
-import { clean, hashPassword, json, newSession, normEmail, preflight, publicUser, sendWelcome, tooMany } from "@/lib/destravando/conta";
+import { clean, hashPassword, issueVerify, json, newSession, normEmail, preflight, publicUser, sendWelcome, tooMany } from "@/lib/destravando/conta";
 
 export const runtime = "nodejs";
 export const OPTIONS = preflight;
@@ -9,7 +9,8 @@ export const OPTIONS = preflight;
 const GENDERS = ["Mulher", "Homem", "Não-binário", "Prefiro não dizer", "Outro"];
 const AGES = ["Até 17", "18 a 24", "25 a 34", "35 a 44", "45 a 54", "55 ou mais"];
 
-/** Cadastro = lead: cria a conta, já entra e guarda o progresso que estava no aparelho. */
+/** Cadastro = lead: cria a conta, guarda o progresso do aparelho e manda o código de 6 números.
+ *  Só entra depois de confirmar o e-mail (Thiago 28/11: "todo lugar é assim, passa mais credibilidade"). */
 export async function POST(req: NextRequest) {
   const b = (await req.json().catch(() => ({}))) as Record<string, unknown>;
   const email = normEmail(b.email), name = clean(b.name, 80), pw = typeof b.password === "string" ? b.password : "";
@@ -23,6 +24,15 @@ export async function POST(req: NextRequest) {
   const gender = GENDERS.includes(String(b.gender)) ? String(b.gender) : clean(b.gender, 40);
   const ageRange = AGES.includes(String(b.ageRange)) ? String(b.ageRange) : null;
   const progress = b.progress && typeof b.progress === "object" ? (b.progress as Prisma.InputJsonValue) : undefined;
+  // já se cadastrou mas não confirmou o e-mail: atualiza os dados e manda outro código (não trava quem perdeu o primeiro)
+  // transição: só o app novo manda "confirma: true" (o app antigo, ainda aberto em algum celular, segue entrando direto)
+  const confirma = b.confirma === true;
+  const old = confirma ? await getPrisma().dtvUser.findUnique({ where: { email } }) : null;
+  if (old && !old.emailVerifiedAt) {
+    const u = await getPrisma().dtvUser.update({ where: { id: old.id }, data: { name, passwordHash: await hashPassword(pw), marketingOk: b.marketingOk === true, ...(progress ? { progress, progressAt: new Date() } : {}) } });
+    const st = await issueVerify(u);
+    return json(req, { verify: true, email: u.email, mail: st });
+  }
   try {
     const u = await getPrisma().dtvUser.create({
       data: {
@@ -32,9 +42,14 @@ export async function POST(req: NextRequest) {
         progress, progressAt: progress ? new Date() : null, lastSeenAt: new Date(),
       },
     });
-    // boas-vindas por e-mail: se falhar, não atrapalha o cadastro (fica só no log)
-    sendWelcome(u.email, u.name).catch((err) => console.error("[destravando] boas-vindas", String(err).slice(0, 200)));
-    return json(req, { token: await newSession(u.id), user: publicUser(u) });
+    if (!confirma) {
+      await getPrisma().dtvUser.update({ where: { id: u.id }, data: { emailVerifiedAt: new Date() } });
+      sendWelcome(u.email, u.name).catch((err) => console.error("[destravando] boas-vindas", String(err).slice(0, 200)));
+      return json(req, { token: await newSession(u.id), user: publicUser(u) });
+    }
+    // o e-mail de boas-vindas vai depois de confirmar (rota confirmar)
+    const st = await issueVerify(u);
+    return json(req, { verify: true, email: u.email, mail: st });
   } catch (e) {
     if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") return json(req, { error: "Esse e-mail já tem conta. Toque em Entrar.", exists: true }, 409);
     throw e;

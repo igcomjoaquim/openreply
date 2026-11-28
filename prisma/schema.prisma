@@ -592,6 +592,8 @@ model DtvUser {
   reminderOff  Boolean   @default(false)
   reminderAt   String?
   consentAt    DateTime  @default(now())
+  /// E-mail confirmado com o código de 6 números (sem isso não entra). Quem já tinha conta em 28/11 ficou confirmado.
+  emailVerifiedAt DateTime?
   /// Progresso do treino (o mesmo objeto que fica no aparelho), pra não perder ao trocar de celular.
   progress     Json?
   progressAt   DateTime?

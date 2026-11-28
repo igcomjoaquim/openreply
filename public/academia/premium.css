@@ -443,3 +443,4 @@ body.premium .keep-st{width:100%;margin-top:10px}
 /* ✅/❌ na hora também nas figuras do teste de nível */
 body.premium .pic.ok{background:#EEF5EA!important;border-color:#9CC3A6!important;box-shadow:0 0 0 3px rgba(111,168,124,.35)!important}
 body.premium .pic.bad{background:#F8ECEE!important;border-color:#D9A8B2!important;opacity:.85}
+.code-in{font-size:30px!important;letter-spacing:10px;text-align:center;font-weight:800}

@@ -92,6 +92,23 @@ export async function sendWelcome(to: string, name: string): Promise<void> {
   await sendMail(to, subject, text, html);
 }
 
+/** 📩 Código pra confirmar o e-mail (cadastro novo ou login de quem ainda não confirmou). Espera 60 s entre um e outro. */
+export async function issueVerify(u: { id: string; email: string; name: string }): Promise<"enviado" | "espera" | "falhou"> {
+  const p = getPrisma();
+  const recent = await p.dtvReset.count({ where: { userId: u.id, createdAt: { gt: new Date(Date.now() - 60_000) } } });
+  if (recent) return "espera";
+  const { code, hash } = newCode();
+  await p.dtvReset.create({ data: { userId: u.id, codeHash: hash, expiresAt: new Date(Date.now() + 30 * 60_000) } });
+  try { await sendVerify(u.email, u.name, code); return "enviado"; } catch (e) { console.error("[destravando] e-mail de confirmação falhou", String(e).slice(0, 200)); return "falhou"; }
+}
+export async function sendVerify(to: string, name: string, code: string): Promise<void> {
+  const first = name.split(" ")[0];
+  const subject = `${code} é o seu código do Destravando 🔓`;
+  const text = `Oi, ${first}!\n\nPra confirmar o seu e-mail e entrar no Destravando, digite este código:\n\n${code}\n\nEle vale 30 minutos. Se não foi você que criou a conta, é só ignorar este e-mail.\n\nFalou, validou!\nThiago · Inglês com Joaquim`;
+  const html = `<div style="font-family:system-ui,sans-serif;font-size:16px;line-height:1.5;color:#211A10;max-width:480px"><p>Oi, ${escapeHtml(first)}!</p><p>Pra confirmar o seu e-mail e entrar no <b>Destravando</b>, digite este código:</p><p style="font-size:34px;font-weight:800;letter-spacing:6px;background:linear-gradient(180deg,#EDC55F,#D4A843);color:#2B2008;display:inline-block;padding:8px 18px;border-radius:12px">${code}</p><p>Ele vale <b>30 minutos</b>. Se não foi você que criou a conta, é só ignorar este e-mail.</p><p style="font-family:Georgia,serif;font-style:italic;color:#6F2A3D">Falou, validou!<br>Thiago · Inglês com Joaquim</p></div>`;
+  await sendMail(to, subject, text, html);
+}
+
 export async function sendCode(to: string, name: string, code: string): Promise<void> {
   const subject = `${code} é o seu código do Destravando`;
   const text = `Oi, ${name.split(" ")[0]}!\n\nSeu código pra criar uma senha nova no Destravando é:\n\n${code}\n\nEle vale 20 minutos. Se não foi você que pediu, é só ignorar este e-mail.\n\nBora destravar? 🔓\nThiago · Inglês com Joaquim`;

@@ -56,7 +56,7 @@ async function cron(req: NextRequest) {
   const prisma = getPrisma();
   const hoje = isoBR(new Date());
   const users = await prisma.dtvUser.findMany({
-    where: teste ? { email: teste.toLowerCase() } : { reminderOff: false, OR: [{ reminderAt: null }, { reminderAt: { not: hoje } }] },
+    where: teste ? { email: teste.toLowerCase() } : { reminderOff: false, emailVerifiedAt: { not: null }, OR: [{ reminderAt: null }, { reminderAt: { not: hoje } }] },
     select: { id: true, email: true, name: true, progress: true, createdAt: true },
   });
   let enviados = 0, pulados = 0, erros = 0;

@@ -290,8 +290,6 @@
   var BACKING = false, POPPING = false;
   function screen() { stopAll(); TALKS.splice(0).forEach(function (f) { try { f(); } catch (e) {} }); root.innerHTML = ""; window.scrollTo(0, 0);
     var w = el("main", { cls: "wrap " + (BACKING ? "enter-back" : "enter") }); root.append(w); BACKING = false;
-    // 📲 app instalado: cada tela entra no histórico, aí o "voltar" do Android (e o gesto) funciona como app
-    try { if (STANDALONE && !POPPING) history.pushState({ dtv: 1 }, ""); } catch (e) {}
     return w; }
   function topBar(back) {
     var s = streak();
@@ -2357,7 +2355,7 @@
   // ⬅️ voltar do Android: dentro de exercício pausa (salva), nas abas volta pro início
   var navPushed = false;
   function pushNav() { if (!navPushed) { try { history.pushState({ d: 1 }, ""); navPushed = true; } catch (e) {} } }
-  window.addEventListener("popstate", function () { navPushed = false; if (document.querySelector(".evo-ov")) { document.querySelectorAll(".evo-ov").forEach(function (o) { o.remove(); }); return; } if (CUR) pauseNow(); else home(); });
+  window.addEventListener("popstate", function () { navPushed = false; if (document.querySelector(".evo-ov")) { document.querySelectorAll(".evo-ov").forEach(function (o) { o.remove(); }); return; } BACKING = true; if (CUR) pauseNow(); else home(); });
   // ⭐ nível de XP com nome (escada do homework, ajustada: cada exercício da Destravando dá 10 a 30 XP)
   var LEVELS = [{ xp: 0, name: "Iniciante" }, { xp: 120, name: "Curioso" }, { xp: 300, name: "Ouvinte" }, { xp: 540, name: "Fofoqueiro" }, { xp: 840, name: "Tagarela" }, { xp: 1200, name: "Contador de histórias" }, { xp: 1650, name: "Mestre da fofoca" }, { xp: 2250, name: "Quase nativo" }, { xp: 3000, name: "Lenda" }];
   function xpLevel() { var i = 0; while (i + 1 < LEVELS.length && S.xp >= LEVELS[i + 1].xp) i++; var n = LEVELS[i + 1] || null; return { n: i + 1, name: LEVELS[i].name, next: n, left: n ? n.xp - S.xp : 0, f: n ? (S.xp - LEVELS[i].xp) / (n.xp - LEVELS[i].xp) : 1 }; }
@@ -3371,13 +3369,14 @@
   }
   // ⬅️ VOLTAR como app: arrastar da beirada esquerda (iPhone) e o botão voltar do Android
   function goBack() {
+    if (document.querySelector(".evo-ov")) { document.querySelectorAll(".evo-ov").forEach(function (o) { o.remove(); }); return true; }
+    if (CUR) { askExit(); return true; }
     var b = root.querySelector("header .back") || root.querySelector("button.back");
     if (b) { BACKING = true; b.click(); return true; }
     if (S.test && !root.querySelector("section.hello")) { BACKING = true; home(); return true; } // qualquer outra tela volta pro início
     return false;
   }
   if (STANDALONE) {
-    window.addEventListener("popstate", function () { POPPING = true; try { goBack(); } finally { POPPING = false; } });
     var sx = 0, sy = 0, edge = false;
     document.addEventListener("touchstart", function (e) { var t = e.touches[0]; edge = t.clientX < 26; sx = t.clientX; sy = t.clientY; }, { passive: true });
     document.addEventListener("touchend", function (e) { if (!edge) return; edge = false; var t = e.changedTouches[0]; if (t.clientX - sx > 70 && Math.abs(t.clientY - sy) < 60) goBack(); }, { passive: true });

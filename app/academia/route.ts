@@ -38,7 +38,7 @@ const HTML = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
 <link rel="stylesheet" href="/academia/app.css?v=20">
 <link rel="stylesheet" href="/academia/premium.css?v=26">
 </head><body><div id="app"><div class="boot-splash"><img src="/academia/app/icon-192.png" alt=""><span>Destravando</span></div></div>
-<script>window.__v=43</script><script src="/academia/app.js?v=67"></script></body></html>`;
+<script>window.__v=44</script><script src="/academia/app.js?v=68"></script></body></html>`;
 
 // Desde 26/11/2026 a Academia mora no Cloudflare Pages (destravando.inglescomjoaquim.com).
 // O HTML acima continua aqui porque scripts/build-destravando.mjs lê ele pra montar o site.

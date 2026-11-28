@@ -244,6 +244,13 @@
 
   // ---------- áudio ----------
   var current = null;
+  // 🔊 iPhone (Thiago 28/11: "do nada o áudio começou a ficar baixo"): depois que o microfone liga, o Safari fica no modo
+  // "ligação" e o som sai baixinho. Quando o microfone desliga, volta pro modo "tocar" (navigator.audioSession, iOS 17+).
+  var MIC_ON = 0;
+  function audioMode(rec) { try { if (navigator.audioSession) navigator.audioSession.type = rec ? "play-and-record" : "playback"; } catch (e) {} }
+  function micOn() { MIC_ON++; audioMode(true); }
+  function micOff() { MIC_ON = Math.max(0, MIC_ON - 1); if (!MIC_ON) setTimeout(function () { if (!MIC_ON) audioMode(false); }, 150); }
+  audioMode(false);
   function stopAll() { document.querySelectorAll("audio").forEach(function (a) { try { a.pause(); } catch (e) {} }); if (current) { try { current.pause(); } catch (e) {} } try { speechSynthesis.cancel(); } catch (e) {} }
   function playUrl(url, rate) { stopAll(); var a = new Audio(url); a.playbackRate = rate || 1; current = a; a.play().catch(function () {}); return a; }
   // player grande com contador; opts.max limita quantas vezes ouve (teste)
@@ -263,7 +270,7 @@
       else count.textContent = "✅ Ouviu " + plays + (plays === 1 ? " vez" : " vezes");
       if (opts.onEnd) opts.onEnd(plays);
     });
-    play.onclick = function () { if (a.paused) { stopAll(); current = a; if (a.ended) a.currentTime = 0; a.play().catch(function () {}); } else a.pause(); };
+    play.onclick = function () { if (a.paused) { stopAll(); if (!MIC_ON) audioMode(false); current = a; if (a.ended) a.currentTime = 0; a.play().catch(function () {}); } else a.pause(); };
     var tools = el("div", { cls: "ptools" });
     if ((!opts.max || opts.tools) && !opts.plain) {
       if (!opts.max) bar.onclick = function (e) { var r = bar.getBoundingClientRect(); if (a.duration) a.currentTime = (e.clientX - r.left) / r.width * a.duration; };
@@ -525,7 +532,7 @@
         el("p", { text: k === 0 ? "Começando do zero? Perfeito: a Destravando foi feita pra isso. Você começa no tema 1, com cada frase em áudio e com tradução, e já pratica falando desde o primeiro dia. Se preferir, dá pra fazer o teste também." : k === 3 ? "Bora ver se é isso mesmo ou se é coisa da sua cabeça 😏. O teste vai ficando mais difícil conforme você acerta." : "Um teste rápido, só de ouvir e falar: nada de ler, nada de escrever. Ele mostra o seu nível e o que mais trava você." })),
       k === 0 ? null : el("ul", { cls: "how card" },
         el("li", { text: "👂 Ouvir e reagir" }), el("li", { text: "🔁 Repetir frases" }), el("li", { text: "⚡ Responder rápido" }), el("li", { text: "🗣️ Recontar uma fofoca" }),
-        el("li", { cls: "small", text: "⏱️ Uns 10 minutos. Use fone e fique num lugar onde possa falar." })),
+        el("li", { cls: "small", text: "⏱️ Uns 5 a 8 minutos: quem acerta pula perguntas. Use fone e fique num lugar onde possa falar." })),
       // 😶 nível zero: o caminho principal é começar do zero (o teste em inglês só assustaria); quem quiser, testa
       k === 0 ? el("button", { cls: "btn big gold", type: "button", text: "Começar do zero, sem teste →", onclick: function () { S.test = { skipped: true, band: 0, skills: { entender: 50, repetir: 50, reagir: 50, recontar: 50 }, at: today() }; S.theme = 0; persist(); nameScreen(home); } }) : null,
       el("button", { cls: k === 0 ? "linkish" : "btn big", type: "button", text: k === 0 ? "Quero fazer o teste mesmo assim" : "Começar o teste →", onclick: runTest }),
@@ -549,6 +556,14 @@
     w.append(el("p", { cls: "boot", text: "Carregando o teste…" }));
     loadTest().then(function (T) { testFlow(T); }).catch(function () { w.innerHTML = ""; w.append(el("p", { text: "Não consegui carregar o teste. Confira a internet e tente de novo." }), el("button", { cls: "btn", type: "button", text: "Tentar de novo", onclick: runTest })); });
   }
+  // acerto mínimo por parte: ouvir (múltipla escolha) 0.6; fala 0.5 (o reconhecimento de voz erra palavras de quem fala bem)
+  var PASS = { entender: 0.6, repetir: 0.5, reagir: 0.5, recontar: 0.5 };
+  // feedback rápido no teste de nível (Thiago 28/11: "o aluno precisa ver na hora o que acertou e o que errou")
+  function testFb(w, good, txt, then) {
+    fb(good); w.append(el("div", { cls: "sheet " + (good ? "good" : "bad") }, el("b", { text: good ? "✅ Boa!" : "🟡 Quase." }), el("p", { cls: "small", text: txt })));
+    setTimeout(then, good ? 1300 : 2200);
+  }
+  function topOf(r, k) { var t = -1; (r || []).forEach(function (x) { if (x.ok >= PASS[k]) t = Math.max(t, x.band); }); return t; }
   function testFlow(T) {
     var parts = [
       { key: "listen", skill: "entender", title: "👂 Parte 1 de 4 · Ouvir e reagir", tip: "Ouça e toque na figura certa. Você pode ouvir 2 vezes." },
@@ -569,6 +584,12 @@
       items = (T[P.key] || []).filter(function (x) { return x.band <= cap; }).sort(function (a, b) { return a.band - b.band; }); ii = 0; missStreak = 0;
       base = JSON.parse(JSON.stringify(res));
       if (resumeT) { ii = resumeT.ii; missStreak = resumeT.miss; resumeT = null; return nextItem(); }
+      // ⚡ Thiago 28/11 ("longo demais" e "sou B2, deu A2"): 1 pergunta por faixa enquanto acerta; as partes de fala
+      // começam 2 faixas abaixo do que o ouvido mostrou (as faixas de baixo contam como feitas). Quem "domina bem" já começa o ouvido na faixa 2.
+      var start = 0;
+      if (P.key === "listen") start = S.self === 3 ? 2 : 0;
+      else { var lt = topOf(res.entender, "entender"); start = Math.max(0, lt - 2); }
+      if (start > 0) { var si = 0; while (si < items.length && items[si].band < start) si++; if (si < items.length) { ii = si; res[P.skill].push({ band: start - 1, ok: 1, credit: true }); } }
       var w = screen();
       w.append(testHead(P, 0, items.length), el("div", { cls: "card intro" }, el("h2", { text: P.title.replace(/ · /, " — ") }), el("p", { text: P.tip })),
         el("button", { cls: "btn big", type: "button", text: "Vamos →", onclick: nextItem }));
@@ -586,25 +607,26 @@
           } })),
         el("span", { cls: "eyebrow", text: "Teste de nível · " + P.title.replace(/^\S+\s/, "").replace(/Parte \d de \d · /, "") }),
         steps(pi + 1, total, "Parte", ["👂", "🔁", "⚡", "🗣️"]),
-        n && i > 0 ? steps(Math.min(i, n), n, "Pergunta") : (n ? el("p", { cls: "small", text: "Começa fácil e vai ficando mais difícil. Errou 2 seguidas? A parte acaba e você não perde nada." }) : null));
+        n && i > 0 ? steps(Math.min(i, n), n, "Nível") : (n ? el("p", { cls: "small", text: "Começa fácil e vai subindo. Acertou? Pula pro próximo nível. Errou 2 no mesmo nível? A parte acaba e você não perde nada." }) : null));
     }
     function score(ok, band) {
       if (scored) return; scored = true;
       res[parts[pi].skill].push({ band: band, ok: ok });
-      missStreak = ok >= 0.6 ? 0 : missStreak + 1;
-      ii++;
-      // adaptativo: 2 erros seguidos numa faixa → encerra a parte
-      if (missStreak >= 2 || ii >= items.length) { pi++; ii = 0; missStreak = 0; saveT(); setTimeout(nextPart, 350); } else { saveT(); setTimeout(nextItem, 350); }
+      // adaptativo: acertou → pula as outras da mesma faixa; errou → tenta a outra da mesma faixa; errou as 2 → encerra a parte
+      if (ok >= PASS[parts[pi].skill]) { missStreak = 0; var j = ii + 1; while (j < items.length && items[j].band <= band) j++; ii = j; }
+      else { missStreak++; var j2 = ii + 1; ii = (missStreak >= 2 || j2 >= items.length || items[j2].band !== band) ? items.length : j2; }
+      if (ii >= items.length) { pi++; ii = 0; missStreak = 0; saveT(); setTimeout(nextPart, 350); } else { saveT(); setTimeout(nextItem, 350); }
     }
     function nextItem() {
       scored = false;
       var P = parts[pi], it = items[ii], w = screen();
-      w.append(testHead(P, ii + 1, items.length));
+      w.append(testHead(P, it.band + 1, 6)); // progresso por nível (1 a 6): quem acerta pula perguntas
+
       var url = "/aprender/audio/" + it.file; // o teste de nível mora sempre na pasta do A1, seja qual for o nível do aluno
       if (P.key === "listen") {
         var opts = el("div", { cls: "pics" }), picked = false;
         it.options.forEach(function (o, k) {
-          opts.append(el("button", { cls: "pic", type: "button", onclick: function (e) { if (picked) return; picked = true; e.currentTarget.classList.add("sel"); score(k === it.answer ? 1 : 0, it.band); } },
+          opts.append(el("button", { cls: "pic", type: "button", onclick: function (e) { if (picked) return; picked = true; var g = k === it.answer; e.currentTarget.classList.add(g ? "ok" : "bad"); if (!g) opts.children[it.answer].classList.add("ok"); fb(g); setTimeout(function () { score(g ? 1 : 0, it.band); }, g ? 500 : 1100); } },
             el("span", { cls: "pe", text: o.emoji }), el("span", { text: o.pt })));
         });
         opts.classList.add("locked");
@@ -612,7 +634,7 @@
         setTimeout(function () { var b = w.querySelector(".pbtn"); if (b) b.click(); }, 300);
       } else if (P.key === "repeat") {
         var heard = false, p = player(url, { max: 2, onEnd: function () { heard = true; t.classList.remove("locked"); } });
-        var t = talk(function (said, manual) { score(manual ? 0.6 : overlap(it.en, said), it.band); }, { label: "🎤 Segure e repita" });
+        var t = talk(function (said, manual) { var v = manual ? 0.6 : overlap(it.en, said); testFb(w, v >= PASS.repetir, "A frase era: “" + it.en + "”", function () { score(v, it.band); }); }, { label: "🎤 Segure e repita" });
         t.classList.add("locked");
         w.append(el("div", { cls: "card" }, el("h2", { text: "Ouça e repita" }), el("p", { cls: "hidden-line", text: "🙈 frase escondida" }), p, t));
         setTimeout(function () { var b = w.querySelector(".pbtn"); if (b) b.click(); }, 300);
@@ -621,7 +643,8 @@
           if (manual) return score(0.6, it.band);
           var groups = it.expect || [], g = groups.filter(function (grp) { return grp.some(function (x) { return has(said, x); }); }).length;
           var enough = cw(said).length >= (it.minWords || 2);
-          score((groups.length ? g / groups.length : 1) * (enough ? 1 : 0.5), it.band);
+          var v2 = (groups.length ? g / groups.length : 1) * (enough ? 1 : 0.5);
+          testFb(w, v2 >= PASS.reagir, v2 >= PASS.reagir ? "Respondeu bem a pergunta." : (enough ? "Faltou responder o que foi perguntado." : "Resposta curta demais: tente frases completas."), function () { score(v2, it.band); });
         }, { label: "🎤 Segure e responda" });
         t2.classList.add("locked");
         var p2 = player(url, { max: 2, onEnd: function () { t2.classList.remove("locked"); } });
@@ -632,7 +655,8 @@
           if (manual) return score(0.6, it.band);
           var k = (it.keywords || []).filter(function (x) { return has(said, x); }).length / Math.max(1, (it.keywords || []).length);
           var enough = cw(said).length >= (it.minWords || 10);
-          score(Math.min(1, k * 1.3) * (enough ? 1 : 0.6), it.band);
+          var v3 = Math.min(1, k * 1.3) * (enough ? 1 : 0.6);
+          testFb(w, v3 >= PASS.recontar, v3 >= PASS.recontar ? "Contou os pontos principais da história." : "Faltaram partes importantes da história" + (enough ? "." : " e ficou curto."), function () { score(v3, it.band); });
         }, { label: "🎤 Segure e reconte" });
         t3.classList.add("locked");
         var p3 = player(url, { max: 2, onEnd: function () { t3.classList.remove("locked"); } });
@@ -641,16 +665,19 @@
       w.append(el("button", { cls: "linkish", type: "button", text: "Não entendi nada — pular", onclick: function () { score(0, it.band); } }));
     }
     function finish() {
-      var skills = {}, bands = [];
+      var skills = {}, tops = {};
       Object.keys(res).forEach(function (k) {
         var r = res[k]; if (!r.length) { skills[k] = 0; return; }
         // nível da habilidade = maior faixa em que acertou bem; % = média ponderada pela faixa
-        var top = -1; r.forEach(function (x) { if (x.ok >= 0.6) top = Math.max(top, x.band); });
-        bands.push(top);
+        var top = topOf(r, k);
+        tops[k] = top;
         var sum = 0, wsum = 0; r.forEach(function (x) { var wgt = 1 + x.band; sum += x.ok * wgt; wsum += wgt; });
         skills[k] = Math.round(Math.min(1, (sum / wsum) * 0.6 + ((top + 1) / 6) * 0.4) * 100);
       });
-      bands.sort(); var band = Math.max(0, bands[1] != null ? bands[1] : 0); // 2ª menor: não deixa uma habilidade só puxar o nível
+      // nível = média entre o OUVIDO (a parte mais confiável) e a mediana das 3 partes de FALA, arredondando pra cima.
+      // Antes era a 2ª menor das 4: um microfone que entendeu mal no iPhone derrubava um B2 pra A2 (Thiago 28/11).
+      var L = tops.entender != null ? tops.entender : -1, sp = [tops.repetir, tops.reagir, tops.recontar].map(function (x) { return x == null ? -1 : x; }).sort(function (a, b) { return a - b; })[1];
+      var band = Math.max(0, Math.min(5, Math.ceil((Math.max(0, L) + Math.max(0, sp)) / 2)));
       S.test = { band: band, skills: skills, at: today() }; S.testSave = null;
       // faixas: 0–2 A1 · 3 A2 · 4 B1 · 5 B2 (cada nível só entra se já estiver publicado)
       var goLv = band >= 5 && B2_READY ? "b2" : band >= 4 && B1_READY ? "b1" : band >= 3 && A2_READY ? "a2" : "a1";
@@ -877,11 +904,11 @@
         if (it.type === "mcq") {
           var opts = el("div", { cls: "opts" });
           // embaralha as alternativas (no A1 a certa era sempre a 1ª: dava pra passar no chute)
-          it.options.map(function (o, k) { return k; }).sort(function () { return Math.random() - 0.5; }).forEach(function (k) { var o = it.options[k]; opts.append(el("button", { cls: "opt", type: "button", text: o, onclick: function (e) { e.currentTarget.classList.add("sel"); once(k === it.answer ? 1 : 0); } })); });
+          it.options.map(function (o, k) { return k; }).sort(function () { return Math.random() - 0.5; }).forEach(function (k) { var o = it.options[k]; opts.append(el("button", { cls: "opt", type: "button", text: o, onclick: function (e) { if (done || opts._ans) return; opts._ans = 1; var g = k === it.answer; e.currentTarget.classList.add(g ? "ok" : "bad"); if (!g) [].forEach.call(opts.children, function (b) { if (b.textContent === it.options[it.answer]) b.classList.add("ok"); }); fb(g); setTimeout(function () { once(g ? 1 : 0); }, g ? 600 : 1300); } })); });
           body.append(opts);
         } else {
           var inp = el("input", { type: "text", cls: "final-in", placeholder: it.digits ? "só números" : "digite aqui", autocomplete: "off", autocapitalize: "off", spellcheck: "false" });
-          body.append(inp, el("button", { cls: "btn", type: "button", text: "Confirmar →", onclick: function () { var v = norm(inp.value); if (it.digits) v = v.replace(/\D/g, ""); once(it.answer.some(function (a) { return norm(a) === v; }) ? 1 : 0); } }));
+          body.append(inp, el("button", { cls: "btn", type: "button", text: "Confirmar →", onclick: function () { var v = norm(inp.value); if (it.digits) v = v.replace(/\D/g, ""); var g = it.answer.some(function (a) { return norm(a) === v; }); if (inp.disabled) return; inp.disabled = true; fb(g); body.append(el("p", { cls: "small", text: g ? "✅ Isso!" : "🔴 A resposta era: " + it.answer[0] })); setTimeout(function () { once(g ? 1 : 0); }, g ? 600 : 1600); } }));
         }
         if (it.audio) card.append(player(A + it.file, { max: 2, onEnd: function () { body.classList.remove("locked"); } }));
         card.append(body); w.append(card);
@@ -1035,9 +1062,13 @@
     var stage = el("div");
     w.append(el("div", { cls: "card" }, yt), stage);
     function stopYT() { clearInterval(poll); poll = null; try { p && p.pauseVideo(); } catch (e) {} }
-    function play(L, rate) { if (!ready) return; stopAll(); try { p.setPlaybackRate(rate || 1); } catch (e) {} p.seekTo(L.t, true); p.playVideo(); clearInterval(poll); poll = setInterval(function () { if (!document.body.contains(yt)) { clearInterval(poll); try { p.destroy(); } catch (e) {} return; } if (p.getCurrentTime && p.getCurrentTime() >= L.end) { p.pauseVideo(); clearInterval(poll); poll = null; cur && cur(); } }, 200); }
+    // ⏸ Thiago 28/11: dá pra pausar e continuar o trecho (o ▶ vira ⏸ enquanto toca)
+    var pbt = null, halted = false;
+    function setPB(t) { if (pbt) pbt.textContent = t; }
+    function play(L, rate, resume) { if (!ready) return; stopAll(); try { p.setPlaybackRate(rate || 1); } catch (e) {} if (!resume) p.seekTo(L.t, true); p.playVideo(); halted = false; setPB("⏸"); clearInterval(poll); poll = setInterval(function () { if (!document.body.contains(yt)) { clearInterval(poll); try { p.destroy(); } catch (e) {} return; } if (p.getCurrentTime && p.getCurrentTime() >= L.end) { p.pauseVideo(); clearInterval(poll); poll = null; setPB("↺"); cur && cur(); } }, 200); }
+    function toggle(L) { if (poll) { stopYT(); halted = true; setPB("▶"); } else play(L, 1, halted); }
     function one() {
-      stage.innerHTML = "";
+      stage.innerHTML = ""; halted = false;
       if (i >= X.lines.length) return end();
       var L = X.lines[i], g = gapParts(L.en), heard = false;
       var pool = []; X.lines.forEach(function (o) { var q = gapParts(o.en); if (q && q.ans.toLowerCase() !== g.ans.toLowerCase() && pool.indexOf(q.ans) < 0) pool.push(q.ans); });
@@ -1053,7 +1084,7 @@
         nx.disabled = false; fb(good); } })); });
       cur = function () { heard = true; choices.classList.remove("locked"); };
       stage.append(el("div", { cls: "card" }, steps(i + 1, X.lines.length, "Fala"),
-        el("div", { cls: "ptools" }, el("button", { cls: "pbtn sm", type: "button", text: "▶", onclick: function () { play(L, 1); } }), el("button", { type: "button", text: "🐢", onclick: function () { play(L, 0.75); } }), el("span", { cls: "plays", text: "ouça o trecho, pode repetir" })),
+        el("div", { cls: "ptools" }, (pbt = el("button", { cls: "pbtn sm", type: "button", "aria-label": "Tocar ou pausar", text: "▶", onclick: function () { toggle(L); } })), el("button", { type: "button", text: "⏪ do começo", onclick: function () { play(L, 1); } }), el("button", { type: "button", text: "🐢", onclick: function () { play(L, 0.75); } }), el("span", { cls: "plays", text: "▶ toca · ⏸ pausa · pode repetir" })),
         line, choices, res, nx));
       window.scrollTo(0, 0);
     }
@@ -1120,9 +1151,9 @@
   function hiLine(doneToday) {
     var n = S.name ? S.name.split(" ")[0] : "", h = new Date().getHours();
     if (doneToday) return "Treino feito hoje! Brabo" + (n ? ", " + n : "") + ". 😎";
-    if (h < 12) return "Bom dia, flor do dia! Vamos praticar?";
+    if (h < 19) return "Hello" + (n ? ", " + n : "") + "! Vamos praticar?";
     if (h >= 19) return "Hoje você ainda não treinou… depois vai falar pra todo mundo que a minha plataforma não funciona, né? 😏";
-    return "Turubom" + (n ? ", " + n : "") + "? Bora treinar!";
+    return "Hello" + (n ? ", " + n : "") + "! Vamos praticar?";
   }
   function runDaily() {
     var D = todayPlan(), plan = D.plan, first = true;
@@ -1272,8 +1303,8 @@
     btn.onclick = function () {
       if (rec && rec.state === "recording") { rec.stop(); return; }
       navigator.mediaDevices.getUserMedia({ audio: true }).then(function (st) {
-        chunks = []; rec = new MediaRecorder(st); rec.ondataavailable = function (e) { if (e.data.size) chunks.push(e.data); };
-        rec.onstop = function () { st.getTracks().forEach(function (x) { x.stop(); }); var b = new Blob(chunks, { type: rec.mimeType || "audio/webm" });
+        micOn(); chunks = []; rec = new MediaRecorder(st); rec.ondataavailable = function (e) { if (e.data.size) chunks.push(e.data); };
+        rec.onstop = function () { st.getTracks().forEach(function (x) { x.stop(); }); micOff(); var b = new Blob(chunks, { type: rec.mimeType || "audio/webm" });
           vozPut(key, b, function (ok) { if (!ok) { notice("Não consegui salvar a gravação neste aparelho."); return; } S.voz = S.voz || {}; if (key === "dia1") S.voz.dia1 = today(); else S.voz.ultima = today(); persist(); SFX.win(); if (key === "hoje") confetti(); notice(key === "dia1" ? "📼 Dia 1 guardado! Volte em 2 semanas pra comparar." : "🎧 Agora escute o antes e o depois!"); vozPage(); }); };
         rec.start(); btn.textContent = "⏹️ Parar gravação"; btn.classList.add("live"); setTimeout(function () { if (rec && rec.state === "recording") rec.stop(); }, 15000);
       }).catch(function () { notice("Preciso do microfone pra gravar. Libere nas configurações do navegador."); });
@@ -1355,7 +1386,7 @@
           if (qi >= order.length) return end();
           var it = order[qi], others = shuffle(pairs.filter(function (x) { return x.en !== it.en; })).slice(0, 2), ch = shuffle(others.concat([it]));
           q.textContent = it.pt; opts.replaceChildren();
-          ch.forEach(function (c) { opts.append(el("button", { cls: "pt-opt", type: "button", text: c.en, onclick: function (e) { if (over) return; var g = c.en === it.en; e.currentTarget.classList.add(g ? "ok" : "bad"); if (g) right++; fb(g); qi++; setTimeout(nx, g ? 250 : 650); } })); });
+          ch.forEach(function (c) { opts.append(el("button", { cls: "pt-opt", type: "button", text: c.en, onclick: function (e) { if (over) return; var g = c.en === it.en; e.currentTarget.classList.add(g ? "ok" : "bad"); if (!g) [].forEach.call(opts.children, function (b) { if (b.textContent === it.en) b.classList.add("ok"); }); if (g) right++; fb(g); qi++; setTimeout(nx, g ? 250 : 1000); } })); });
         }
         function end() { if (over) return; over = true; clearInterval(tmr); opts.replaceChildren(); q.textContent = (right >= order.length ? "🏆 Gabaritou! " : "⚡ Fim! ") + "Você acertou " + right + " de " + order.length + ". +" + right * 2 + " XP"; S.xp += right * 2; S.bonusDay = today(); S.bonusRight = right; persist(); if (right >= order.length) SFX.stage(); else SFX.small(); }
         nx();
@@ -2150,7 +2181,7 @@
       if (e.kind === "ouvir") {
         var dn = false, op = el("div", { cls: "opts locked" });
         shuffle(e.choices).forEach(function (c) { op.append(el("button", { cls: "opt", type: "button", text: c, onclick: function (ev) {
-          if (dn) return; dn = true; var good = eq(c, e.answer); ev.currentTarget.classList.add(good ? "ok" : "bad");
+          if (dn) return; dn = true; var good = eq(c, e.answer); ev.currentTarget.classList.add(good ? "ok" : "bad"); fb(good); if (!good) [].forEach.call(op.children, function (b) { if (eq(b.textContent, e.answer)) b.classList.add("ok"); });
           if (good) { fixError(e.en); fixed++; } res.append(el("b", { text: good ? "✅ Pegou!" : "🔴 Era \"" + e.answer + "\"" }), el("span", { cls: "small", text: e.en + " · " + e.pt })); nx0.disabled = false; } })); });
         w.append(el("div", { cls: "card" }, el("span", { cls: "eyebrow", text: "👂 Ouça de novo" }), steps(i + 1, list.length, ""), ears(e.file, function () { op.classList.remove("locked"); }), el("p", { cls: "lac-line", text: e.prompt }), op, res, nx0));
         return;
@@ -2395,7 +2426,7 @@
     }
     var rec = null, finals = "", interim = "", base = "", state = "idle", empties = 0, redo = 0, mr = null, chunks = [], stream = null, t0 = 0, tick = null, blobUrl = null, an = null, liveIdx = 0, srReady = false, mrReady = false, cdDone = false, armT = null;
     // sair da tela no meio da gravação: desliga microfone, reconhecimento e timers (pente-fino 28/11)
-    TALKS.push(function () { state = "idle"; clearTimeout(armT); clearInterval(tick); try { if (rec) rec.abort(); } catch (e) {} rec = null; try { if (mr && mr.state !== "inactive") mr.stop(); } catch (e) {} try { if (stream) stream.getTracks().forEach(function (t) { t.stop(); }); } catch (e) {} });
+    TALKS.push(function () { state = "idle"; clearTimeout(armT); clearInterval(tick); try { if (rec) rec.abort(); } catch (e) {} rec = null; try { if (mr && mr.state !== "inactive") mr.stop(); } catch (e) {} try { if (stream) { stream.getTracks().forEach(function (t) { t.stop(); }); stream = null; micOff(); } } catch (e) {} });
     function fallback() {
       if (!wrap.querySelector(".mic-fallback")) wrap.append(el("button", { cls: "btn ghost mic-fallback", type: "button", text: "Não consigo usar o microfone: falei em voz alta →", onclick: function () { onDone("", true); } }));
     }
@@ -2406,7 +2437,7 @@
       if (!navigator.mediaDevices || !window.MediaRecorder) { mrReady = true; maybeLive(); return; }
       navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } }).then(function (s) {
         if (state !== "arming" && state !== "live") { s.getTracks().forEach(function (t) { t.stop(); }); return; }
-        stream = s;
+        stream = s; micOn();
         // 🎚️ medidor de voz: mostra que o microfone está pegando
         try { var AC = window.AudioContext || window.webkitAudioContext, ac = new AC(), src = ac.createMediaStreamSource(s); an = ac.createAnalyser(); an.fftSize = 256; src.connect(an); an._ac = ac; } catch (e) { an = null; }
         try { mr = new MediaRecorder(s); } catch (e) { mr = null; mrReady = true; maybeLive(); return; }
@@ -2416,7 +2447,7 @@
       }).catch(function () { mrReady = true; maybeLive(); });
     }
     function stopMR(cb) {
-      var done = false; function fin() { if (done) return; done = true; if (stream) stream.getTracks().forEach(function (t) { t.stop(); }); stream = null; if (an && an._ac) { try { an._ac.close(); } catch (e) {} } an = null; cb(chunks.length ? new Blob(chunks, { type: (mr && mr.mimeType) || "audio/webm" }) : null); }
+      var done = false; function fin() { if (done) return; done = true; if (stream) { stream.getTracks().forEach(function (t) { t.stop(); }); micOff(); } stream = null; if (an && an._ac) { try { an._ac.close(); } catch (e) {} } an = null; cb(chunks.length ? new Blob(chunks, { type: (mr && mr.mimeType) || "audio/webm" }) : null); }
       if (mr && mr.state !== "inactive") { mr.onstop = fin; try { mr.stop(); } catch (e) { fin(); } setTimeout(fin, 1500); } else fin();
     }
     function arm() {
@@ -2549,7 +2580,13 @@
   }
   // player do YouTube escondido atrás de uma capa (tela coberta): toca pedaços [t, end]
   function ytScene(holder, id, T0, T1, onFail) {
-    var p = null, ready = null, stopAt = 0, onStop = null, at = 0, ticks = [], ok = false, failed = false;
+    var p = null, ready = null, stopAt = 0, onStop = null, at = 0, ticks = [], ok = false, failed = false, held = false;
+    // ⏸ Thiago 28/11: todo vídeo pode pausar e continuar de onde parou (o botão aparece em cima do vídeo enquanto toca)
+    var pp = el("button", { cls: "yt-pp", type: "button", hidden: true, text: "⏸ Pausar", onclick: function (e) {
+      e.stopPropagation(); if (!p || !p.getPlayerState) return; var st = p.getPlayerState();
+      if (st === 1 || st === 3) { p.pauseVideo(); held = true; } else if (held) { p.playVideo(); at = Date.now(); held = false; }
+      pp.textContent = held ? "▶ Continuar" : "⏸ Pausar"; } });
+    if (holder.parentNode) holder.parentNode.append(pp);
     // vídeo que não abre (bloqueador de anúncio, rede que bloqueia YouTube, vídeo restrito): avisa e deixa pular (pente-fino 28/11)
     function fail() { if (ok || failed) return; failed = true; if (onFail && document.body.contains(holder)) onFail(); }
     setTimeout(fail, 12000);
@@ -2563,13 +2600,15 @@
       if (!document.body.contains(holder) && !(p && p.getIframe && document.body.contains(p.getIframe()))) { clearInterval(iv); try { p.destroy(); } catch (e) {} return; }
       if (!p || !p.getCurrentTime) return;
       var cur = p.getCurrentTime(), st = p.getPlayerState ? p.getPlayerState() : -1;
+      if (!pp.parentNode && holder.parentNode) holder.parentNode.append(pp);
+      pp.hidden = !(st === 1 || st === 3 || held); pp.textContent = held ? "▶ Continuar" : "⏸ Pausar";
       if (stopAt && Date.now() - at > 600 && (cur >= stopAt || st === 0)) { p.pauseVideo(); stopAt = 0; if (onStop) { var f = onStop; onStop = null; f(); } }
       ticks.forEach(function (fn) { fn(cur, st); });
     }, 200);
     return {
-      play: function (t, end, rate, cb) { ready.then(function () { try { p.setPlaybackRate(rate || 1); } catch (e) {} p.seekTo(Math.max(0, t), true); p.playVideo(); at = Date.now(); stopAt = end; onStop = cb || null; }); },
-      free: function (t) { ready.then(function () { try { p.setPlaybackRate(1); } catch (e) {} if (t != null) p.seekTo(t, true); stopAt = 0; onStop = null; p.playVideo(); }); },
-      pause: function () { ready.then(function () { p.pauseVideo(); stopAt = 0; onStop = null; }); },
+      play: function (t, end, rate, cb) { held = false; ready.then(function () { try { p.setPlaybackRate(rate || 1); } catch (e) {} p.seekTo(Math.max(0, t), true); p.playVideo(); at = Date.now(); stopAt = end; onStop = cb || null; }); },
+      free: function (t) { held = false; ready.then(function () { try { p.setPlaybackRate(1); } catch (e) {} if (t != null) p.seekTo(t, true); stopAt = 0; onStop = null; p.playVideo(); }); },
+      pause: function () { held = false; ready.then(function () { p.pauseVideo(); stopAt = 0; onStop = null; }); },
       jump: function (d, lo, hi) { ready.then(function () { var t = Math.min(hi - 0.5, Math.max(lo, p.getCurrentTime() + d)); p.seekTo(t, true); p.playVideo(); }); },
       state: function () { return p && p.getPlayerState ? p.getPlayerState() : -1; },
       onTick: function (fn) { ticks.push(fn); },
@@ -3022,7 +3061,7 @@
   }
   function feedbackTab() {
     if (document.querySelector(".fb-tab")) return;
-    document.body.append(el("button", { cls: "fb-tab", type: "button", "aria-label": "Achou um problema? Me conta", onclick: feedbackOpen }, el("span", { text: "💬 Achou um problema?" })));
+    document.body.append(el("button", { cls: "fb-tab", type: "button", "aria-label": "Achou um problema? Me conta", onclick: feedbackOpen }, el("span", { text: "💬 Problema?" })));
   }
   function adopt(p) { // a conta tem progresso mais novo (outro aparelho): ele vale
     if (!p || typeof p !== "object") return false;

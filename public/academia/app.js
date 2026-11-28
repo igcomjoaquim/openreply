@@ -381,7 +381,7 @@
       el("div", { cls: "lo-top" }, el("span", { cls: "eyebrow", text: "O que você leva" }), el("h3", { text: "Destravando · Assinatura" }), leva),
       el("div", { cls: "lo-bottom" }, el("span", { cls: "lo-pill", text: "⚡ Acesso imediato" }), el("small", { text: "Assinatura" }), el("strong", { text: "Treino novo todo dia" }), el("small", { text: "pra destravar de vez" }),
         cta("Quero destravar meu inglês →"), el("p", { cls: "lo-safe", text: "🔒 Pagamento seguro pela Hotmart · valor exibido no checkout" }))),
-      el("p", { cls: "small center", text: "Meu compromisso: se você aparecer todo dia e abrir a boca, você destrava. A parte difícil eu já resolvi." }));
+      el("p", { cls: "small center", text: "Meu compromisso: se você aparecer todo dia e falar em voz alta, você destrava. A parte difícil eu já resolvi." }));
     // ⬇️ barra fixa embaixo (aparece depois do topo e some no fim)
     var bar = el("div", { cls: "land-bar" }, el("button", { cls: "btn big gold", type: "button", text: "Quero destravar meu inglês →", onclick: startFlow }));
     function onScroll() { if (!w.isConnected) { window.removeEventListener("scroll", onScroll); bar.remove(); return; } var y = window.scrollY, end = document.documentElement.scrollHeight - window.innerHeight - 500; bar.classList.toggle("show", y > 520 && y < end); top.classList.toggle("solid", y > 10); }
@@ -400,7 +400,7 @@
         heroCard),
       mq,
       (function () { var x = sec("O diagnóstico honesto", "O problema não é você. É o método.");
-        x.append(el("p", { text: "Te ensinaram a estudar inglês como quem estuda pra prova. Só que fluência não se prova numa folha: se prova no ouvido e na boca. Se algum destes te descreve, presta atenção:" }),
+        x.append(el("p", { text: "Te ensinaram a estudar inglês como quem estuda pra prova. Só que fluência não se prova numa folha: se prova no ouvido e na fala. Se algum destes te descreve, presta atenção:" }),
           el("ul", { cls: "land-x" },
             el("li", { text: "Você lê e entende, mas quando o nativo fala rápido, some tudo." }),
             el("li", { text: "Já fez três cursos, tem app no celular, e continua sem conversar." }),
@@ -459,7 +459,7 @@
         x.append(el("div", { cls: "land-prof-in" }, el("img", { src: SITE + "profile.png", alt: "Thiago Joaquim, professor de inglês" }),
           el("div", null, el("span", { cls: "small", text: "O professor" }), el("h2", { text: "Oi, eu sou o Joaquim." }))),
           el("p", { text: "Não aprendi idiomas na sala de aula tradicional: aprendi vivendo. Morei 4 anos na Europa, trabalhei em outra língua, errei muito e falei mesmo assim. Foi aí que entendi: fluência não vem de mais teoria, vem de usar." }),
-          el("p", { text: "Sou violinista, professor apaixonado e, sinceramente, um chato com uma coisa só: odeio a indústria da enrolação que promete milagre em 3 meses e entrega frustração. Aqui é o oposto: trabalho focado, direto, com resultado que você sente na boca." }),
+          el("p", { text: "Sou violinista, professor apaixonado e, sinceramente, um chato com uma coisa só: odeio a indústria da enrolação que promete milagre em 3 meses e entrega frustração. Aqui é o oposto: trabalho focado, direto, com resultado que você percebe na primeira conversa." }),
           el("p", { cls: "hand", text: "Se você fala, você valida. Simples assim." }),
           el("div", { cls: "land-stats" }, el("div", null, el("b", { text: "5 idiomas" }), el("span", { text: "aprendidos na prática" })), el("div", null, el("b", { text: "4 anos" }), el("span", { text: "morando na Europa" })), el("div", null, el("b", { text: "A1 → B2+" }), el("span", { text: "alunos destravados" }))));
         return x; })(),
@@ -709,7 +709,7 @@
     var w = screen(), t = curTheme(), I = INDEX[t];
     var D = todayPlan(), plan = D.plan, doneToday = (S.dailyDone === today()), roundOver = D.i >= plan.length, resume = D.i > 0 && !roundOver;
     w.append(topBar(),
-      el("section", { cls: "hello" }, el("p", { cls: "hand", text: "Bora treinar" + (S.name ? ", " + S.name : "") + "!" }),
+      el("section", { cls: "hello" }, el("p", { cls: "hand", text: hiLine(doneToday) }),
         el("div", { cls: "lvl" }, el("span", { cls: "lvl-badge", text: LVL === "b2" ? "B2 · intermediário superior" : LVL === "b1" ? "B1 · intermediário" : LVL === "a2" ? "A2 · pré-intermediário" : BANDS[S.test.band] }), S.test.skipped ? el("span", { cls: "small", text: "começando pelo tema 1" }) : el("span", { cls: "small", text: "foco: " + PROB[focusProb()].emoji + " " + PROB[focusProb()].name.toLowerCase() }))),
       howTo(),
       streakCard(),
@@ -1053,8 +1053,12 @@
   // 😄 Thiago 28/11: incentivo e humor no tom dele (irreverente, sem discriminação)
   var FUN = [
     "Vai dar tudo certo. É só levantar a bunda do sofá. Ah, você já levantou. 👏",
-    "Antes você não sabia nada. Agora… parece que é o começo. E começo é tudo.",
-    "Se você quer rir, tem que fazer o outro rir. Se quer falar inglês, tem que abrir a boca.",
+    "Daqui a pouco você vai comprar pão na padaria lá fora sem precisar do Google Tradutor. 🥖",
+    "Quer falar inglês? Então fala. Pensar em inglês calado não conta.",
+    "Bora estudar, que você não é a Bruna Marquezine. 💅",
+    "Quando der vontade de desistir do inglês, dá uma olhadinha na sua conta bancária. Isso vai te incentivar a continuar. kkkk",
+    "Não adianta jogar tudo pro alto, porque você não tem nada pra jogar pro alto. Bora estudar.",
+    "Nadou, nadou… vai morrer na praia agora? Bora pra próxima.",
     "Nativo também erra. A diferença é que ele não para de falar.",
     "Ninguém fica fluente lendo apostila deitado. Bora, que você tá no caminho.",
     "Você tá treinando o ouvido que nem academia: dói um pouco, mas amanhã tá mais forte.",
@@ -1076,7 +1080,24 @@
         el("p", { cls: "small", text: "Se precisar parar, pode sair: você continua daqui depois." }),
         el("div", { cls: "card nextph" }, el("span", { cls: "eyebrow", text: "Próxima fase" }), el("b", { text: X.emoji + " " + X.name }), el("span", { cls: "small", text: X.pt }))),
       el("button", { cls: "btn big", type: "button", text: "Bora →", onclick: go }),
-      el("button", { cls: "linkish", type: "button", text: "Parar por agora", onclick: home }));
+      el("button", { cls: "linkish", type: "button", text: "Parar por agora", onclick: function () { quitScreen(go); } }));
+  }
+  var QUIT = ["Nadou, nadou… pra morrer na praia agora?", "É sério que você vai desistir mais uma vez, igual tudo que você faz na vida? 😏", "Para com essa boberice e termina esse treino.", "Para que tá feio! Falta tão pouquinho.", "Nossa, que disparate! Logo agora que tava ficando bom?"];
+  function quitScreen(go) {
+    var w = screen();
+    w.append(el("section", { cls: "hero center rest" }, el("div", { cls: "big-emoji", text: "🫠" }),
+        el("h1", { text: QUIT[Math.floor(Math.random() * QUIT.length)] }),
+        el("p", { cls: "small", text: "Brincadeira. Se precisar mesmo, pode sair: amanhã (ou daqui a pouco) você continua de onde parou." })),
+      el("button", { cls: "btn big", type: "button", text: "Tá bom, vou continuar 💪", onclick: go }),
+      el("button", { cls: "linkish", type: "button", text: "Sair mesmo, volto depois", onclick: home }));
+  }
+  // 👋 saudação da tela inicial no jeito do Thiago ("turubom", "bom dia, flor do dia"); muda conforme a hora e se já treinou
+  function hiLine(doneToday) {
+    var n = S.name ? S.name.split(" ")[0] : "", h = new Date().getHours();
+    if (doneToday) return "Treino feito hoje! Brabo" + (n ? ", " + n : "") + ". 😎";
+    if (h < 12) return "Bom dia, flor do dia! Vamos praticar?";
+    if (h >= 19) return "Hoje você ainda não treinou… depois vai falar pra todo mundo que a minha plataforma não funciona, né? 😏";
+    return "Turubom" + (n ? ", " + n : "") + "? Bora treinar!";
   }
   function runDaily() {
     var D = todayPlan(), plan = D.plan, first = true;
@@ -1405,7 +1426,7 @@
   function clearStage(w, keep) { keep = keep == null ? 2 : keep; while (w.children.length > keep) w.lastChild.remove(); stopAll(); window.scrollTo(0, 0); }
   var CHEER3 = ["Perfeito! Falou, validou! 🚀", "Brabo demais! 🔥", "Gabaritou! Nativo que lute. 😎", "Mandou muito! Bora pra próxima."];
   var CHEER2 = ["Muito bom! Dá pra chegar nas 3 estrelas.", "Quase perfeito! Mais um pouquinho.", "Boa! Seu ouvido tá ficando afiado."];
-  var CHEER1 = ["Errar faz parte: é assim que o cérebro aprende. 💪", "Calma, ninguém nasce falando. Bora pra próxima!", "Essa foi difícil mesmo. O que escapou vai pro 🧠 Meus erros."];
+  var CHEER1 = ["Nossa, que disparate! 😂 Brincadeira: o que escapou vai pro 🧠 Meus erros.", "Para que tá feio! 😂 Bora de novo, essa você pega.", "Errar faz parte: é assim que o cérebro aprende. 💪", "Calma, ninguém nasce falando. Bora pra próxima!", "Essa foi difícil mesmo. O que escapou vai pro 🧠 Meus erros."];
   function pick(a) { return a[Math.floor(Math.random() * a.length)]; }
   function starsOf(pct) { return pct >= 0.9 ? 3 : pct >= 0.6 ? 2 : 1; }
   function stageClear(pct, msg) {
@@ -1564,7 +1585,7 @@
       if (!V.vocab || !V.vocab.length) return null;
       var g = el("div", { cls: "vocab-list" });
       V.vocab.forEach(function (it) { g.append(el("div", { cls: "vrow" }, el("b", { text: it[0] }), el("span", { text: it[1] }))); });
-      return el("div", { cls: "card" }, el("span", { cls: "eyebrow", text: "📒 Do vídeo pra sua boca" }), g);
+      return el("div", { cls: "card" }, el("span", { cls: "eyebrow", text: "📒 Do vídeo pra sua fala" }), g);
     }
     // player só do trecho (máx. 60 s): sem a barra do YouTube; para sozinho no fim e volta pro começo do trecho
     var T0 = V.start || 0, T1 = Math.min(V.end || (T0 + 60), T0 + 60), dur = T1 - T0, ready = false, poll = null, plays = 0;
@@ -2702,7 +2723,7 @@
         evoResult,
         el("button", { cls: "btn big", type: "button", text: "👀 Agora assista COM imagem", onclick: function () { cover.remove(); Y.free(T0); window.scrollTo(0, 0); } }),
         rows.length ? el("div", { cls: "card" }, el("span", { cls: "eyebrow", text: "📜 O que foi falado" }), el("p", { cls: "small", text: "Toque numa frase pra voltar nela." }), legend, tl) : null,
-        vg.children.length ? el("div", { cls: "card" }, el("span", { cls: "eyebrow", text: "📒 Do vídeo pra sua boca" }), legend ? legend.cloneNode(true) : null, vg) : null,
+        vg.children.length ? el("div", { cls: "card" }, el("span", { cls: "eyebrow", text: "📒 Do vídeo pra sua fala" }), legend ? legend.cloneNode(true) : null, vg) : null,
         el("button", { cls: "btn big", type: "button", text: next === home ? "Voltar pro início" : "Próximo →", onclick: function () { Y.pause(); next(); } }));
       window.scrollTo(0, 0);
     }

@@ -29,11 +29,22 @@ function streakOf(days: string[], hoje: string): number {
   return n;
 }
 
-function mensagem(first: string, streak: number, sair: string) {
+// frases do Thiago (28/11), uma por dia em rodízio
+const ZOADA = [
+  "Hoje você ainda não treinou… depois vai falar pra todo mundo que a minha plataforma não funciona, né? 😏",
+  "É só levantar a bunda do sofá. Ou nem isso: dá pra fazer deitado. 😏",
+  "Nadou, nadou… vai morrer na praia agora?",
+  "Quando der vontade de desistir do inglês, dá uma olhadinha na sua conta bancária. Isso vai te incentivar a continuar. kkkk",
+  "Bora estudar, que você não é a Bruna Marquezine. 💅",
+  "Não adianta jogar tudo pro alto, porque você não tem nada pra jogar pro alto. Bora estudar.",
+  "Daqui a pouco você vai comprar pão na padaria lá fora sem precisar do Google Tradutor. 🥖",
+];
+function mensagem(first: string, streak: number, sair: string, dia = 0) {
+  const zoada = ZOADA[dia % ZOADA.length];
   const subject = streak >= 2 ? `🔥 ${streak} dias seguidos, ${first}. Vai deixar apagar hoje?` : `${first}, 15 minutinhos hoje? 🔓`;
   const linhaOfensiva = streak >= 2 ? `Você tá com ${streak} dias seguidos. Seria uma pena zerar por causa de 15 minutos, né?` : "Um dia de treino por vez. Hoje conta.";
-  const text = `Turubom, ${first}?\n\nPassando só pra lembrar: o seu treino de hoje ainda tá te esperando. São uns 15 minutinhos, menos que um episódio de série.\n\n${linhaOfensiva}\n\nÉ só levantar a bunda do sofá. Ou nem isso: dá pra fazer deitado.\n${URL_SITE}\n\nFalou, validou!\nThiago · Inglês com Joaquim\n\nVai viajar? Marca "Tirar férias" no app: a ofensiva fica guardada e eu paro de te lembrar.\nNão quer mais esses lembretes? ${sair}`;
-  const html = `<div style="font-family:system-ui,sans-serif;font-size:16px;line-height:1.5;color:#211A10;max-width:520px"><p>Turubom, ${escapeHtml(first)}?</p><p>Passando só pra lembrar: o seu treino de hoje ainda tá te esperando. São uns <b>15 minutinhos</b>, menos que um episódio de série.</p><p>${streak >= 2 ? "🔥 " : ""}${escapeHtml(linhaOfensiva)}</p><p>É só levantar a bunda do sofá. Ou nem isso: dá pra fazer deitado. 😏</p><p><a href="${URL_SITE}" style="display:inline-block;background:linear-gradient(180deg,#EDC55F,#D4A843 55%,#BF922F);color:#2B2008;font-weight:700;text-decoration:none;padding:12px 22px;border-radius:999px">Treinar agora →</a></p><p style="font-family:Georgia,serif;font-style:italic;color:#6F2A3D">Falou, validou!<br>Thiago · Inglês com Joaquim</p><p style="color:#7F735C;font-size:13px">Vai viajar? Marca <b>Tirar férias</b> no app: a ofensiva fica guardada e eu paro de te lembrar.<br><a href="${sair}" style="color:#7F735C">Não quero mais esses lembretes</a></p></div>`;
+  const text = `Turubom, ${first}?\n\nPassando só pra lembrar: o seu treino de hoje ainda tá te esperando. São uns 15 minutinhos, menos que um episódio de série.\n\n${linhaOfensiva}\n\n${zoada}\n${URL_SITE}\n\nFalou, validou!\nThiago · Inglês com Joaquim\n\nVai viajar? Marca "Tirar férias" no app: a ofensiva fica guardada e eu paro de te lembrar.\nNão quer mais esses lembretes? ${sair}`;
+  const html = `<div style="font-family:system-ui,sans-serif;font-size:16px;line-height:1.5;color:#211A10;max-width:520px"><p>Turubom, ${escapeHtml(first)}?</p><p>Passando só pra lembrar: o seu treino de hoje ainda tá te esperando. São uns <b>15 minutinhos</b>, menos que um episódio de série.</p><p>${streak >= 2 ? "🔥 " : ""}${escapeHtml(linhaOfensiva)}</p><p>${escapeHtml(zoada)}</p><p><a href="${URL_SITE}" style="display:inline-block;background:linear-gradient(180deg,#EDC55F,#D4A843 55%,#BF922F);color:#2B2008;font-weight:700;text-decoration:none;padding:12px 22px;border-radius:999px">Treinar agora →</a></p><p style="font-family:Georgia,serif;font-style:italic;color:#6F2A3D">Falou, validou!<br>Thiago · Inglês com Joaquim</p><p style="color:#7F735C;font-size:13px">Vai viajar? Marca <b>Tirar férias</b> no app: a ofensiva fica guardada e eu paro de te lembrar.<br><a href="${sair}" style="color:#7F735C">Não quero mais esses lembretes</a></p></div>`;
   return { subject, text, html };
 }
 
@@ -60,7 +71,7 @@ async function cron(req: NextRequest) {
       if (days.includes(hoje) || deFerias || !ativo) { pulados++; continue; }
     }
     const sair = `${BASE}?sair=${u.id}.${sign(u.id)}`;
-    const m = mensagem(u.name.split(" ")[0] || "você", streakOf(days, hoje), sair);
+    const m = mensagem(u.name.split(" ")[0] || "você", streakOf(days, hoje), sair, Math.floor(Date.parse(hoje) / DAY));
     try {
       await sendMail(u.email, m.subject, m.text, m.html, { "List-Unsubscribe": `<${sair}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" });
       if (!teste) await prisma.dtvUser.update({ where: { id: u.id }, data: { reminderAt: hoje } });

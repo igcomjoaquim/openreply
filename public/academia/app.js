@@ -835,6 +835,7 @@
       el("section", { cls: "hello" }, el("p", { cls: "hand", text: hiLine(doneToday) }),
         el("div", { cls: "lvl" }, el("span", { cls: "lvl-badge", text: LVL === "b2" ? "B2 · intermediário superior" : LVL === "b1" ? "B1 · intermediário" : LVL === "a2" ? "A2 · pré-intermediário" : BANDS[S.test.band] }), S.test.skipped ? el("span", { cls: "small", text: "começando pelo tema 1" }) : el("span", { cls: "small", text: "foco: " + PROB[focusProb()].emoji + " " + PROB[focusProb()].name.toLowerCase() }))),
       recadoCard(recadoHoje()),
+      installCard(),
       howTo(),
       streakCard(),
       S.paused ? el("button", { cls: "paused-card", type: "button", onclick: resumePaused }, el("span", { cls: "pe", text: "☕" }),
@@ -3338,6 +3339,30 @@
       el("button", { cls: "linkish", type: "button", text: "Sair desta conta", onclick: function () { pushNow(function () { api("sair", "POST").then(function () { setAcc(null); try { localStorage.removeItem(KEY); } catch (e) {} location.reload(); }); }); } }));
   }
 
+  // 📲 APP INSTALÁVEL (Thiago 28/11: "não dá muito aquela impressão de aplicativo"): ícone na tela, tela cheia, sem barra do navegador
+  var STANDALONE = (window.matchMedia && matchMedia("(display-mode: standalone)").matches) || navigator.standalone === true;
+  if (STANDALONE) document.documentElement.classList.add("is-app");
+  var IOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  var INSTALL_EVT = null;
+  window.addEventListener("beforeinstallprompt", function (e) { e.preventDefault(); INSTALL_EVT = e; var b = document.querySelector(".inst-go"); if (b) b.hidden = false; });
+  window.addEventListener("appinstalled", function () { S.installed = today(); persist(); var c = document.querySelector(".install-card"); if (c) c.remove(); notice("📲 Pronto! O Destravando está na sua tela de início."); });
+  try { if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("/sw.js").catch(function () {}); } catch (e) {}
+  function installCard() {
+    if (STANDALONE || PROF || S.installed || (S.installHide && S.installHide > today())) return null;
+    var mob = /Android|iPhone|iPad|iPod/.test(navigator.userAgent) || IOS; if (!mob) return null;
+    var later = function () { var d = new Date(); d.setDate(d.getDate() + 5); S.installHide = isoOf(d); persist(); card.remove(); };
+    var card = el("div", { cls: "card install-card" }, el("span", { cls: "eyebrow", text: "📲 Destravando no seu celular" }),
+      el("b", { text: "Instale o app: abre em tela cheia, direto do ícone, sem precisar procurar o site." }));
+    if (IOS) card.append(el("ol", { cls: "inst-steps" },
+      el("li", { html: "Toque em <b>Compartilhar</b> <span class=\"ios-share\">⬆︎</span> na barra do Safari (embaixo ou em cima)" }),
+      el("li", { html: "Role e toque em <b>Adicionar à Tela de Início</b> ➕" }),
+      el("li", { html: "Toque em <b>Adicionar</b>. Pronto: abra sempre pelo ícone 🔓" })),
+      /CriOS|FxiOS|Instagram|FBAN|FBAV/.test(navigator.userAgent) ? el("p", { cls: "small", text: "⚠️ No iPhone, isso só funciona no Safari. Abra destravando.inglescomjoaquim.com no Safari e siga os passos." }) : null);
+    else card.append(el("button", { cls: "btn inst-go", type: "button", hidden: !INSTALL_EVT, text: "📲 Instalar o app", onclick: function () { if (!INSTALL_EVT) return; INSTALL_EVT.prompt(); INSTALL_EVT.userChoice.then(function (c) { if (c && c.outcome === "accepted") { S.installed = today(); persist(); card.remove(); } INSTALL_EVT = null; }); } }),
+      el("p", { cls: "small", text: "Não apareceu o botão? No Chrome, toque nos 3 pontinhos ⋮ e em “Instalar app” ou “Adicionar à tela inicial”." }));
+    card.append(el("button", { cls: "linkish", type: "button", text: "Agora não", onclick: later }));
+    return card;
+  }
   // 👩‍🏫 painel do modo professor
   function profPanel() {
     if (!PROF || document.querySelector(".prof-fab")) return;

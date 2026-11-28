@@ -447,3 +447,13 @@ body.premium .pic.bad{background:#F8ECEE!important;border-color:#D9A8B2!importan
 /* ✍️ ditado com lacunas do teste de nível: o espaço da vez pisca */
 .x-gap.cur{border-bottom-color:#D4A843!important;background:rgba(237,197,95,.25);border-radius:6px;animation:gapblink 1.2s ease-in-out infinite}
 @keyframes gapblink{50%{background:rgba(237,197,95,.05)}}
+
+/* 📲 cara de app (vale sempre no celular; mais ainda aberto pelo ícone) */
+html,body{overscroll-behavior-y:none;-webkit-tap-highlight-color:transparent}
+button,.btn,.opt,.pic,.pt-opt,.tabbar{-webkit-user-select:none;user-select:none;touch-action:manipulation}
+button:active,.btn:active{transform:scale(.97)}
+html.is-app body{padding-top:env(safe-area-inset-top)}
+.install-card{border:1.5px dashed rgba(212,168,67,.7)!important;background:linear-gradient(120deg,rgba(237,197,95,.18),rgba(111,42,61,.08))!important}
+.install-card b{display:block;margin:4px 0 8px}
+.inst-steps{margin:6px 0 4px;padding-left:20px;line-height:1.6}
+.ios-share{display:inline-block;border:1.5px solid currentColor;border-radius:5px;padding:0 4px;font-size:12px;line-height:16px}

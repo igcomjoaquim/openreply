@@ -298,7 +298,7 @@
   function topBar(back) {
     var s = streak();
     return el("header", { cls: "top" },
-      back ? el("button", { cls: "back", type: "button", text: "← Voltar", onclick: back }) : el("span", { cls: "brand", text: "🔓 Destravando" }),
+      back ? el("button", { cls: "back", type: "button", text: "‹ Voltar", onclick: back }) : el("span", { cls: "brand", text: "🔓 Destravando" }),
       el("div", { cls: "stats" }, el("button", { cls: "stat snd", type: "button", "aria-label": "Som dos jogos", text: SFX.isOn() ? "🔊" : "🔇", onclick: function (e) { e.currentTarget.textContent = SFX.toggle() ? "🔊" : "🔇"; } }),
         el("span", { cls: "stat fire" + (S.days.indexOf(today()) > -1 ? " lit" : ""), title: "dias seguidos", text: "🔥 " + s }), xpStat()));
   }
@@ -540,7 +540,7 @@
   }
   function testIntro() {
     var w = screen(), k = S.self || 0;
-    w.append(el("header", { cls: "top" }, el("button", { cls: "back", type: "button", text: "← Voltar", onclick: welcome })),
+    w.append(el("header", { cls: "top" }, el("button", { cls: "back", type: "button", text: "‹ Voltar", onclick: welcome })),
       el("section", { cls: "hero" },
         el("span", { cls: "eyebrow", text: "Você marcou: " + SELF[k].e + " " + SELF[k].t }),
         el("h1", { html: k === 0 ? "Bora começar do <mark>zero</mark>, sem pressão." : "Agora vamos ver o seu <mark>nível de fato</mark>." }),
@@ -1143,7 +1143,7 @@
   }
   function stExtra(X) {
     var w = screen(), i = 0, ok = 0, p = null, ready = false, poll = null, cur = null;
-    w.append(el("header", { cls: "top" }, el("button", { cls: "back", type: "button", text: "← Extras", onclick: function () { stopYT(); extrasPage(); } }), el("span", { cls: "brand", text: "🎧 Inglês de verdade" })),
+    w.append(el("header", { cls: "top" }, el("button", { cls: "back", type: "button", text: "‹ Inglês real", onclick: function () { stopYT(); extrasPage(); } }), el("span", { cls: "brand", text: "🎧 Inglês de verdade" })),
       el("span", { cls: "eyebrow", text: X.source }), el("h1", { text: X.title }), el("p", { cls: "small", text: X.focus }));
     var holder = el("div"), cover = el("div", { cls: "yt-cover" }, el("span", { text: "🙈 Só ouvindo" }));
     var yt = el("div", { cls: "yt covered" }, holder, cover);
@@ -1406,14 +1406,14 @@
     return el("section", { cls: "my-tiles" }, projection(), vozCard(), el("span", { cls: "eyebrow", text: "👤 Seu espaço" }),
       el("div", { cls: "mt-row" },
         tile("📒", "Meu caderno", nC ? nC + " pra revisar" : "o que você guardar", cadernoPage),
-        tile("🧠", "Meus erros", nE ? nE + " pra corrigir" : "nada pendente 🎉", function () { if (nE) runErrors(); else { notice("🎉 Nada pra revisar por enquanto!"); home(); } }),
+        tile("🧠", "Meus erros", nE ? nE + " pra corrigir" : "nada pendente 🎉", function () { if (nE) runErrors(); else { emptyErrors(); return; home(); } }),
         tile("📊", "Progresso", "nível, medalhas, evolução", progressPage)),
       S.remind ? null : el("div", { cls: "card rem-card" }, el("b", { text: "⏰ Constância é tudo" }), el("p", { cls: "small", text: "Escolha um horário e o seu celular te lembra todo dia. 15 minutos, e o 🔥 não apaga." }), reminderBtn()));
   }
   function cadernoPage() {
     var w = screen(), C = (S.caderno || []).filter(function (c) { return !c.lv || c.lv === LVL; });
     w.append(topBar(home), el("h1", { text: "📒 Meu caderno" }), el("p", { cls: "small", text: "Tudo que você guardou no " + LVL.toUpperCase() + ": inglês autêntico, do jeito que o nativo fala." }));
-    if (!C.length) { w.append(el("div", { cls: "card" }, el("p", { text: "Ainda vazio. Termine um treino do dia e as expressões aparecem aqui." })), menuBar("prog")); return; }
+    if (!C.length) { w.append(emptyBox("Seu caderno ainda está vazio.", "Termine um treino do dia e as expressões mais importantes aparecem aqui, organizadas por dia, com exemplo. Sem decoreba.", "Fazer o treino de hoje →", runDaily), menuBar("prog")); return; }
     w.append(el("button", { cls: "btn big gold", type: "button", text: "🔁 Revisar " + Math.min(10, C.length) + " agora", onclick: function () { revisar(C); } }));
     // organizado por dia: "28/11 · Tema 1 · Hello!"
     var days = {}, order = [];
@@ -1427,7 +1427,7 @@
   }
   function revisar(C) {
     var pick = C.slice().sort(function (a, b) { return (a.ok || 0) - (b.ok || 0) || Math.random() - 0.5; }).slice(0, 10), i = 0, sabia = 0, w = screen();
-    w.append(el("header", { cls: "top" }, el("button", { cls: "back", type: "button", text: "← Caderno", onclick: cadernoPage })));
+    w.append(el("header", { cls: "top" }, el("button", { cls: "back", type: "button", text: "‹ Caderno", onclick: cadernoPage })));
     var box = el("div"); w.append(box);
     (function one() {
       box.replaceChildren(); var c = pick[i];
@@ -1492,7 +1492,7 @@
     CURU = u; pushNav();
     CUR = { st: st, uid: u.id, v: v, i: 0, acc: 0, daily: !!(ctx && ctx.n), review: !!(ctx && ctx.review) };
     w.append(el("header", { cls: "top" },
-      el("button", { cls: "back", type: "button", text: "← Sair", onclick: function () { if (onExit === home || !CUR) { CUR = null; home(); } else askExit(); } }),
+      el("button", { cls: "back", type: "button", text: "‹ Sair", onclick: function () { if (onExit === home || !CUR) { CUR = null; home(); } else askExit(); } }),
       el("button", { cls: "pause", type: "button", text: "☕ Pausar", onclick: pauseNow })));
     w.append(el("div", { cls: "thead" },
       el("span", { cls: "eyebrow", text: (ctx && ctx.n ? "Treino do dia · " : "") + X.emoji + " " + X.name + (u.id === GERAL.id ? "" : " · Tema " + (i + 1) + (ctx && ctx.review ? " · revisão" : "")) + " · variação " + (v + 1) }),
@@ -2234,7 +2234,7 @@
   function errorsFlow(next, ci, cn) {
     var w = screen(), list = myErrors().slice(-6).reverse(), i = 0, fixed = 0, rules = rulesNow();
     CUR = { st: "erros", uid: GERAL.id, v: 0, i: 0, acc: 0, daily: !!cn };
-    w.append(el("header", { cls: "top" }, el("button", { cls: "back", type: "button", text: "← Sair", onclick: function () { CUR = null; home(); } }), el("button", { cls: "pause", type: "button", text: "☕ Pausar", onclick: pauseNow })),
+    w.append(el("header", { cls: "top" }, el("button", { cls: "back", type: "button", text: "‹ Sair", onclick: function () { CUR = null; home(); } }), el("button", { cls: "pause", type: "button", text: "☕ Pausar", onclick: pauseNow })),
       el("div", { cls: "thead" }, el("span", { cls: "eyebrow", text: (cn ? "Treino do dia · " : "") + "🧠 Meus erros" }), cn && S.daily ? steps(ci, cn, "Fase", S.daily.plan.map(function (x) { return ST[x.st].emoji; })) : null),
       el("h1", { text: "O que você errou volta aqui" }), el("p", { cls: "small", text: "Acertou em 2 dias diferentes? Sai da lista." }));
     // 📘 a regra por trás do erro (quando o erro bate com uma regra do banco)
@@ -2288,7 +2288,7 @@
         t, res, nx0));
     }
     if (list.length) one();
-    else w.append(el("div", { cls: "sheet good" }, el("b", { text: "🎉 Nada pra revisar agora" }), el("button", { cls: "btn", type: "button", text: "Voltar", onclick: function () { next(); } })));
+    else w.append(emptyBox("Nenhum erro pra revisar.", "Tá se achando, hein? 😏 Quando escapar alguma coisa no treino, ela vem parar aqui pra você treinar de novo.", "Voltar →", function () { next(); }));
   }
 
   // =====================================================================
@@ -2935,7 +2935,7 @@
   function rulesNow() { var seen = {}, out = []; myErrors().forEach(function (e) { var R = ruleFor(e); if (R && !seen[R.id] && (LVL !== "a1" || R.level === "A1")) { seen[R.id] = 1; out.push(R); } }); return out; }
   function runRule(R0, back) {
     var w = screen(), RA = "/academia/reforco/audio/";
-    w.append(el("header", { cls: "top" }, el("button", { cls: "back", type: "button", text: "← Sair", onclick: back })));
+    w.append(el("header", { cls: "top" }, el("button", { cls: "back", type: "button", text: "‹ Sair", onclick: back })));
     j("/academia/reforco/" + R0.id + ".json?v=" + (window.__v || 1)).then(function (R) {
       var mine = myErrors().filter(function (e) { var x = ruleFor(e); return x && x.id === R.id; }).slice(0, 3);
       var steps2 = ["regra", "fofoca", "ouvir", "falar"].concat(mine.length ? ["meu"] : []), si = 0, ok = 0, n = 0, mineOk = [];
@@ -3072,15 +3072,24 @@
     w.append(menuBar("prog"));
   }
   // menu fixo embaixo (Thiago: "tudo que é navegação tem que GRITAR, aluno não procura")
+  // 🎨 ícones de traço (ficam preenchidos na aba aberta)
+  var ICO = {
+    home: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 10.4 12 3.6l8.5 6.8V19a1.5 1.5 0 0 1-1.5 1.5h-4.2v-6h-5.6v6H5A1.5 1.5 0 0 1 3.5 19z"/></svg>',
+    prog: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="12" width="4" height="8.5" rx="1.2"/><rect x="10" y="4" width="4" height="16.5" rx="1.2"/><rect x="16.5" y="8.5" width="4" height="12" rx="1.2"/></svg>',
+    erros: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.4-5.7"/><path d="M20.3 3.8v4.7h-4.7"/><path d="M12 8v4.3l2.8 1.7"/></svg>',
+    nativo: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 15.5V12a8 8 0 0 1 16 0v3.5"/><rect x="3" y="14" width="5" height="7" rx="2"/><rect x="16" y="14" width="5" height="7" rx="2"/></svg>',
+    voce: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4.2"/><path d="M4 21c1.4-4 4.4-6.2 8-6.2s6.6 2.2 8 6.2"/></svg>'
+  };
   function menuBar(cur) {
     var nErr = myErrors().length;
     var items = [["home", "🏠", "Início", home], ["prog", "📊", "Progresso", progressPage], ["erros", "🧠", "Meus erros", function () { runErrors(); }], ["nativo", "🎧", "Inglês real", extrasPage], ["voce", "👤", "Você", youPage]];
     var bar = el("nav", { cls: "tabbar" });
     items.forEach(function (it) {
-      bar.append(el("button", { cls: "tab" + (it[0] === cur ? " on" : ""), type: "button", onclick: function () { if (it[0] === "erros" && !nErr) { notice("🎉 Nada pra revisar por enquanto!"); return; } if (it[0] !== "home") pushNav(); it[3](); } },
-        el("span", { cls: "tab-ic", text: it[1] }), el("span", { cls: "tab-t", text: it[2] }), it[0] === "erros" && nErr ? el("span", { cls: "tab-n", text: String(nErr) }) : null));
+      bar.append(el("button", { cls: "tab" + (it[0] === cur ? " on" : ""), type: "button", onclick: function () { if (it[0] === "erros" && !nErr) { pushNav(); return emptyErrors(); } if (it[0] !== "home") pushNav(); it[3](); } },
+        el("span", { cls: "tab-ic", html: ICO[it[0]] || it[1] }), el("span", { cls: "tab-t", text: it[2] }), it[0] === "erros" && nErr ? el("span", { cls: "tab-n", text: String(nErr) }) : null));
     });
     var wrapM = el("div", { cls: "tabwrap", "data-cur": cur }, bar);
+    setTimeout(largeTitle, 0);
     var visto = true; try { visto = !!localStorage.getItem(PK("academia-menu-visto")); } catch (e) {}
     function vi() { try { localStorage.setItem(PK("academia-menu-visto"), "1"); } catch (e) {} }
     if (!visto) {
@@ -3347,7 +3356,7 @@
       });
     } });
     step2.append(field("Código de 6 números que chegou no e-mail", code), field("Senha nova", pw), save);
-    w.append(el("header", { cls: "top" }, el("button", { cls: "back", type: "button", text: "← Voltar", onclick: function () { loginScreen(after, email.value.trim()); } })),
+    w.append(el("header", { cls: "top" }, el("button", { cls: "back", type: "button", text: "‹ Voltar", onclick: function () { loginScreen(after, email.value.trim()); } })),
       el("section", { cls: "hero" }, el("span", { cls: "eyebrow", text: "Destravando · esqueci a senha" }), el("h1", { html: "Sem problema: <mark>em 1 minuto</mark> você cria outra." }),
         el("p", { text: "A gente manda um código de 6 números pro seu e-mail. Você digita aqui e escolhe a senha nova." })),
       el("div", { cls: "card form" }, field("Seu e-mail", email), send, step2, err));
@@ -3503,7 +3512,7 @@
   // ⏰ fuso do aparelho vai pra conta (o lembrete chega na hora local de cada um)
   function sendTz() { var tz = ""; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone; } catch (e) {} if (!ACC || !tz || S.tz === tz) return; api("preferencias", "POST", { fuso: tz }).then(function (r) { if (r && r.ok) { S.tz = tz; persist(); } }); }
   // 🏆 conquista: notificação no celular (se a pessoa ativou)
-  function conquista(title, body) { try { if (window.Notification && Notification.permission === "granted" && navigator.serviceWorker) navigator.serviceWorker.ready.then(function (reg) { reg.showNotification(title, { body: body, icon: "/academia/app/icon-192.png", badge: "/academia/app/icon-96.png", tag: "conquista" }); }); } catch (e) {} }
+  function conquista(title, body) { try { if (window.Notification && Notification.permission === "granted" && navigator.serviceWorker) navigator.serviceWorker.ready.then(function (reg) { reg.showNotification(title, { body: body, icon: "/academia/app/icon-192.png", badge: "/academia/app/icon-96.png", tag: "conquista", data: { url: "/?app=1&ir=progresso" } }); }); } catch (e) {} }
   // 👆 GESTOS: puxar pra atualizar (início) e deslizar pro lado pra trocar de aba
   (function () {
     var x0 = 0, y0 = 0, pulling = false, ind = null, ok = false, t0 = null;
@@ -3524,13 +3533,35 @@
       if (Math.abs(dx) < 80 || Math.abs(dy) > 45 || x0 < 26) return;
       if (t0.closest("input,textarea,select,.onb-track,.pbar,.lb-track,.chips,.yt,.x-line,[data-noswipe]")) return;
       var tw = root.querySelector(".tabwrap"); if (!tw) return;
-      var order = ["home", "prog", "erros", "nativo", "voce"].filter(function (k) { return k !== "erros" || myErrors().length; });
+      var order = ["home", "prog", "erros", "nativo", "voce"];
       var i = order.indexOf(tw.getAttribute("data-cur")); if (i < 0) return;
       var j = dx < 0 ? i + 1 : i - 1; if (j < 0 || j >= order.length) return;
-      var fn = { home: home, prog: progressPage, erros: function () { runErrors(); }, nativo: extrasPage, voce: youPage }[order[j]];
+      var fn = { home: home, prog: progressPage, erros: function () { if (myErrors().length) runErrors(); else emptyErrors(); }, nativo: extrasPage, voce: youPage }[order[j]];
       if (dx > 0) BACKING = true; buzz(8); fn();
     }, { passive: true });
   })();
+  // 🫥 TELA VAZIA caprichada: o bonequinho do logo + frase do Joaquim
+  function emptyBox(t, txt, btn, fn) { return el("div", { cls: "empty" }, el("img", { src: "/academia/app/icon-192.png", alt: "" }), el("h2", { text: t }), el("p", { text: txt }), btn ? el("button", { cls: "btn big gold", type: "button", text: btn, onclick: fn }) : null); }
+  function emptyErrors() { var w = screen(); w.append(topBar(home), el("h1", { text: "Meus erros" }), emptyBox("Nenhum erro pra revisar.", "Tá se achando, hein? 😏 Errar faz parte: quando escapar alguma coisa no treino, ela vem parar aqui pra você treinar de novo.", "Treinar agora →", runDaily), menuBar("erros")); }
+  // 🔠 TÍTULO GRANDE estilo iPhone: o 1º título da aba fica grande e, ao rolar, encolhe e vai pro topo
+  function largeTitle() {
+    var h = root.querySelector("main.wrap > h1, main.wrap > section h1, main.wrap .you-head h1"), top = root.querySelector("main.wrap > header.top");
+    document.body.classList.remove("lt-mini"); if (!h || !top) return;
+    h.classList.add("lt"); var t = h.textContent.replace(/^[^A-Za-zÀ-ú0-9]+/, "").trim();
+    var tt = top.querySelector(".tt") || el("span", { cls: "tt" }); tt.textContent = t; if (!tt.parentNode) top.append(tt);
+  }
+  window.addEventListener("scroll", function () { var h = root.querySelector(".lt"), top = root.querySelector("main.wrap > header.top"); if (!h || !top) return; document.body.classList.toggle("lt-mini", h.getBoundingClientRect().bottom < top.getBoundingClientRect().bottom + 4); }, { passive: true });
+  // ✨ NOVA VERSÃO: quando eu subir atualização, aparece a faixinha "Atualizar" (como os apps)
+  var MY_V = ((document.querySelector('script[src*="app.js?v="]') || {}).src || "").replace(/.*app\.js\?v=/, "");
+  function checkUpdate() {
+    if (!MY_V || document.querySelector(".upd")) return;
+    fetch("/?chk=" + Date.now(), { cache: "no-store" }).then(function (r) { return r.text(); }).then(function (t) {
+      var m = t.match(/app\.js\?v=(\d+)/); if (!m || m[1] === MY_V) return;
+      document.body.append(el("button", { cls: "upd", type: "button", onclick: function () { location.reload(); } }, el("span", { text: "✨ Novidade no app" }), el("b", { text: "Atualizar" })));
+    }).catch(function () {});
+  }
+  document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible") checkUpdate(); });
+  setInterval(checkUpdate, 15 * 60000); setTimeout(checkUpdate, 20000);
   // ⬆️ JANELA QUE SOBE DE BAIXO: alcinha em cima, arrasta pra baixo pra fechar (igual iPhone)
   function sheetify(ov, card, close) {
     ov.classList.add("bsheet"); card.classList.add("bs-card"); card.prepend(el("div", { cls: "bs-h", "aria-hidden": "true" }));
@@ -3638,6 +3669,6 @@
     if (CONTA_OK && !ACC && !PROF && S.skipAccUntil !== today()) { if (!STANDALONE) return landing(); return lsGet("dtv-onb") ? loginFromLanding() : onboarding(loginFromLanding); }
     S.test ? home() : welcome();
     // 📲 atalhos do ícone (segurar o ícone no Android): ?ir=treino | erros | caderno
-    var IR = Q.get("ir"); if (IR && S.test) setTimeout(function () { if (IR === "treino") runDaily(); else if (IR === "erros" && myErrors().length) runErrors(); else if (IR === "caderno") cadernoPage(); }, 60);
+    var IR = Q.get("ir"); if (IR && S.test) setTimeout(function () { if (IR === "treino") runDaily(); else if (IR === "erros" && myErrors().length) runErrors(); else if (IR === "caderno") cadernoPage(); else if (IR === "progresso") progressPage(); }, 60);
   }).catch(function () { root.innerHTML = "<p class='boot'>Não consegui carregar. Confira a internet e recarregue.</p>"; });
 })();

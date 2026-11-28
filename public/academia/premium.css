@@ -547,3 +547,25 @@ body:has(.onb-wrap) .fb-tab,body:has(.you-head) .fb-tab{display:none}
 @keyframes dtvShine{60%,100%{transform:translateX(100%)}}
 @media (prefers-reduced-motion:reduce){.opt.ok,.pic.ok,.pt-opt.ok,.x-gap.ok,.opt.bad,.pic.bad,.pt-opt.bad,.stat.xp-up,.lb-track i:after,.ptr.spin{animation:none}}
 .sair-row b{color:#8E3A52}
+/* 🎨 ícones de traço no menu (preenchem na aba aberta) */
+.tab-ic svg{width:26px;height:26px;display:block;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.tab.on .tab-ic svg{fill:currentColor;fill-opacity:.28;stroke-width:2.3}
+.tab-ic{font-size:0!important;line-height:0}
+/* 🔠 título grande estilo iPhone + topo com o título pequeno ao rolar */
+h1.lt{font-size:34px;line-height:1.08;letter-spacing:-.01em;margin:6px 0 14px}
+.you-head h1.lt{font-size:28px;margin:0}
+.top{position:sticky}
+.top .tt{position:absolute;left:50%;top:50%;transform:translate(-50%,-30%);font:700 16px/1.2 "Inter",system-ui,sans-serif;color:#211A10;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;max-width:52%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+body.lt-mini .top .tt{opacity:1;transform:translate(-50%,-50%)}
+/* ‹ voltar estilo iPhone (sem botão "pílula") */
+body.premium .top .back{background:none!important;border:0!important;box-shadow:none!important;color:#8E3A52!important;font:600 17px/1 "Inter",system-ui,sans-serif!important;padding:10px 6px 10px 0!important;min-height:44px}
+/* ✨ faixinha de nova versão */
+.upd{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 100px);transform:translateX(-50%);z-index:70;display:flex;gap:12px;align-items:center;border:0;border-radius:999px;padding:12px 18px;background:#211A10;color:#FFF8EC;font:500 14px "Inter",system-ui,sans-serif;box-shadow:0 14px 30px -12px rgba(0,0,0,.6);animation:sheetUp .35s cubic-bezier(.2,.8,.2,1);white-space:nowrap}
+.upd b{color:#EDC55F;font-weight:700}
+/* 🫥 telas vazias com o bonequinho */
+.empty{display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;padding:30px 18px 24px;margin:10px 0}
+.empty img{width:110px;height:110px;border-radius:26px;box-shadow:0 14px 30px -14px rgba(111,42,61,.5);transform:rotate(-5deg);animation:dtvFloat 3s ease-in-out infinite}
+.empty h2{margin:10px 0 0;font-size:24px}
+.empty p{margin:0 0 8px;max-width:330px;color:#5b5040;line-height:1.5}
+@keyframes dtvFloat{50%{transform:rotate(-5deg) translateY(-8px)}}
+@media (prefers-reduced-motion:reduce){.empty img{animation:none}}

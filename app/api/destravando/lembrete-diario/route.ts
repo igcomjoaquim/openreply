@@ -102,7 +102,7 @@ async function cron(req: NextRequest) {
     const first = u.name.split(" ")[0] || "você", st = streakOf(diasDe(p), hoje), d = Math.floor(Date.parse(hoje) / DAY);
     const title = st >= 2 ? `🔥 ${st} dias seguidos, ${first}!` : `${first}, bora treinar? 🔓`;
     const body = st >= 2 ? "Não deixa a ofensiva apagar hoje: são só 15 minutinhos." : ZOADA[d % ZOADA.length];
-    const n = await pushUser(u.id, { title, body, url: "/?app=1", badge: 1, tag: "lembrete" });
+    const n = await pushUser(u.id, { title, body, url: "/?app=1&ir=treino", badge: 1, tag: "lembrete" }); // tocar abre direto o treino do dia
     if (n && !teste) await prisma.dtvUser.update({ where: { id: u.id }, data: { pushAt: hoje } });
     notif += n;
   }

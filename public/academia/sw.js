@@ -2,7 +2,7 @@
 // - abre na hora: guarda a "casca" do app e os arquivos com ?v= (mudam de nome a cada atualização, então nunca ficam velhos)
 // - página: sempre tenta a internet primeiro (atualização chega na hora); sem internet, usa a última guardada
 // - 🔔 notificação no celular + número no ícone
-var CACHE = "dtv-v2";
+var CACHE = "dtv-v3";
 self.addEventListener("install", function () { self.skipWaiting(); });
 self.addEventListener("activate", function (e) {
   e.waitUntil(caches.keys().then(function (ks) { return Promise.all(ks.filter(function (k) { return k !== CACHE; }).map(function (k) { return caches.delete(k); })); }).then(function () { return self.clients.claim(); }));
@@ -32,7 +32,8 @@ self.addEventListener("notificationclick", function (e) {
   e.notification.close();
   var url = (e.notification.data && e.notification.data.url) || "/?app=1";
   e.waitUntil(self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(function (cs) {
-    for (var i = 0; i < cs.length; i++) { if ("focus" in cs[i]) { cs[i].focus(); return; } }
+    // app já aberto: leva pra tela da notificação (treino do dia, progresso…) e traz pra frente
+    for (var i = 0; i < cs.length; i++) { var c = cs[i]; if ("navigate" in c && url.indexOf("ir=") > -1) return c.navigate(url).then(function (w) { return w && w.focus(); }).catch(function () { return c.focus(); }); if ("focus" in c) return c.focus(); }
     return self.clients.openWindow(url);
   }));
 });

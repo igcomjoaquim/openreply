@@ -18,7 +18,6 @@ const BASE = URL_SITE + "/api/lembrete-diario"; // passa pelo site (o worker man
 const DAY = 86_400_000;
 const key = () => process.env.DESTRAVANDO_CRON_KEY ?? "";
 const sign = (id: string) => createHmac("sha256", key()).update("sair:" + id).digest("base64url").slice(0, 22);
-const isoBR = (d: Date) => d.toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" });
 
 type Prog = { days?: unknown; ferias?: unknown };
 function streakOf(days: string[], hoje: string): number {
@@ -49,60 +48,66 @@ function mensagem(first: string, streak: number, sair: string, dia = 0) {
   return { subject, text, html };
 }
 
+// ⏰ roda de hora em hora: cada pessoa recebe na HORA LOCAL que escolheu (padrão 19h), uma vez por dia
+function localNow(tz: string | null): { dia: string; hora: number } {
+  const z = tz || "America/Sao_Paulo";
+  try {
+    const d = new Date();
+    const dia = d.toLocaleDateString("sv-SE", { timeZone: z });
+    const hora = Number(new Intl.DateTimeFormat("en-US", { timeZone: z, hour: "numeric", hourCycle: "h23" }).format(d));
+    return { dia, hora };
+  } catch { return localNow(null); }
+}
+function devePular(p: Prog, createdAt: Date, hoje: string): boolean {
+  const days = Array.isArray(p.days) ? (p.days as unknown[]).filter((x): x is string => typeof x === "string").sort() : [];
+  const ferias = Array.isArray(p.ferias) ? (p.ferias as { from?: string; to?: string }[]) : [];
+  const ultimo = days[days.length - 1];
+  const ativo = ultimo ? Date.parse(hoje) - Date.parse(ultimo) <= 7 * DAY : Date.now() - createdAt.getTime() <= 3 * DAY;
+  const deFerias = ferias.some((f) => typeof f?.from === "string" && typeof f?.to === "string" && hoje >= f.from && hoje <= f.to);
+  return days.includes(hoje) || deFerias || !ativo;
+}
+function diasDe(p: Prog): string[] { return Array.isArray(p.days) ? (p.days as unknown[]).filter((x): x is string => typeof x === "string").sort() : []; }
+
 async function cron(req: NextRequest) {
   const got = req.headers.get("x-cron-key") ?? "";
   const k = key();
   if (!k || got.length !== k.length || !timingSafeEqual(Buffer.from(got), Buffer.from(k))) return NextResponse.json({ error: "não autorizado" }, { status: 401 });
-  const teste = req.nextUrl.searchParams.get("teste"); // ?teste=email → manda só pra esse e-mail, sem regras (conferir o texto)
+  const teste = req.nextUrl.searchParams.get("teste"); // ?teste=email → manda só pra esse e-mail agora, sem regras (conferir o texto)
   const prisma = getPrisma();
-  const hoje = isoBR(new Date());
-  const users = await prisma.dtvUser.findMany({
-    where: teste ? { email: teste.toLowerCase() } : { reminderOff: false, emailVerifiedAt: { not: null }, OR: [{ reminderAt: null }, { reminderAt: { not: hoje } }] },
-    select: { id: true, email: true, name: true, progress: true, createdAt: true },
-  });
-  let enviados = 0, pulados = 0, erros = 0;
+  const sel = { id: true, email: true, name: true, progress: true, createdAt: true, timezone: true, reminderHour: true, reminderAt: true, pushAt: true } as const;
+  let enviados = 0, pulados = 0, erros = 0, notif = 0;
+  // ✉️ e-mail
+  const users = await prisma.dtvUser.findMany({ where: teste ? { email: teste.toLowerCase() } : { reminderOff: false, emailVerifiedAt: { not: null } }, select: sel });
   for (const u of users) {
+    const { dia: hoje, hora } = localNow(u.timezone);
     const p = (u.progress && typeof u.progress === "object" ? u.progress : {}) as Prog;
-    const days = Array.isArray(p.days) ? (p.days as unknown[]).filter((x): x is string => typeof x === "string").sort() : [];
-    const ferias = Array.isArray(p.ferias) ? (p.ferias as { from?: string; to?: string }[]) : [];
-    if (!teste) {
-      const ultimo = days[days.length - 1];
-      const ativo = ultimo ? Date.parse(hoje) - Date.parse(ultimo) <= 7 * DAY : Date.now() - u.createdAt.getTime() <= 3 * DAY;
-      const deFerias = ferias.some((f) => typeof f?.from === "string" && typeof f?.to === "string" && hoje >= f.from && hoje <= f.to);
-      if (days.includes(hoje) || deFerias || !ativo) { pulados++; continue; }
-    }
+    if (!teste && (hora !== u.reminderHour || u.reminderAt === hoje)) continue;
+    if (!teste && devePular(p, u.createdAt, hoje)) { pulados++; continue; }
     const sair = `${BASE}?sair=${u.id}.${sign(u.id)}`;
-    const m = mensagem(u.name.split(" ")[0] || "você", streakOf(days, hoje), sair, Math.floor(Date.parse(hoje) / DAY));
+    const m = mensagem(u.name.split(" ")[0] || "você", streakOf(diasDe(p), hoje), sair, Math.floor(Date.parse(hoje) / DAY));
     try {
       await sendMail(u.email, m.subject, m.text, m.html, { "List-Unsubscribe": `<${sair}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" });
       if (!teste) await prisma.dtvUser.update({ where: { id: u.id }, data: { reminderAt: hoje } });
       enviados++;
-    } catch (e) {
-      erros++;
-      console.error("[destravando] lembrete", String(e).slice(0, 200));
-    }
+    } catch (e) { erros++; console.error("[destravando] lembrete", String(e).slice(0, 200)); }
     await new Promise((r) => setTimeout(r, 600)); // Resend: no máx. ~2 por segundo
   }
-  // 🔔 notificação no celular (quem ativou no app): mesmas regras, independente do e-mail
-  let notif = 0;
-  const comPush = await prisma.dtvUser.findMany({ where: teste ? { email: teste.toLowerCase(), pushes: { some: {} } } : { pushes: { some: {} } }, select: { id: true, name: true, progress: true, createdAt: true } });
+  // 🔔 notificação no celular (quem ativou no app)
+  const comPush = await prisma.dtvUser.findMany({ where: teste ? { email: teste.toLowerCase(), pushes: { some: {} } } : { pushes: { some: {} } }, select: sel });
   for (const u of comPush) {
+    const { dia: hoje, hora } = localNow(u.timezone);
     const p = (u.progress && typeof u.progress === "object" ? u.progress : {}) as Prog;
-    const days = Array.isArray(p.days) ? (p.days as unknown[]).filter((x): x is string => typeof x === "string").sort() : [];
-    const ferias = Array.isArray(p.ferias) ? (p.ferias as { from?: string; to?: string }[]) : [];
-    if (!teste) {
-      const ultimo = days[days.length - 1];
-      const ativo = ultimo ? Date.parse(hoje) - Date.parse(ultimo) <= 7 * DAY : Date.now() - u.createdAt.getTime() <= 3 * DAY;
-      const deFerias = ferias.some((f) => typeof f?.from === "string" && typeof f?.to === "string" && hoje >= f.from && hoje <= f.to);
-      if (days.includes(hoje) || deFerias || !ativo) continue;
-    }
-    const first = u.name.split(" ")[0] || "você", st = streakOf(days, hoje), dia = Math.floor(Date.parse(hoje) / DAY);
+    if (!teste && (hora !== u.reminderHour || u.pushAt === hoje)) continue;
+    if (!teste && devePular(p, u.createdAt, hoje)) continue;
+    const first = u.name.split(" ")[0] || "você", st = streakOf(diasDe(p), hoje), d = Math.floor(Date.parse(hoje) / DAY);
     const title = st >= 2 ? `🔥 ${st} dias seguidos, ${first}!` : `${first}, bora treinar? 🔓`;
-    const body = st >= 2 ? "Não deixa a ofensiva apagar hoje: são só 15 minutinhos." : ZOADA[dia % ZOADA.length];
-    notif += await pushUser(u.id, { title, body, url: "/?app=1", badge: 1, tag: "lembrete" });
+    const body = st >= 2 ? "Não deixa a ofensiva apagar hoje: são só 15 minutinhos." : ZOADA[d % ZOADA.length];
+    const n = await pushUser(u.id, { title, body, url: "/?app=1", badge: 1, tag: "lembrete" });
+    if (n && !teste) await prisma.dtvUser.update({ where: { id: u.id }, data: { pushAt: hoje } });
+    notif += n;
   }
-  console.log(`[destravando] lembrete ${hoje}: e-mails ${enviados}, pulados ${pulados}, erros ${erros}, notificações ${notif}`);
-  return NextResponse.json({ hoje, enviados, pulados, erros, notif });
+  if (enviados || notif || erros) console.log(`[destravando] lembrete: e-mails ${enviados}, pulados ${pulados}, erros ${erros}, notificações ${notif}`);
+  return NextResponse.json({ enviados, pulados, erros, notif });
 }
 
 /** Link "não quero mais esses lembretes" do e-mail (GET = clique; POST com sair = botão de descadastro do Gmail). */

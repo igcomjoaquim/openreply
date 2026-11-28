@@ -591,6 +591,12 @@ model DtvUser {
   /// Lembrete diário por e-mail: true = a pessoa saiu pelo link do e-mail. reminderAt = dia (AAAA-MM-DD) do último enviado.
   reminderOff  Boolean   @default(false)
   reminderAt   String?
+  /// Hora local (0–23) do lembrete diário (e-mail e notificação). Padrão 19h.
+  reminderHour Int       @default(19)
+  /// Fuso do aparelho (ex.: America/Sao_Paulo, America/New_York) pra mandar na hora certa de cada um.
+  timezone     String?
+  /// Dia (AAAA-MM-DD, no fuso da pessoa) da última notificação de lembrete.
+  pushAt       String?
   consentAt    DateTime  @default(now())
   /// E-mail confirmado com o código de 6 números (sem isso não entra). Quem já tinha conta em 28/11 ficou confirmado.
   emailVerifiedAt DateTime?
@@ -604,6 +610,24 @@ model DtvUser {
   sessions DtvSession[]
   resets   DtvReset[]
   pushes   DtvPush[]
+  passkeys DtvPasskey[]
+}
+
+/// 🔐 Destravando: chave de acesso (Face ID / digital) do aparelho.
+model DtvPasskey {
+  id         String    @id @default(cuid())
+  userId     String
+  credId     String    @unique
+  publicKey  String
+  counter    Int       @default(0)
+  transports String?
+  rpId       String
+  device     String?
+  createdAt  DateTime  @default(now())
+  lastUsedAt DateTime?
+  user       DtvUser   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 /// 🔔 Destravando: aparelho inscrito pra notificação no celular (Web Push).

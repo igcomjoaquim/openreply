@@ -300,7 +300,14 @@
     return el("header", { cls: "top" },
       back ? el("button", { cls: "back", type: "button", text: "← Voltar", onclick: back }) : el("span", { cls: "brand", text: "🔓 Destravando" }),
       el("div", { cls: "stats" }, el("button", { cls: "stat snd", type: "button", "aria-label": "Som dos jogos", text: SFX.isOn() ? "🔊" : "🔇", onclick: function (e) { e.currentTarget.textContent = SFX.toggle() ? "🔊" : "🔇"; } }),
-        el("span", { cls: "stat fire" + (S.days.indexOf(today()) > -1 ? " lit" : ""), title: "dias seguidos", text: "🔥 " + s }), el("span", { cls: "stat", title: "XP · " + xpLevel().name, text: "⭐ " + S.xp })));
+        el("span", { cls: "stat fire" + (S.days.indexOf(today()) > -1 ? " lit" : ""), title: "dias seguidos", text: "🔥 " + s }), xpStat()));
+  }
+  // ✨ XP sobe contando quando aumentou desde a última vez que apareceu
+  var XP_SHOWN = null;
+  function xpStat() {
+    var e = el("span", { cls: "stat xp", title: "XP · " + xpLevel().name, text: "⭐ " + S.xp }), from = XP_SHOWN == null ? S.xp : XP_SHOWN, to = S.xp; XP_SHOWN = to;
+    if (to > from) { e.textContent = "⭐ " + from; e.classList.add("xp-up"); var t0 = null; requestAnimationFrame(function step(t) { if (!t0) t0 = t; var k = Math.min(1, (t - t0) / 700); e.textContent = "⭐ " + Math.round(from + (to - from) * (1 - Math.pow(1 - k, 3))); if (k < 1) requestAnimationFrame(step); else setTimeout(function () { e.classList.remove("xp-up"); }, 400); }); }
+    return e;
   }
   var SKILLS = {
     entender: { emoji: "👂", name: "Entender", st: "cena", good: "Você entende bem o que ouve.", bad: "Entender o nativo ainda é difícil pra você." },
@@ -835,6 +842,7 @@
   function home() {
     if (!S.test) return welcome();
     try { syncBadge(); } catch (e) {}
+    setTimeout(function () { try { offerFace(); sendTz(); } catch (e) {} }, 900);
     var fresh = unlockCheck(); if (fresh) return unlockScreen(fresh);
     var w = screen(), t = curTheme(), I = INDEX[t];
     var D = todayPlan(), plan = D.plan, doneToday = (S.dailyDone === today()), roundOver = D.i >= plan.length, resume = D.i > 0 && !roundOver;
@@ -1056,7 +1064,7 @@
       F.parts.forEach(function (P) { var v = res[P.key] || 0; total += v; if (v < 25 * F.passPart / 100) low.push(P); });
       var pass = total >= F.passTotal && !low.length;
       S[FS] = null; S[FL] = { total: total, res: res, pass: pass, date: today() };
-      if (pass) { S[DONE_KEY[LVL]] = true; S.recados = S.recados || {}; S.recados.pend = 4; setTimeout(function () { SFX.win(); confetti(); }, 300); }
+      if (pass) { S[DONE_KEY[LVL]] = true; S.recados = S.recados || {}; S.recados.pend = 4; conquista("🎓 Você passou de nível!", "O " + NEXT_LV[LVL].toUpperCase() + " está liberado. Bora!"); setTimeout(function () { SFX.win(); confetti(); }, 300); }
       markDay(); persist();
       var w = screen();
       w.append(topBar(home), el("section", { cls: "hero" + (pass ? " center" : "") },
@@ -1433,6 +1441,7 @@
   }
   function celebrate() {
     setTimeout(syncBadge, 300);
+    setTimeout(function () { var st = streak(); if ([7, 14, 30, 50, 100, 200, 365].indexOf(st) > -1 && S.conqStreak !== st) { S.conqStreak = st; persist(); conquista("🔥 " + st + " dias seguidos!", "Isso é constância de verdade. Falou, validou!"); } }, 1500);
     var w = screen();
     w.append(topBar(), el("section", { cls: "hero center" }, el("div", { cls: "big-emoji", text: "🏆" }), el("h1", { text: "Treino de hoje feito!" }),
       el("p", { text: "🔥 Ofensiva de " + streak() + (streak() === 1 ? " dia" : " dias") + ". Amanhã tem mais, com outras variações — volta pra manter o fogo aceso!" }), el("p", { cls: "hand", text: "Falou, validou! 🚀" })),
@@ -3071,7 +3080,7 @@
       bar.append(el("button", { cls: "tab" + (it[0] === cur ? " on" : ""), type: "button", onclick: function () { if (it[0] === "erros" && !nErr) { notice("🎉 Nada pra revisar por enquanto!"); return; } if (it[0] !== "home") pushNav(); it[3](); } },
         el("span", { cls: "tab-ic", text: it[1] }), el("span", { cls: "tab-t", text: it[2] }), it[0] === "erros" && nErr ? el("span", { cls: "tab-n", text: String(nErr) }) : null));
     });
-    var wrapM = el("div", { cls: "tabwrap" }, bar);
+    var wrapM = el("div", { cls: "tabwrap", "data-cur": cur }, bar);
     var visto = true; try { visto = !!localStorage.getItem(PK("academia-menu-visto")); } catch (e) {}
     function vi() { try { localStorage.setItem(PK("academia-menu-visto"), "1"); } catch (e) {} }
     if (!visto) {
@@ -3173,8 +3182,9 @@
   }
   document.addEventListener("visibilitychange", function () { if (document.visibilityState === "hidden" && pushT) pushNow(); });
   // depois de entrar: se a conta já tem progresso, ele vale (é o mesmo aluno em outro aparelho); se não, sobe o do aparelho
-  function afterLogin(res, after) {
+  function afterLogin(res, after, viaFace) {
     setAcc({ token: res.token, email: res.user.email, name: res.user.name });
+    try { if (!viaFace && window.PublicKeyCredential && !localStorage.getItem("dtv-faceid") && !localStorage.getItem("dtv-faceid-nao")) localStorage.setItem("dtv-oferecer-faceid", "1"); } catch (e) {}
     if (res.progress && typeof res.progress === "object" && res.progress.test) {
       S = res.progress; try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {}
       location.reload(); return;
@@ -3279,6 +3289,7 @@
       });
     } });
     pw.input.addEventListener("keydown", function (e) { if (e.key === "Enter") go.click(); });
+    if (window.PublicKeyCredential && lsGet("dtv-faceid")) w.append(el("button", { cls: "btn big gold faceid-go", type: "button", text: "🔐 Entrar com Face ID ou digital", onclick: function (e) { faceLogin(after, e.currentTarget); } }));
     w.append(el("section", { cls: "hero" }, el("span", { cls: "eyebrow", text: "Destravando · entrar" }), el("h1", { html: STANDALONE ? "Bem-vindo ao <mark>Destravando</mark>!" : "Bem-vindo <mark>de volta</mark>!" }), STANDALONE ? el("p", { text: "Entre com o e-mail e a senha da sua conta. Depois, o app fica logado." }) : null),
       el("div", { cls: "card form" }, field("E-mail", email), field("Senha", pw), err, go,
         el("button", { cls: "linkish", type: "button", text: "🔑 Esqueci a senha", onclick: function () { forgotScreen(after, email.value.trim()); } })),
@@ -3418,11 +3429,89 @@
     if (window.Notification && Notification.permission === "denied") return null;
     var card = el("div", { cls: "card push-card" }, el("span", { cls: "eyebrow", text: "🔔 Lembrete no celular" }),
       el("b", { text: "Ative e eu te lembro do treino no fim do dia, direto na tela do celular, como qualquer app." }),
-      el("p", { cls: "small", text: "Só 1 por dia, e só se você ainda não treinou. De férias, não chega nada." }));
+      el("p", { cls: "small", text: "Só 1 por dia, no horário que você escolher (na aba 👤 Você), e só se você ainda não treinou. De férias, não chega nada." }));
     var go = el("button", { cls: "btn", type: "button", text: "🔔 Ativar notificação", onclick: function () { pushOn(go, card); } });
     card.append(go, el("button", { cls: "linkish", type: "button", text: "Agora não", onclick: function () { var d = new Date(); d.setDate(d.getDate() + 5); S.pushHide = isoOf(d); persist(); card.remove(); } }));
     return card;
   }
+  // 🔐 FACE ID / DIGITAL (passkey)
+  function bufU(b) { var a = new Uint8Array(b), s = ""; for (var i = 0; i < a.length; i++) s += String.fromCharCode(a[i]); return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""); }
+  function uBuf(s) { return b64u(s).buffer; }
+  function faceName() { return IOS ? "Face ID" : "digital"; }
+  function faceOn(btn, done) {
+    if (btn) { btn.disabled = true; btn.dataset.t = btn.textContent; btn.textContent = "⏳ Ativando…"; }
+    function end(ok, t) { if (btn) { btn.disabled = false; btn.textContent = btn.dataset.t; } if (t) notice(t); if (done) done(ok); }
+    api("passkey", "POST", { etapa: "ativar-opcoes" }).then(function (r) {
+      if (!r.opts) return end(false, r.error || "Não deu certo agora.");
+      var o = r.opts, pk = Object.assign({}, o, { challenge: uBuf(o.challenge), user: Object.assign({}, o.user, { id: new TextEncoder().encode(o.user.id) }), excludeCredentials: (o.excludeCredentials || []).map(function (c) { return Object.assign({}, c, { id: uBuf(c.id) }); }) });
+      return navigator.credentials.create({ publicKey: pk }).then(function (c) {
+        var rs = c.response, resp = { id: c.id, rawId: bufU(c.rawId), type: c.type, response: { clientDataJSON: bufU(rs.clientDataJSON), attestationObject: bufU(rs.attestationObject), transports: rs.getTransports ? rs.getTransports() : [] }, clientExtensionResults: c.getClientExtensionResults ? c.getClientExtensionResults() : {}, authenticatorAttachment: c.authenticatorAttachment };
+        return api("passkey", "POST", { etapa: "ativar", resposta: resp, device: (navigator.userAgent.match(/iPhone|iPad|Android[^;)]*/) || ["?"])[0] }).then(function (x) {
+          if (!x.ok) return end(false, x.error || "Não deu certo.");
+          try { localStorage.setItem("dtv-faceid", "1"); localStorage.removeItem("dtv-oferecer-faceid"); } catch (e) {} SFX.win(); end(true, "🔐 Pronto! Da próxima vez, é só entrar com " + faceName() + ".");
+        });
+      });
+    }).catch(function (e) { end(false, e && e.name === "NotAllowedError" ? "Tudo bem, ficou pra depois." : "Não deu certo neste aparelho."); });
+  }
+  function faceLogin(after, btn) {
+    after = after || function () { location.reload(); };
+    if (btn) { btn.disabled = true; btn.textContent = "⏳ Confirmando…"; }
+    function back(t) { if (btn) { btn.disabled = false; btn.textContent = "🔐 Entrar com Face ID ou digital"; } if (t) notice(t); }
+    api("passkey", "POST", { etapa: "entrar-opcoes" }).then(function (r) {
+      if (!r.opts) return back(r.error || "Não deu certo agora.");
+      var o = r.opts, pk = Object.assign({}, o, { challenge: uBuf(o.challenge), allowCredentials: (o.allowCredentials || []).map(function (c) { return Object.assign({}, c, { id: uBuf(c.id) }); }) });
+      return navigator.credentials.get({ publicKey: pk }).then(function (c) {
+        var rs = c.response, resp = { id: c.id, rawId: bufU(c.rawId), type: c.type, response: { clientDataJSON: bufU(rs.clientDataJSON), authenticatorData: bufU(rs.authenticatorData), signature: bufU(rs.signature), userHandle: rs.userHandle ? bufU(rs.userHandle) : undefined }, clientExtensionResults: c.getClientExtensionResults ? c.getClientExtensionResults() : {}, authenticatorAttachment: c.authenticatorAttachment };
+        return api("passkey", "POST", { etapa: "entrar", id: r.id, resposta: resp }).then(function (x) { if (x.token) { SFX.go(); afterLogin(x, after, true); } else back(x.error || "Não deu certo."); });
+      });
+    }).catch(function (e) { back(e && e.name === "NotAllowedError" ? "" : "Não deu certo. Entre com e-mail e senha."); });
+  }
+  function offerFace() {
+    if (!ACC || PROF || !lsGet("dtv-oferecer-faceid") || document.querySelector(".fb-ov,.evo-ov")) return;
+    if (!window.PublicKeyCredential || !PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable) return;
+    PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable().then(function (ok) {
+      if (!ok || !root.querySelector("section.hello")) return;
+      var go = el("button", { cls: "btn big gold", type: "button", text: "🔐 Ativar " + faceName() });
+      var card = el("div", { cls: "fb-card" }, el("div", { cls: "big-emoji", text: "🔐" }), el("h2", { text: "Entrar com " + faceName() + "?" }),
+        el("p", { cls: "small", text: "Da próxima vez, nada de digitar e-mail e senha: é só olhar pro celular (ou encostar o dedo) e pronto." }), go,
+        el("button", { cls: "linkish", type: "button", text: "Agora não", onclick: function () { try { localStorage.setItem("dtv-faceid-nao", "1"); localStorage.removeItem("dtv-oferecer-faceid"); } catch (e) {} close(); } }));
+      var ov = el("div", { cls: "fb-ov", onclick: function (e) { if (e.target === ov) close(); } }, card);
+      function close() { ov.remove(); }
+      go.onclick = function () { faceOn(go, function (ok) { if (ok) close(); }); };
+      document.body.append(ov); sheetify(ov, card, close);
+    });
+  }
+  // ⏰ fuso do aparelho vai pra conta (o lembrete chega na hora local de cada um)
+  function sendTz() { var tz = ""; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone; } catch (e) {} if (!ACC || !tz || S.tz === tz) return; api("preferencias", "POST", { fuso: tz }).then(function (r) { if (r && r.ok) { S.tz = tz; persist(); } }); }
+  // 🏆 conquista: notificação no celular (se a pessoa ativou)
+  function conquista(title, body) { try { if (window.Notification && Notification.permission === "granted" && navigator.serviceWorker) navigator.serviceWorker.ready.then(function (reg) { reg.showNotification(title, { body: body, icon: "/academia/app/icon-192.png", badge: "/academia/app/icon-96.png", tag: "conquista" }); }); } catch (e) {} }
+  // 👆 GESTOS: puxar pra atualizar (início) e deslizar pro lado pra trocar de aba
+  (function () {
+    var x0 = 0, y0 = 0, pulling = false, ind = null, ok = false, t0 = null;
+    document.addEventListener("touchstart", function (e) {
+      if (e.touches.length !== 1 || document.querySelector(".fb-ov,.evo-ov")) { t0 = null; return; }
+      var t = e.touches[0]; x0 = t.clientX; y0 = t.clientY; t0 = e.target;
+      pulling = window.scrollY <= 0 && !!root.querySelector("section.hello") && !t0.closest("input,textarea,select,.onb-track");
+    }, { passive: true });
+    document.addEventListener("touchmove", function (e) {
+      if (!pulling) return; var dy = e.touches[0].clientY - y0; if (dy <= 0) return;
+      if (!ind) { ind = el("div", { cls: "ptr" }, el("img", { src: "/academia/app/icon-96.png", alt: "" })); document.body.append(ind); }
+      var k = Math.min(1, dy / 110); ok = dy > 110; ind.style.opacity = String(k); ind.style.transform = "translate(-50%," + Math.min(70, dy * 0.5) + "px) rotate(" + Math.round(dy * 2) + "deg)";
+    }, { passive: true });
+    document.addEventListener("touchend", function (e) {
+      if (pulling && ind) { if (ok) { ind.classList.add("spin"); buzz(15); setTimeout(function () { location.reload(); }, 450); } else { ind.remove(); ind = null; } pulling = false; ok = false; return; }
+      pulling = false; if (!t0) return;
+      var t = e.changedTouches[0], dx = t.clientX - x0, dy = t.clientY - y0;
+      if (Math.abs(dx) < 80 || Math.abs(dy) > 45 || x0 < 26) return;
+      if (t0.closest("input,textarea,select,.onb-track,.pbar,.lb-track,.chips,.yt,.x-line,[data-noswipe]")) return;
+      var tw = root.querySelector(".tabwrap"); if (!tw) return;
+      var order = ["home", "prog", "erros", "nativo", "voce"].filter(function (k) { return k !== "erros" || myErrors().length; });
+      var i = order.indexOf(tw.getAttribute("data-cur")); if (i < 0) return;
+      var j = dx < 0 ? i + 1 : i - 1; if (j < 0 || j >= order.length) return;
+      var fn = { home: home, prog: progressPage, erros: function () { runErrors(); }, nativo: extrasPage, voce: youPage }[order[j]];
+      if (dx > 0) BACKING = true; buzz(8); fn();
+    }, { passive: true });
+  })();
   // ⬆️ JANELA QUE SOBE DE BAIXO: alcinha em cima, arrasta pra baixo pra fechar (igual iPhone)
   function sheetify(ov, card, close) {
     ov.classList.add("bsheet"); card.classList.add("bs-card"); card.prepend(el("div", { cls: "bs-h", "aria-hidden": "true" }));
@@ -3466,10 +3555,25 @@
     } else g1.append(row("📲", "Notificação no celular", IOS && !STANDALONE ? "Instale o app na tela de início pra ativar" : "Este navegador não aceita notificação", null));
     if (ACC) {
       var eb = sw(true, function (on, b) { setSw(b, on); api("preferencias", "POST", { emailLembrete: on }).then(function (r) { if (!r.ok) { setSw(b, !on); notice(r.error || "Não deu certo."); } }); });
-      g1.append(row("✉️", "Lembrete por e-mail", "Às 19h, se você ainda não treinou", eb));
-      api("preferencias").then(function (r) { if (r && typeof r.emailLembrete === "boolean") setSw(eb, r.emailLembrete); });
+      g1.append(row("✉️", "Lembrete por e-mail", "Na hora escolhida, se você ainda não treinou", eb));
+      // ⏰ horário do lembrete (e-mail e notificação), na hora local da pessoa
+      var hs = el("select", { cls: "set-sel", "aria-label": "Horário do lembrete" });
+      for (var h = 6; h <= 23; h++) hs.append(el("option", { value: String(h), text: (h < 10 ? "0" : "") + h + ":00" }));
+      hs.value = String(S.remHora || 19);
+      hs.onchange = function () { var v = Number(hs.value); api("preferencias", "POST", { hora: v }).then(function (r) { if (r && r.ok) { S.remHora = v; persist(); notice("⏰ Combinado: lembrete às " + hs.options[hs.selectedIndex].text + "."); } else notice((r && r.error) || "Não deu certo."); }); };
+      g1.append(row("⏰", "Horário do lembrete", "No fuso do seu celular", hs));
+      api("preferencias").then(function (r) { if (r && typeof r.emailLembrete === "boolean") setSw(eb, r.emailLembrete); if (r && r.hora) { hs.value = String(r.hora); S.remHora = r.hora; } });
     }
-    w.append(g1, vacationBox());
+    w.append(g1);
+    // 🔐 entrar com Face ID / digital
+    if (ACC && window.PublicKeyCredential) {
+      var fb2 = sw(!!lsGet("dtv-faceid"), function (on, b) {
+        if (on) faceOn(null, function (ok) { setSw(b, ok); });
+        else { try { localStorage.removeItem("dtv-faceid"); } catch (e) {} setSw(b, false); notice("Desligado neste celular: da próxima vez, entre com e-mail e senha."); }
+      });
+      w.append(el("div", { cls: "card set-card" }, el("span", { cls: "eyebrow", text: "🔐 Acesso" }), row("🙂", "Entrar com " + faceName(), "Sem digitar senha neste celular", fb2)));
+    }
+    w.append(vacationBox());
     if (!STANDALONE) { var ic = installCard(); if (ic) w.append(ic); }
     var g2 = el("div", { cls: "card set-card" }, el("span", { cls: "eyebrow", text: "💬 Ajuda" }),
       el("button", { cls: "set-row set-btn", type: "button", onclick: feedbackOpen }, el("span", { cls: "set-ic", text: "🐞" }), el("span", { cls: "set-t" }, el("b", { text: "Achou um problema?" }), el("small", { text: "Me conta, chega direto pra mim" })), el("span", { cls: "set-go", text: "›" })),

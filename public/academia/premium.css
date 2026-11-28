@@ -621,3 +621,38 @@ body:has(.upd) .fb-tab{display:none}
 .extra-rows .fone-ic,.extra-rows .retro-ic{width:42px;height:42px;font-size:24px}
 .extra-rows .fone-t b{font-size:16px}
 .extra-rows .fone-t small{font-size:12.5px}
+/* 📲 guia de instalação */
+.inst-page{padding-top:calc(env(safe-area-inset-top,0px) + 8px)}
+.inst-hero{display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px;margin:10px 0 14px}
+.inst-hero img{width:96px;height:96px;border-radius:22px;transform:rotate(-5deg);box-shadow:0 14px 28px -12px rgba(111,42,61,.5);animation:dtvFloat 3s ease-in-out infinite}
+.inst-hero h1{font-size:30px;line-height:1.1;margin:4px 0 0}
+.inst-hero p{margin:0;color:#5b5040;max-width:340px}
+.inst-guide{display:flex;flex-direction:column;gap:10px;margin:8px 0 16px}
+.inst-step{display:flex;align-items:center;gap:12px;background:#FFF8EC;border:1px solid #E6D3BC;border-radius:18px;padding:12px 14px;text-align:left}
+.inst-n{width:26px;height:26px;flex:none;border-radius:50%;display:grid;place-items:center;font:800 14px "Inter",system-ui,sans-serif;background:#6F2A3D;color:#FFF8EC}
+.inst-ic{width:44px;height:44px;flex:none;border-radius:12px;display:grid;place-items:center;background:#fff;border:1px solid #E6D3BC;font-size:22px;color:#0A84FF;overflow:hidden}
+.inst-ic svg{width:26px;height:26px;fill:none;stroke:#0A84FF;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.inst-ic img{width:100%;height:100%;object-fit:cover}
+.inst-t{display:flex;flex-direction:column;gap:2px}
+.inst-t b u{text-decoration:none;color:#6F2A3D}
+.inst-t small{color:#7F735C;font-size:13px;line-height:1.35}
+.inst-warn{background:#6F2A3D;color:#FFF8EC;border-radius:16px;padding:12px 14px;display:flex;flex-direction:column;gap:4px;font-size:14px}
+.inst-pc{background:#FFF8EC;border:1px dashed #D4A843;border-radius:16px;padding:14px;margin:0}
+.install-card{position:relative;background:linear-gradient(120deg,#F6E3B4,#F4EBDD 60%,#EAD0D5)!important;border:0!important;padding-right:84px!important}
+.inst-card-ic{position:absolute;right:14px;top:14px;width:58px;height:58px;border-radius:14px;transform:rotate(6deg);box-shadow:0 10px 20px -10px rgba(111,42,61,.6)}
+.install-card .btn{margin-top:6px}
+/* página de vendas: link "tem app" no topo + seção com celular desenhado */
+.land-app-link{display:flex;align-items:center;gap:10px;margin:6px auto 0;padding:8px 14px 8px 8px;border-radius:999px;border:1px solid rgba(212,168,67,.55);background:rgba(255,248,236,.85);cursor:pointer;font:inherit;color:inherit;text-align:left}
+.land-app-link img{width:38px;height:38px;border-radius:10px;transform:rotate(-6deg)}
+.land-app-link span{display:flex;flex-direction:column;line-height:1.2}
+.land-app-link small{font-size:12px;color:#7F735C}
+.land-phone{width:230px;height:300px;margin:6px auto 18px;border-radius:38px;padding:12px;background:#211A10;box-shadow:0 24px 44px -20px rgba(33,26,16,.6)}
+.lp-screen{height:100%;border-radius:28px;background:linear-gradient(160deg,#3b4a6b,#1d2433 55%,#43283a);padding:34px 14px 14px;display:flex;flex-direction:column;gap:14px;position:relative;overflow:hidden}
+.lp-row{display:flex;justify-content:space-between}
+.lp-row i{width:40px;height:40px;border-radius:11px;background:rgba(255,255,255,.18)}
+.lp-app{display:flex;flex-direction:column;align-items:center;gap:3px;color:#fff}
+.lp-app img{width:40px;height:40px;border-radius:11px;box-shadow:0 0 0 3px rgba(237,197,95,.55);animation:dtvPop 1.6s ease-in-out infinite}
+.lp-app small{font-size:8px}
+.lp-notif{position:absolute;left:10px;right:10px;top:10px;background:rgba(255,248,236,.95);border-radius:14px;padding:8px 10px;display:flex;flex-direction:column;gap:1px;text-align:left;font-size:11px;color:#211A10;animation:sheetUp .6s ease both;animation-delay:.6s}
+.lp-notif small{font-size:10px;color:#5b5040}
+.land-phone{width:200px!important;height:390px!important}.lp-screen{padding-top:70px!important;gap:16px!important}body:has(.inst-page) .fb-tab{display:none}

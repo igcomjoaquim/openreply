@@ -442,7 +442,7 @@
         cta(),
         el("button", { cls: "btn ghost", type: "button", text: "▶ Ver como funciona", onclick: function () { go("como-funciona"); } }),
         el("div", { cls: "land-badges" }, el("span", { cls: "stars", text: "★★★★★" }), el("span", { text: "Método aprovado por alunos A1–B2" })),
-        el("p", { cls: "small", text: "15 min por dia · no seu celular" }),
+        el("button", { cls: "land-app-link", type: "button", onclick: function () { go("app-celular"); } }, el("img", { src: "/academia/app/icon-96.png", alt: "" }), el("span", null, el("b", { text: "Tem app no celular 📲" }), el("small", { text: "15 min por dia · veja como instalar" }))),
         heroCard),
       mq,
       (function () { var x = sec("O diagnóstico honesto", "O problema não é você. É o método.");
@@ -474,6 +474,11 @@
           el("ol", { cls: "land-steps", start: "3" },
             el("li", null, el("i", { text: "03" }), el("b", { text: "Faz o treino de hoje" }), el("span", { text: "Frases-chave, cena real, ditado, fofoca, shadowing e Real Time, em fases curtas. Ouvido e fala, todo dia." })),
             el("li", null, el("i", { text: "04" }), el("b", { text: "Evolui e valida" }), el("span", { text: "O que você erra volta até acertar, o que você aprende vai pro seu caderno. Falou, validou. Aí vem o próximo tema." }))));
+        return x; })(),
+      (function () { var x = sec("No seu celular, como app", "Ícone na tela, tela cheia e lembrete do treino", "land-app"); x.id = "app-celular";
+        x.append(el("div", { cls: "land-phone" }, el("div", { cls: "lp-screen" }, el("div", { cls: "lp-row" }, el("i"), el("i"), el("i"), el("i")), el("div", { cls: "lp-row" }, el("i"), el("span", { cls: "lp-app" }, el("img", { src: "/academia/app/icon-96.png", alt: "" }), el("small", { text: "Destravando" })), el("i"), el("i")), el("div", { cls: "lp-notif" }, el("b", { text: "🔥 5 dias seguidos, Ana!" }), el("small", { text: "Não deixa a ofensiva apagar hoje." })))),
+          el("p", { text: "Não precisa baixar nada de loja: você abre o site no celular e coloca o Destravando na tela de início. Aí ele vira app de verdade." }),
+          installSteps(), cta("Criar minha conta e instalar →"));
         return x; })(),
       (function () { var x = sec("Prévia · experimenta agora", "10 segundos de um trecho da série Modern Family. Você entende?", "land-demo"); x.id = "previa";
         x.append(el("p", { cls: "small", text: "A Claire avisou que corre rápido demais pro Phil. Ele se gaba da caminhada que faz toda manhã, e ela responde. Ouça com a tela coberta, sem ler nada, e responda." }),
@@ -3282,7 +3287,7 @@
         el("label", { cls: "chk chk-lock" }, dados, el("span", { html: "🔒 Entendo que os meus dados servem <b>só pra me dar acesso ao Destravando</b>. Ninguém vende, empresta ou passa eles pra outra pessoa." })),
         el("label", { cls: "chk" }, mk, el("span", { text: "Quero receber novidades e dicas por e-mail e WhatsApp." })),
         el("label", { cls: "chk" }, ok, el("span", { html: "Li e aceito a <a href=\"/privacidade.html\" target=\"_blank\">política de privacidade</a>." })),
-        err, go),
+        err, go, isMobile() && !STANDALONE ? el("p", { cls: "small center", text: "📲 Depois do cadastro, eu te mostro como colocar o Destravando no celular, como app." }) : null),
       el("button", { cls: "linkish", type: "button", text: "Já tenho conta · Entrar", onclick: function () { loginScreen(after); } }));
     setTimeout(function () { (S.name ? email : name).focus(); }, 250);
   }
@@ -3316,7 +3321,7 @@
       err.show(""); go.disabled = true; go.textContent = "⏳ Conferindo…";
       api("confirmar", "POST", { email: mail, code: code.value }).then(function (r) {
         go.disabled = false; go.textContent = "Confirmar e entrar →";
-        if (r.token) { clearInterval(tmr); SFX.win(); try { confetti(); } catch (e) {} notice("✅ E-mail confirmado! Bem-vindo(a) ao Destravando."); afterLogin(r, after); }
+        if (r.token) { clearInterval(tmr); SFX.win(); if (isMobile() && !STANDALONE && !S.installed) { var go0 = after; after = function () { installGuide(go0, true); }; } try { confetti(); } catch (e) {} notice("✅ E-mail confirmado! Bem-vindo(a) ao Destravando."); afterLogin(r, after); }
         else { err.show(r.error || "Não deu certo. Tente de novo."); code.select(); }
       });
     } });
@@ -3383,8 +3388,9 @@
     if (STANDALONE || PROF || S.installed || (S.installHide && S.installHide > today())) return null;
     var mob = /Android|iPhone|iPad|iPod/.test(navigator.userAgent) || IOS; if (!mob) return null;
     var later = function () { var d = new Date(); d.setDate(d.getDate() + 5); S.installHide = isoOf(d); persist(); card.remove(); };
-    var card = el("div", { cls: "card install-card" }, el("span", { cls: "eyebrow", text: "📲 Destravando no seu celular" }),
-      el("b", { text: "Instale o app: abre em tela cheia, direto do ícone, sem precisar procurar o site." }));
+    var card = el("div", { cls: "card install-card" }, el("img", { cls: "inst-card-ic", src: "/academia/app/icon-96.png", alt: "" }), el("span", { cls: "eyebrow", text: "📲 Destravando no seu celular" }),
+      el("b", { text: "Instale o app: abre em tela cheia, direto do ícone, sem precisar procurar o site." }),
+      el("button", { cls: "btn gold", type: "button", text: "📲 Ver como instalar (10 segundos)", onclick: function () { pushNav(); installGuide(home); } }));
     if (IOS) card.append(el("ol", { cls: "inst-steps" },
       el("li", { html: "Toque em <b>Compartilhar</b> <span class=\"ios-share\">⬆︎</span> na barra do Safari (embaixo ou em cima)" }),
       el("li", { html: "Role e toque em <b>Adicionar à Tela de Início</b> ➕" }),
@@ -3774,6 +3780,36 @@
     else w.append(accountCard());
     w.append(el("p", { cls: "small center you-ver", text: "Destravando · Inglês com Joaquim · Falou, validou!" }), menuBar("voce"));
   }
+  // 📲 GUIA "COLOQUE O DESTRAVANDO NO SEU CELULAR" (Thiago 29/11: "tem que deixar muito claro e visível")
+  var SHARE_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12"/><path d="M7.5 7.5 12 3l4.5 4.5"/><path d="M6 11H5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-8a1 1 0 0 0-1-1h-1"/></svg>';
+  var ADD_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M12 8.5v7M8.5 12h7"/></svg>';
+  function inApp() { return /Instagram|FBAN|FBAV|FB_IAB|Line\/|TikTok|musical_ly|Snapchat/i.test(navigator.userAgent); }
+  function isMobile() { return IOS || /Android/.test(navigator.userAgent); }
+  function installSteps() {
+    var box = el("div", { cls: "inst-guide" });
+    if (inApp()) box.append(el("div", { cls: "inst-warn" }, el("b", { text: "⚠️ Você abriu pelo Instagram (ou outro app)." }), el("span", { text: IOS ? "Toque nos ••• no canto e escolha “Abrir no navegador” (Safari). Lá você consegue instalar." : "Toque nos ⋮ no canto e escolha “Abrir no Chrome”. Lá você consegue instalar." })));
+    function step(n, ic, t, sub) { return el("div", { cls: "inst-step" }, el("span", { cls: "inst-n", text: n }), el("span", { cls: "inst-ic", html: ic }), el("span", { cls: "inst-t" }, el("b", { html: t }), sub ? el("small", { text: sub }) : null)); }
+    var icon = '<img src="/academia/app/icon-96.png" alt="">';
+    if (IOS) box.append(step("1", SHARE_SVG, "Toque em <u>Compartilhar</u>", "O quadradinho com a seta pra cima, na barra do Safari (embaixo ou em cima)."),
+      step("2", ADD_SVG, "Toque em <u>Adicionar à Tela de Início</u>", "Se não aparecer, role a lista pra baixo."),
+      step("3", "✅", "Toque em <u>Adicionar</u>", "No canto de cima, à direita."),
+      step("4", icon, "Abra sempre pelo ícone", "Na primeira vez, entre com o mesmo e-mail e senha. Depois ele abre direto, em tela cheia."));
+    else if (/Android/.test(navigator.userAgent)) {
+      box.append(el("button", { cls: "btn big gold inst-go", type: "button", hidden: !INSTALL_EVT, text: "📲 Instalar agora", onclick: function () { if (!INSTALL_EVT) return; INSTALL_EVT.prompt(); INSTALL_EVT.userChoice.then(function (c) { if (c && c.outcome === "accepted") { S.installed = today(); persist(); notice("📲 Pronto! O Destravando está na sua tela inicial."); } INSTALL_EVT = null; }); } }));
+      box.append(step("1", "⋮", "Toque nos <u>3 pontinhos</u> do Chrome", "No canto de cima, à direita."), step("2", ADD_SVG, "Toque em <u>Instalar app</u>", "Ou “Adicionar à tela inicial”."), step("3", icon, "Abra sempre pelo ícone", "Tela cheia, como app, e com lembrete do treino."));
+    } else box.append(el("p", { cls: "inst-pc", html: "Abra <b>destravando.inglescomjoaquim.com</b> no seu celular e siga o passo a passo que aparece lá. É no celular que o Destravando vira app 😉" }));
+    return box;
+  }
+  function installGuide(next, depoisCadastro) {
+    next = next || home; var w = screen(); w.classList.add("inst-page");
+    w.append(el("div", { cls: "inst-hero" }, el("img", { src: "/academia/app/icon-192.png", alt: "" }),
+        el("span", { cls: "eyebrow", text: depoisCadastro ? "✅ Conta criada · falta 1 passo" : "📲 Destravando no celular" }),
+        el("h1", { html: "Coloque o Destravando <mark>no seu celular</mark>" }),
+        el("p", { text: "Fica com ícone na tela, abre em tela cheia como app e te lembra de treinar. Leva 10 segundos." })),
+      installSteps(),
+      el("button", { cls: "btn big", type: "button", text: isMobile() ? "Já coloquei ✅" : "Entendi →", onclick: function () { if (isMobile()) { S.installed = S.installed || today(); persist(); } next(); } }),
+      el("button", { cls: "linkish", type: "button", text: "Fazer depois", onclick: function () { var d = new Date(); d.setDate(d.getDate() + 3); S.installHide = isoOf(d); persist(); next(); } }));
+  }
   // 👩‍🏫 painel do modo professor
   function profPanel() {
     if (!PROF || document.querySelector(".prof-fab")) return;
@@ -3803,6 +3839,7 @@
     if (Q.get("teste") === "1") return runTest();
     if (PROF && Q.get("cert")) { var cw = screen(); cw.append(topBar(home), certCard(Q.get("cert"), 82)); return; } // professor: ver o certificado
     if (Q.get("resultado") === "1" && S.test) return result();
+    if (Q.get("instalar") === "1" && !STANDALONE) return installGuide(function () { if (CONTA_OK && !ACC && !PROF) landing(); else S.test ? home() : welcome(); });
     // 🔐 quem já treina sem conta: cria a conta (o progresso do aparelho vai junto)
     // 📲 aberto pelo ícone (app instalado) e sem conta: vai direto pro Entrar, sem a página de vendas (Thiago 28/11)
     if (CONTA_OK && !ACC && !PROF && S.skipAccUntil !== today()) { if (!STANDALONE) return landing(); return lsGet("dtv-onb") ? loginFromLanding() : onboarding(loginFromLanding); }

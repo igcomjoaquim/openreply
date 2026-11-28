@@ -159,6 +159,7 @@
 
   // as 3 variações de cada estação num tema (o que existe de verdade no conteúdo)
   function variations(u, st) {
+    if (st === "aula") return u.lesson && u.lesson.chunks && u.lesson.chunks.length ? [{ label: "Frases-chave do tema" }] : [];
     if (st === "cena") {
       var a = [];
       function vl(v) { var t = String(v.source || "Vídeo real").replace(/\s*\(.*?\)\s*/g, " ").trim(); return /^[A-Za-zÀ-ú0-9]/.test(t) ? "🎬 " + t : t; }
@@ -248,6 +249,7 @@
     recontar: { emoji: "🗣️", name: "Falar com suas palavras", st: "fofoca", good: "Você consegue contar uma história.", bad: "Contar uma história com suas palavras ainda é difícil." }
   };
   var ST = {
+    aula: { emoji: "🔑", name: "Frases-chave", pt: "ouça, entenda e já fale as frases do tema", skill: null },
     cena: { emoji: "🎬", name: "Cenas", pt: "vídeo real, primeiro só ouvindo", skill: "entender" },
     fofoca: { emoji: "🕵️", name: "Fofoca", pt: "ouça a história e reconte falando", skill: "recontar" },
     shadow: { emoji: "🔁", name: "Shadowing", pt: "repita colado no nativo", skill: "repetir" },
@@ -468,13 +470,15 @@
     w.append(el("header", { cls: "top" }, el("button", { cls: "back", type: "button", text: "← Voltar", onclick: welcome })),
       el("section", { cls: "hero" },
         el("span", { cls: "eyebrow", text: "Você marcou: " + SELF[k].e + " " + SELF[k].t }),
-        el("h1", { html: "Agora vamos ver o seu <mark>nível de fato</mark>." }),
-        el("p", { text: k === 0 ? "Relaxa: é normal não entender quase nada. Faça só o que conseguir. Quando ficar difícil demais, a parte acaba sozinha e você não perde nada." : k === 3 ? "Bora ver se é isso mesmo ou se é coisa da sua cabeça 😏. O teste vai ficando mais difícil conforme você acerta." : "Um teste rápido, só de ouvir e falar: nada de ler, nada de escrever. Ele mostra o seu nível e o que mais trava você." })),
-      el("ul", { cls: "how card" },
+        el("h1", { html: k === 0 ? "Bora começar do <mark>zero</mark>, sem pressão." : "Agora vamos ver o seu <mark>nível de fato</mark>." }),
+        el("p", { text: k === 0 ? "Começando do zero? Perfeito: a Destravando foi feita pra isso. Você começa no tema 1, com cada frase em áudio e com tradução, e já pratica falando desde o primeiro dia. Se preferir, dá pra fazer o teste também." : k === 3 ? "Bora ver se é isso mesmo ou se é coisa da sua cabeça 😏. O teste vai ficando mais difícil conforme você acerta." : "Um teste rápido, só de ouvir e falar: nada de ler, nada de escrever. Ele mostra o seu nível e o que mais trava você." })),
+      k === 0 ? null : el("ul", { cls: "how card" },
         el("li", { text: "👂 Ouvir e reagir" }), el("li", { text: "🔁 Repetir frases" }), el("li", { text: "⚡ Responder rápido" }), el("li", { text: "🗣️ Recontar uma fofoca" }),
         el("li", { cls: "small", text: "⏱️ Uns 10 minutos. Use fone e fique num lugar onde possa falar." })),
-      el("button", { cls: "btn big", type: "button", text: "Começar o teste →", onclick: runTest }),
-      el("button", { cls: "linkish", type: "button", text: "Agora não: pular o teste e começar do tema 1", onclick: function () { S.test = { skipped: true, band: 0, skills: { entender: 50, repetir: 50, reagir: 50, recontar: 50 }, at: today() }; S.theme = 0; persist(); nameScreen(home); } }));
+      // 😶 nível zero: o caminho principal é começar do zero (o teste em inglês só assustaria); quem quiser, testa
+      k === 0 ? el("button", { cls: "btn big gold", type: "button", text: "Começar do zero, sem teste →", onclick: function () { S.test = { skipped: true, band: 0, skills: { entender: 50, repetir: 50, reagir: 50, recontar: 50 }, at: today() }; S.theme = 0; persist(); nameScreen(home); } }) : null,
+      el("button", { cls: k === 0 ? "linkish" : "btn big", type: "button", text: k === 0 ? "Quero fazer o teste mesmo assim" : "Começar o teste →", onclick: runTest }),
+      k === 0 ? null : el("button", { cls: "linkish", type: "button", text: "Agora não: pular o teste e começar do tema 1", onclick: function () { S.test = { skipped: true, band: 0, skills: { entender: 50, repetir: 50, reagir: 50, recontar: 50 }, at: today() }; S.theme = 0; persist(); nameScreen(home); } }));
   }
   function nameScreen(after) {
     if (CONTA_OK && !PROF && !ACC && S.skipAccUntil !== today()) return signupScreen(after, "Último passo: crie sua conta pra ver o seu resultado.");
@@ -663,6 +667,8 @@
     var d = new Date().getDate(), ear2 = d % 2 ? "grudada" : "pares";
     // ordem do homework: cena com a cabeça fresca → ditado (respiro) → bloco da fofoca → entrada antes de saída
     var list = [{ st: "cena", uid: uid }, { st: "ditado", uid: uid }, { st: "fofoca", uid: uid }, { st: "lacuna", uid: uid }, { st: "shadow", uid: uid }, { st: "leitura", uid: uid }, { st: "rt", uid: uid }];
+    // 🔑 Thiago 28/11 ("minha mãe só sabe hello" + "eu prometo prática, não aula"): tema novo começa pelo aquecimento das FRASES-CHAVE, e nesse dia o treino fica mais curto
+    if (!S.done[dkey("aula", uid, 0)]) list = [{ st: "aula", uid: uid }, { st: "cena", uid: uid }, { st: "fofoca", uid: uid }, { st: "shadow", uid: uid }, { st: "rt", uid: uid }];
     if (focusProb() === "ouvir") list.push({ st: ear2, uid: GERAL.id });
     else list.push({ st: "rt", uid: t > 0 ? INDEX[Math.floor(Math.random() * t)].id : uid, review: t > 0 });
     if (myErrors().length) list.push({ st: "erros" });
@@ -908,7 +914,8 @@
   }
   function themePage(i) {
     var I = INDEX[i], w = screen();
-    w.append(topBar(home), el("span", { cls: "eyebrow", text: "Tema " + (i + 1) }), el("h1", { text: I.emoji + " " + I.title }), el("p", { cls: "small", text: I.titlePt + " · " + I.grammar }));
+    w.append(topBar(home), el("span", { cls: "eyebrow", text: "Tema " + (i + 1) }), el("h1", { text: I.emoji + " " + I.title }), el("p", { cls: "small", text: I.titlePt + " · " + I.grammar }),
+      el("button", { cls: "station aula-st", type: "button", onclick: function () { pickVar("aula", I.id, i); } }, el("span", { cls: "se", text: "🔑" }), el("b", { text: "Frases-chave do tema" + (S.done[dkey("aula", I.id, 0)] ? " ✅" : "") }), el("span", { cls: "small", text: "aquecimento: ouça, entenda e já fale. Comece por aqui" })));
     ["ouvir", "falar"].forEach(function (k) { w.append(el("h2", { cls: "sec", text: PROB[k].emoji + " " + PROB[k].name }), stationGrid(k, i)); });
   }
   function stationGrid(k, ti) {
@@ -1180,9 +1187,56 @@
     w.append(el("button", { cls: "btn big", type: "button", text: next === home ? "Voltar pro início" : "Próximo →", onclick: function () { next(); } }));
     if (daily && next !== home) w.append(restBtn());
   }
+  // 🔑 FRASES-CHAVE: aquecimento prático antes do treino pesado (ouve, entende pela tradução e já fala). Não é aula: é prática guiada.
+  function stAula(u, v, next, ctx) {
+    var L = u.lesson || {}, CH = L.chunks || [], w = frame("aula", u, v, ctx, next), box = el("div"), step = -1, ok = 0, tot = 0;
+    function okText(said, p) { var c = [p.en].concat(p.alt || []); return c.some(function (x) { return norm(x) === norm(said); }) || c.some(function (x) { return overlap(x, said) >= 0.8; }); }
+    function ear(key, label) { var f = af(u, key); return f ? el("button", { cls: "ear", type: "button", text: label || "🔊", onclick: function () { playUrl(f); } }) : null; }
+    function go() { step++; box.replaceChildren(); window.scrollTo(0, 0); if (step === 0) intro(); else if (step <= CH.length) chunk(step - 1); else if (step === CH.length + 1 && L.grammar) gram(); else end(); }
+    function intro() {
+      var cd = el("ul", { cls: "aula-can" }); (u.canDo || []).forEach(function (c) { cd.append(el("li", { text: "✅ " + c })); });
+      box.append(el("div", { cls: "card aula-intro" }, el("span", { cls: "eyebrow", text: "🔑 Frases-chave · " + u.title }), el("h2", { text: u.titlePt || u.title }), el("p", { text: u.today || "" }),
+        cd.children.length ? el("b", { text: "No fim, você vai conseguir:" }) : null, cd),
+        el("p", { cls: "small", text: "Aquecimento rápido antes do treino: ouça, entenda pela tradução e já fale. Toque no 🔊 quantas vezes quiser." }),
+        el("button", { cls: "btn big", type: "button", text: "Bora aquecer →", onclick: go }));
+    }
+    function chunk(ci) {
+      var C = CH[ci], ex = el("div", { cls: "vocab-list" });
+      (C.examples || []).forEach(function (e, k) { ex.append(el("div", { cls: "vrow" }, ear("ex" + ci + "_" + k), el("span", null, el("b", { text: e }), el("small", { text: (C.examplesPt || [])[k] || "" })))); });
+      var pk = 0, pbox = el("div");
+      function prac() {
+        pbox.replaceChildren(); var P = (C.practice || [])[pk];
+        if (!P) { pbox.append(el("button", { cls: "btn big", type: "button", text: ci + 1 < CH.length ? "Próxima frase-chave →" : (L.grammar ? "Ver o resumo →" : "Ir pro treino →"), onclick: go })); return; }
+        var res = el("div", { cls: "rt-res" }), answered = false;
+        function judge(said, manual) {
+          if (answered) return; answered = true; tot++; var good = manual || okText(said, P); if (good) ok++; fb(good);
+          res.replaceChildren(el("b", { text: good ? "✅ Isso!" : "Quase! O certo é:" }), el("p", { cls: "model", text: P.en }), ear("pr" + ci + "_" + pk, "🔊 Ouvir a resposta"),
+            el("button", { cls: "btn", type: "button", text: "Próxima →", onclick: function () { pk++; prac(); } }));
+        }
+        var t = talk(function (said, manual) { judge(said, manual); }, { label: "🎙️ Fale em inglês" });
+        var inp = el("input", { type: "text", placeholder: "ou escreva aqui em inglês", autocomplete: "off" });
+        var typed = el("button", { cls: "soft", type: "button", text: "Conferir o que escrevi", onclick: function () { if (inp.value.trim()) judge(inp.value, false); } });
+        var peek = el("button", { cls: "linkish", type: "button", text: "👀 Não sei: me mostra", onclick: function () { if (!answered) { answered = true; tot++; } res.replaceChildren(el("p", { cls: "model", text: P.en }), ear("pr" + ci + "_" + pk, "🔊 Ouvir"), el("button", { cls: "btn", type: "button", text: "Próxima →", onclick: function () { pk++; prac(); } })); } });
+        pbox.append(el("div", { cls: "card rt" }, el("span", { cls: "eyebrow", text: "Sua vez · " + (pk + 1) + " de " + C.practice.length }), el("p", { cls: "rt-pt", text: "Como se diz: “" + P.pt + "”" }), t, el("div", { cls: "aula-type" }, inp, typed), peek, res));
+      }
+      box.append(el("div", { cls: "card aula-chunk" }, el("span", { cls: "eyebrow", text: "Frase-chave " + (ci + 1) + " de " + CH.length }),
+        el("h2", { text: C.chunk }), el("p", { cls: "aula-pt", text: "= " + C.pt }), C.tip ? el("p", { cls: "small tip", text: "💡 " + C.tip }) : null,
+        el("b", { text: "Ouça os exemplos:" }), ex), pbox);
+      pbox.append(el("button", { cls: "btn big", type: "button", text: "Agora é a sua vez →", onclick: prac }));
+    }
+    function gram() {
+      var G = L.grammar, tb = el("div", { cls: "gram-table" });
+      (G.rows || []).forEach(function (r) { tb.append(el("div", { cls: "gram-row" }, el("b", { text: r[0] }), el("span", { text: r[1] }))); });
+      box.append(el("div", { cls: "card" }, el("span", { cls: "eyebrow", text: "📐 Resumo: " + (G.title || "como funciona") }), tb, G.tip ? el("p", { cls: "small tip", text: "💡 " + G.tip }) : null),
+        el("button", { cls: "btn big", type: "button", text: "Ir pro treino →", onclick: go }));
+    }
+    function end() { finishBox(w, "aula", u, v, tot ? ok / tot : 1, next, "Aquecido! Agora é usar essas frases no treino."); }
+    w.append(box); go();
+  }
   function runStation(st, u, v, next, ctx) {
     var vx = variations(u, st)[v];
     if (st !== "cena" && !vx || st === "cena" && !playable(vx)) return next();
+    if (st === "aula") return stAula(u, v, next, ctx);
     if (st === "cena") return stCena(u, v, next, ctx);
     if (st === "fofoca") return stFofoca(u, v, next, ctx);
     if (st === "shadow") return stShadow(u, v, next, ctx);
@@ -1932,7 +1986,10 @@
     rt: { label: "Real Time", emoji: "⚡", rule: "tire 80% no Real Time", fases: ["frase por frase, com dica das palavras", "frase por frase, sem dica", "frase por frase, com menos tempo", "o texto inteiro de uma vez, falando pelo menos 20 s"] }
   };
   var EVO_ORDER = ["ouvido", "ditado", "lacunas", "fofoca", "reconto", "leitura", "rt"];
-  S.evo = S.evo || {};
+  // 🌱🌿🌳🍎 por NÍVEL (Thiago 28/11): subir de nível recomeça no 🌱 com conteúdo mais difícil; a evolução antiga fica com o nível onde a pessoa estava
+  S.evoL = S.evoL || {};
+  if (!S.evoL.__mig) { if (S.evo) S.evoL[LVL] = S.evo; S.evoL.__mig = 1; }
+  S.evo = S.evoL[LVL] = S.evoL[LVL] || {};
   var FORCE = Number(Q.get("nivel")) || (PROF ? Number(lsGet("prof:nivel")) || 0 : 0); // ?nivel=1..4 mostra todas as habilidades numa fase (demonstração)
   function evoOf(k) {
     if (FORCE >= 1 && FORCE <= 4) return { phase: FORCE, streak: 0 };

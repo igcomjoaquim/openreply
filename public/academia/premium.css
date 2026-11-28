@@ -354,3 +354,21 @@ body:has(.land) .fb-tab{display:none}
 body.premium .land-login{background:var(--marsala)!important;color:#FFF8EC!important;border:0!important;font-weight:700;padding:9px 16px!important;box-shadow:0 8px 18px -8px rgba(111,42,61,.7)!important;position:relative;isolation:isolate}
 body.premium .land-login::after{content:"";position:absolute;inset:4px 8%;z-index:-1;border-radius:999px;background:var(--blur-gm);filter:blur(10px);opacity:.6;transform:translateY(6px)}
 @media (max-width:899px){body.premium .land-top{gap:8px}body.premium .land-logo{height:42px}body.premium .land-burger{padding:0 13px}}
+
+/* 🎓 Aula (Thiago 28/11: ensinar antes de cobrar) */
+.aula-intro h2{margin:4px 0 6px}
+.aula-can{list-style:none;padding:0;margin:6px 0 0;display:flex;flex-direction:column;gap:6px}
+.aula-chunk h2{font-size:30px;margin:6px 0 2px;line-height:1.15}
+.aula-pt{margin:0 0 8px;font-size:18px;color:var(--marsala,#6F2A3D);font-weight:600}
+.aula-chunk .tip,.card .tip{background:rgba(237,197,95,.16);border-radius:12px;padding:10px 12px}
+.aula-chunk .vrow{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line,#E4DED2)}
+.aula-chunk .vrow span{display:flex;flex-direction:column;gap:2px}
+.aula-chunk .vrow small{color:var(--muted,#7F735C)}
+.aula-type{display:flex;gap:8px;margin-top:10px}
+.aula-type input{flex:1;min-width:0;border:1px solid #E2D4B5;border-radius:14px;padding:10px 12px;font:16px var(--f-body,system-ui);background:#FFFDF8}
+.gram-table{display:flex;flex-direction:column;margin-top:8px}
+.gram-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:9px 0;border-bottom:1px solid var(--line,#E4DED2)}
+.gram-row span{color:var(--muted,#7F735C)}
+body.premium .aula-st{width:100%;margin:10px 0 4px;position:relative;isolation:isolate;border:0!important;background:linear-gradient(110deg,rgba(237,197,95,.28),rgba(111,42,61,.12))!important}
+.aula-chunk .vrow{justify-content:flex-start!important;text-align:left}
+.aula-chunk .vrow span{align-items:flex-start;text-align:left}

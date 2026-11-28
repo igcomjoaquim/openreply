@@ -17,7 +17,7 @@ export const OPTIONS = preflight;
  */
 export async function POST(req: NextRequest) {
   const rp = rpOf(req);
-  if (!rp) return json(req, { error: "Face ID só funciona pelo site do Destravando." }, 400);
+  if (!rp) return json(req, { error: "Entrar sem senha (Face ID ou digital) só funciona pelo site do Destravando." }, 400);
   const b = (await req.json().catch(() => ({}))) as Record<string, unknown>;
   const p = getPrisma();
   const etapa = String(b.etapa ?? "");
@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
     if (!c) return json(req, { error: "Demorou demais. Tente de novo." }, 400);
     const r = b.resposta as { id?: string } | undefined;
     const k = r?.id ? await p.dtvPasskey.findUnique({ where: { credId: r.id }, include: { user: true } }) : null;
-    if (!k || k.rpId !== rp.rpID) return json(req, { error: "Esse Face ID não está ligado a nenhuma conta. Entre com e-mail e senha e ative de novo." }, 400);
+    if (!k || k.rpId !== rp.rpID) return json(req, { error: "Esse acesso por Face ID/digital não está ligado a nenhuma conta. Entre com e-mail e senha e ative de novo." }, 400);
     try {
       const v = await verifyAuthenticationResponse({ response: r as never, expectedChallenge: c.ch, expectedOrigin: rp.origin, expectedRPID: rp.rpID, requireUserVerification: false,
         authenticator: { credentialID: b64u.dec(k.credId), credentialPublicKey: b64u.dec(k.publicKey), counter: k.counter, transports: k.transports ? (k.transports.split(",") as never) : undefined } });

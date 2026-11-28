@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
     update: { userId: me.user.id, p256dh: k.p256dh, auth: k.auth },
   });
   let sent = 0;
-  if (b.teste) sent = await pushUser(me.user.id, { title: "🔔 Notificação ligada!", body: `Turubom, ${me.user.name.split(" ")[0]}? Vou te lembrar do treino na hora certa. Falou, validou!`, url: "/?app=1", tag: "boas-vindas" });
+  if (b.teste) sent = await pushUser(me.user.id, { title: "🔔 Notificação ligada!", body: `Turubom, ${me.user.name.split(" ")[0]}? Vou te lembrar do treino na hora certa. Falou, validou!`, url: "/", tag: "boas-vindas" });
   return json(req, { ok: true, sent });
 }
 

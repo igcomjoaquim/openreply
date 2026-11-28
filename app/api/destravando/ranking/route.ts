@@ -16,13 +16,13 @@ export async function GET(req: NextRequest) {
   if (!s) return json(req, { error: "Entre de novo." }, 401);
   const since = new Date(Date.now() - 8 * 86_400_000);
   const users = await getPrisma().dtvUser.findMany({ where: { progressAt: { gte: since } }, select: { id: true, name: true, progress: true }, take: 2000 });
-  const from = new Date(Date.now() - 6 * 86_400_000).toISOString().slice(0, 10);
+  const from = new Date(Date.now() - 6 * 86_400_000).toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" });
   const rows = users
     .filter((u) => !/^TESTE\b/i.test(u.name))
     .map((u) => {
       const p = (u.progress ?? {}) as Record<string, unknown>;
       const byDay = (p.xpByDay ?? {}) as Record<string, number>;
-      const xp = Object.entries(byDay).reduce((a, [d, v]) => (d >= from && typeof v === "number" ? a + v : a), 0);
+      const xp = Object.entries(byDay).reduce((a, [d, v]) => (d >= from && typeof v === "number" && v > 0 ? a + Math.min(v, 1500) : a), 0);
       return { id: u.id, n: apelido(u.name), xp };
     })
     .filter((r) => r.xp > 0)

@@ -40,7 +40,7 @@
   };
   function explainSt(st, force) {
     var E = EXPL[st], X = ST[st]; if (!E || !X) return;
-    S.seenSt = S.seenSt || {}; if (S.seenSt[st] && !force) return; S.seenSt[st] = 1; persist();
+    S.seenSt = S.seenSt || {}; if (S.seenSt[st] && !force) return; S.seenSt[st] = 1; persist(); stopAll();
     var ol = el("ol", { cls: "ex-how" }); E[1].forEach(function (t) { ol.append(el("li", { text: t })); });
     var card = el("div", { cls: "fb-card ex-card", style: "--stc:" + (STC[st] || "#6F2A3D") }, el("span", { cls: "ex-ic" }, icn(STICN[st] || "alvo")), el("span", { cls: "eyebrow", text: force ? "O que é isso?" : "Primeira vez aqui" }), el("h2", { text: X.name }),
       el("p", { cls: "ex-what", text: E[0] }), el("b", { cls: "ex-sub", text: "Como funciona" }), ol, el("p", { cls: "ex-why" }, el("b", { text: "Por que treinar isso: " }), document.createTextNode(E[2])),
@@ -347,7 +347,7 @@
   // ---------- telas ----------
   var TALKS = [];
   var BACKING = false, POPPING = false;
-  function screen() { stopAll(); TALKS.splice(0).forEach(function (f) { try { f(); } catch (e) {} }); root.innerHTML = ""; window.scrollTo(0, 0);
+  function screen() { stopAll(); TALKS.splice(0).forEach(function (f) { try { f(); } catch (e) {} }); document.querySelectorAll(".fb-ov,.story").forEach(function (o) { o.remove(); }); root.innerHTML = ""; window.scrollTo(0, 0);
     var w = el("main", { cls: "wrap " + (BACKING ? "enter-back" : "enter") }); root.append(w); BACKING = false;
     return w; }
   function topBar(back) {
@@ -478,7 +478,7 @@
     var oferta = sec("A decisão é sua", "Daqui a alguns meses você pode estar entendendo e falando, ou exatamente onde está hoje", "land-offer");
     oferta.id = "assinatura";
     var leva = el("ul", { cls: "land-check" });
-    ["Trilha completa do zero ao B2 (A1, A2, B1 e B2), um tema por vez, com teste final pra passar de nível", "Cenas reais de séries, entrevistas de rua e vlogs, em partes, com Raio-X do som", "Treino de fala todo dia: você grava, se ouve e vê o que a página entendeu", "Ditado, fofoca, shadowing, leitura em voz alta e Real Time", "Meus erros: o que você erra volta até você acertar", "Teste de nível, evolução 🌱🌿🌳🍎 e medalhas", "Tudo no celular ou no computador, no seu tempo, sem hora marcada"].forEach(function (t) { leva.append(el("li", { text: t })); });
+    ["Trilha completa do zero ao B2 (A1, A2, B1 e B2), um tema por vez, com teste final pra passar de nível", "Cenas reais de séries, entrevistas de rua e vlogs, em partes, com Raio-X do som", "Treino de fala todo dia: você grava, se ouve e vê o que o app entendeu", "Ditado, fofoca, shadowing, leitura em voz alta e Real Time", "Meus erros: o que você erra volta até você acertar", "Teste de nível, evolução 🌱🌿🌳🍎 e medalhas", "Tudo no celular ou no computador, no seu tempo, sem hora marcada"].forEach(function (t) { leva.append(el("li", { text: t })); });
     oferta.append(el("div", { cls: "land-offer-card" },
       el("div", { cls: "lo-top" }, el("span", { cls: "eyebrow", text: "O que você leva" }), el("h3", { text: "Destravando · Assinatura" }), leva),
       el("div", { cls: "lo-bottom" }, el("span", { cls: "lo-pill", text: "⚡ Acesso imediato" }), el("small", { text: "Assinatura" }), el("strong", { text: "Treino novo todo dia" }), el("small", { text: "pra destravar de vez" }),
@@ -493,7 +493,7 @@
       el("section", { cls: "land-hero" },
         el("span", { cls: "eyebrow", text: "• Destravando · do zero ao B2" }),
         el("h1", { html: "Você estuda inglês há anos e ainda <mark>trava</mark> na hora de ouvir e falar?" }),
-        el("p", { html: "A culpa não é sua: é do método que te ensinaram. Na <b>Destravando</b>, você treina o ouvido e a fala <b>todo dia</b>, com nativo de verdade, e valida na prática. Nada de teoria sem fim." }),
+        el("p", { html: "A culpa não é sua: é do método que te ensinaram. No <b>Destravando</b>, você treina o ouvido e a fala <b>todo dia</b>, com nativo de verdade, e valida na prática. Nada de teoria sem fim." }),
         el("p", { cls: "hand", text: "Falou, validou." }),
         cta(),
         el("button", { cls: "btn ghost", type: "button", text: "▶ Ver como funciona", onclick: function () { go("como-funciona"); } }),
@@ -511,12 +511,12 @@
             el("li", { text: "Decora listas de palavras que sozinhas não servem pra nada." })),
           el("blockquote", { cls: "land-quote" }, el("p", { text: "“O conhecimento só é validado quando você fala. Enquanto ficar só na teoria, o inglês continua trancado.”" }), el("span", { text: "— Joaquim" })));
         return x; })(),
-      (function () { var x = sec("A virada de chave", "Conheça a <mark>Destravando</mark>", "land-dark");
+      (function () { var x = sec("A virada de chave", "Conheça o <mark>Destravando</mark>", "land-dark");
         x.append(el("p", { text: "Uma academia de inglês no seu celular pra fazer o que realmente destrava: ouvir nativo de verdade e falar. Todo. Santo. Dia." }),
           el("div", { cls: "land-cards" },
             el("div", null, el("b", { text: "🎬 Nativo de verdade" }), el("span", { text: "Cenas de séries, entrevistas de rua e vlogs, em partes, com o Raio-X do som." })),
             el("div", null, el("b", { text: "🎙️ Você grava, você fala" }), el("span", { text: "Igual áudio de WhatsApp. É falando que destrava." })),
-            el("div", null, el("b", { text: "✅ Correção na hora" }), el("span", { text: "Você vê o que a página entendeu, palavra por palavra." })),
+            el("div", null, el("b", { text: "✅ Correção na hora" }), el("span", { text: "Você vê o que o app entendeu, palavra por palavra." })),
             el("div", null, el("b", { text: "🌱 Progresso que você sente" }), el("span", { text: "Cada habilidade evolui: 🌱 → 🌿 → 🌳 → 🍎." }))),
           cta());
         return x; })(),
@@ -537,7 +537,7 @@
           installSteps(), cta("Criar minha conta e instalar →"));
         return x; })(),
       (function () { var x = sec("Prévia · experimenta agora", "10 segundos de um trecho da série Modern Family. Você entende?", "land-demo"); x.id = "previa";
-        x.append(el("p", { cls: "small", text: "A Claire avisou que corre rápido demais pro Phil. Ele se gaba da caminhada que faz toda manhã, e ela responde. Ouça com a tela coberta, sem ler nada, e responda." }),
+        x.append(el("p", { cls: "small", text: "O Phil se gaba de que corre todo dia, e a Claire responde. Ouça com a tela coberta, sem ler nada, e responda." }),
           dBox, playB, el("p", { cls: "comp-q", text: "❓ O que a Claire acha da corrida dos dois?" }), opts, dmsg,
           el("p", { cls: "small", text: "Achou rápido? É assim que nativo fala. No treino tem série, desenho, talk show, entrevista de rua e vlog, e cada cena vem em partes, com o Raio-X do som, até você entender tudo." }));
         return x; })(),
@@ -568,7 +568,7 @@
           el("p", { text: "Não aprendi idiomas na sala de aula tradicional: aprendi vivendo. Morei 4 anos na Europa, trabalhei em outra língua, errei muito e falei mesmo assim. Foi aí que entendi: fluência não vem de mais teoria, vem de usar." }),
           el("p", { text: "Sou violinista, professor apaixonado e, sinceramente, um chato com uma coisa só: odeio a indústria da enrolação que promete milagre em 3 meses e entrega frustração. Aqui é o oposto: trabalho focado, direto, com resultado que você percebe na primeira conversa." }),
           el("p", { cls: "hand", text: "Se você fala, você valida. Simples assim." }),
-          el("div", { cls: "land-stats" }, el("div", null, el("b", { text: "5 idiomas" }), el("span", { text: "aprendidos na prática" })), el("div", null, el("b", { text: "4 anos" }), el("span", { text: "morando na Europa" })), el("div", null, el("b", { text: "A1 → B2+" }), el("span", { text: "alunos destravados" }))));
+          el("div", { cls: "land-stats" }, el("div", null, el("b", { text: "5 idiomas" }), el("span", { text: "aprendidos na prática" })), el("div", null, el("b", { text: "4 anos" }), el("span", { text: "morando na Europa" })), el("div", null, el("b", { text: "A1 → B2" }), el("span", { text: "alunos destravando" }))));
         return x; })(),
       oferta,
       (function () { var x = sec("Antes de você perguntar", "Perguntas que todo mundo faz"); x.id = "faq"; x.append(faq); return x; })(),
@@ -588,7 +588,7 @@
     if (CONTA_OK && !ACC && !PROF && S.skipAccUntil !== today()) return signupScreen(function () { welcome(true); }, "Crie sua conta pra começar.");
     var w = screen();
     if (S.testSave && S.testSave.res) w.append(el("button", { cls: "paused-card", type: "button", onclick: runTest }, el("span", { cls: "pe", text: "☕" }),
-      el("span", { cls: "tt" }, el("b", { text: "Você pausou o teste" }), el("span", { cls: "small", text: "Continua na parte " + (S.testSave.pi + 1) + " de 4" + (S.testSave.ii ? ", pergunta " + (S.testSave.ii + 1) : "") + "." })), el("span", { cls: "go", text: "Continuar →" })));
+      el("span", { cls: "tt" }, el("b", { text: "Você pausou o teste" }), el("span", { cls: "small", text: "Continua na parte " + (S.testSave.pi + 1) + " de 6." })), el("span", { cls: "go", text: "Continuar →" })));
     var list = el("div", { cls: "self-list" });
     SELF.forEach(function (x, k) {
       list.append(el("button", { cls: "self-opt", type: "button", onclick: function () { S.self = k; persist(); SFX.go(); testIntro(); } },
@@ -605,7 +605,7 @@
       el("section", { cls: "hero" },
         el("span", { cls: "eyebrow", text: "Você marcou: " + SELF[k].e + " " + SELF[k].t }),
         el("h1", { html: k === 0 ? "Bora começar do <mark>zero</mark>, sem pressão." : "Agora vamos ver o seu <mark>nível de fato</mark>." }),
-        el("p", { text: k === 0 ? "Começando do zero? Perfeito: a Destravando foi feita pra isso. Você começa no tema 1, com cada frase em áudio e com tradução, e já pratica falando desde o primeiro dia. Se preferir, dá pra fazer o teste também." : k === 3 ? "Bora ver se é isso mesmo ou se é coisa da sua cabeça 😏. O teste vai ficando mais difícil conforme você acerta." : "Um teste rápido, só de ouvir e falar: nada de ler, nada de escrever. Ele mostra o seu nível e o que mais trava você." })),
+        el("p", { text: k === 0 ? "Começando do zero? Perfeito: o Destravando foi feito pra isso. Você começa no tema 1, com cada frase em áudio e com tradução, e já pratica falando desde o primeiro dia. Se preferir, dá pra fazer o teste também." : k === 3 ? "Bora ver se é isso mesmo ou se é coisa da sua cabeça 😏. O teste vai ficando mais difícil conforme você acerta." : "Um teste rápido, só de ouvir e falar: nada de ler, nada de escrever. Ele mostra o seu nível e o que mais trava você." })),
       k === 0 ? null : el("ul", { cls: "how card" },
         el("li", { text: "👂 Ouvir e reagir" }), el("li", { text: "🎬 Cena real, só ouvindo" }), el("li", { text: "✍️ Ditado com lacunas" }), el("li", { text: "🔁 Repetir frases" }), el("li", { text: "⚡ Responder rápido" }), el("li", { text: "🗣️ Recontar uma fofoca" }),
         el("li", { cls: "small", text: "⏱️ Uns 8 a 10 minutos: é um pouquinho de cada treino do app, e quem acerta pula perguntas. Use fone e fique num lugar onde possa falar." })),
@@ -640,7 +640,8 @@
     fb(good); noSkip(); w.append(el("div", { cls: "sheet " + (good ? "good" : "bad") }, el("b", { text: good ? "✅ Boa!" : "🟡 Quase." }), el("p", { cls: "small", text: txt })));
     setTimeout(then, good ? 1300 : 2200);
   }
-  function topOf(r, k) { var t = -1; (r || []).forEach(function (x) { if (x.ok >= PASS[k]) t = Math.max(t, x.band); }); return t; }
+  // resposta "falei em voz alta" (sem microfone) deixa seguir, mas não conta pro nível de fala
+  function topOf(r, k) { var t = -1; (r || []).forEach(function (x) { if (!x.man && x.ok >= PASS[k]) t = Math.max(t, x.band); }); return t; }
   function testFlow(T) {
     // 🧪 Thiago 28/11: o teste passa por TODOS os treinos do app (cena, ditado com lacunas, fala), bem enxuto
     var parts = [
@@ -698,9 +699,9 @@
         steps(pi + 1, total, "Parte", parts.map(function (x) { return x.em; })),
         n && i > 0 ? steps(Math.min(i, n), n, "Nível") : (n ? el("p", { cls: "small", text: "Começa fácil e vai subindo. Acertou? Pula pro próximo nível. Errou 2 no mesmo nível? A parte acaba e você não perde nada." }) : null));
     }
-    function score(ok, band) {
+    function score(ok, band, man) {
       if (scored) return; scored = true;
-      res[parts[pi].skill].push({ band: band, ok: ok });
+      res[parts[pi].skill].push(man ? { band: band, ok: ok, man: 1 } : { band: band, ok: ok });
       // adaptativo: acertou → pula as outras da mesma faixa; errou → tenta a outra da mesma faixa; errou as 2 → encerra a parte
       if (ok >= PASS[parts[pi].skill]) { missStreak = 0; var j = ii + 1; while (j < items.length && items[j].band <= band) j++; ii = j; }
       else { missStreak++; var j2 = ii + 1; ii = (missStreak >= 2 || j2 >= items.length || items[j2].band !== band) ? items.length : j2; }
@@ -779,13 +780,13 @@
         ask(); setTimeout(function () { var b = w.querySelector(".pbtn"); if (b) b.click(); }, 300);
       } else if (P.key === "repeat") {
         var heard = false, p = player(url, { max: 2, onEnd: function () { heard = true; t.classList.remove("locked"); } });
-        var t = talk(function (said, manual) { var v = manual ? 0.6 : overlap(it.en, said); testFb(w, v >= PASS.repetir, "A frase era: “" + it.en + "”", function () { score(v, it.band); }); }, { label: "🎤 Segure e repita" });
+        var t = talk(function (said, manual) { var v = manual ? 0.6 : overlap(it.en, said); testFb(w, v >= PASS.repetir, "A frase era: “" + it.en + "”", function () { score(v, it.band, manual); }); }, { label: "🎤 Segure e repita" });
         t.classList.add("locked");
         w.append(el("div", { cls: "card" }, el("h2", { text: "Ouça e repita" }), el("p", { cls: "hidden-line", text: "🙈 frase escondida" }), p, t));
         setTimeout(function () { var b = w.querySelector(".pbtn"); if (b) b.click(); }, 300);
       } else if (P.key === "answer") {
         var t2 = talk(function (said, manual) {
-          if (manual) return score(0.6, it.band);
+          if (manual) return score(0.6, it.band, true);
           var groups = it.expect || [], g = groups.filter(function (grp) { return grp.some(function (x) { return has(said, x); }); }).length;
           var enough = cw(said).length >= (it.minWords || 2);
           var v2 = (groups.length ? g / groups.length : 1) * (enough ? 1 : 0.5);
@@ -797,7 +798,7 @@
         setTimeout(function () { var b = w.querySelector(".pbtn"); if (b) b.click(); }, 300);
       } else {
         var t3 = talk(function (said, manual) {
-          if (manual) return score(0.6, it.band);
+          if (manual) return score(0.6, it.band, true);
           var k = (it.keywords || []).filter(function (x) { return has(said, x); }).length / Math.max(1, (it.keywords || []).length);
           var enough = cw(said).length >= (it.minWords || 10);
           var v3 = Math.min(1, k * 1.3) * (enough ? 1 : 0.6);
@@ -822,7 +823,8 @@
       // nível = média entre o OUVIDO (a parte mais confiável) e a mediana das 3 partes de FALA, arredondando pra cima.
       // Antes era a 2ª menor das 4: um microfone que entendeu mal no iPhone derrubava um B2 pra A2 (Thiago 28/11).
       function med(a) { a = a.map(function (x) { return x == null ? -1 : x; }).sort(function (x, y) { return x - y; }); return a[Math.floor(a.length / 2)]; }
-      var L = med([tops.entender, tops.ver, tops.ditado]), sp = med([tops.repetir, tops.reagir, tops.recontar]);
+      var L = med([tops.entender, tops.ver, tops.ditado]), falou = ["repetir", "reagir", "recontar"].filter(function (k) { return (res[k] || []).some(function (x) { return !x.man && !x.credit; }); });
+      var sp = falou.length ? med(falou.map(function (k) { return tops[k]; })) : L;
       var band = Math.max(0, Math.min(5, Math.ceil((Math.max(0, L) + Math.max(0, sp)) / 2)));
       S.test = { band: band, skills: skills, at: today() }; S.testSave = null;
       // faixas: 0–2 A1 · 3 A2 · 4 B1 · 5 B2 (cada nível só entra se já estiver publicado)
@@ -858,7 +860,7 @@
     w.append(topBar(), el("section", { cls: "hero" },
       el("span", { cls: "eyebrow", text: "Seu resultado" + (S.name ? ", " + S.name : "") }),
       el("h1", { html: "Seu nível: <mark>" + esc(BANDS[T.band]) + "</mark>" }),
-      el("p", { text: "Esse é o retrato das 4 habilidades que a gente mediu só ouvindo e falando." })), selfCompare());
+      el("p", { text: "Esse é o retrato das 6 habilidades que a gente mediu só ouvindo e falando." })), selfCompare());
     var bars = el("div", { cls: "card skills" });
     Object.keys(SKILLS).forEach(function (k) {
       var v = T.skills[k] || 0, Sk = SKILLS[k];
@@ -870,7 +872,7 @@
     w.append(bars, el("div", { cls: "card plan" },
       el("span", { cls: "eyebrow", text: "🎯 Seu plano" }),
       el("h2", { text: "Seu foco: " + PROB[focusProb()].emoji + " " + PROB[focusProb()].name.toLowerCase() }),
-      el("p", { html: "Todo dia a Destravando monta um treino de ~15 min, em fases curtas, com um exercício a mais de <b>" + PROB[focusProb()].emoji + " " + esc(PROB[focusProb()].name.toLowerCase()) + "</b>, porque é o que mais trava você. " + (S.goA2 ? (S.level === "a1" ? "Você vai treinar no <b>A1</b>, começando do tema " + (S.theme + 1) + "." : "Você já passou do " + ({ a2: "A1", b1: "A2", b2: "B1" })[S.level] + ": <b>você começa no " + S.level.toUpperCase() + "!</b> 🚀") : "Você começa no tema <b>" + (S.theme + 1) + " · " + esc((INDEX[S.theme] || INDEX[0]).title) + "</b>.") }),
+      el("p", { html: "Todo dia o Destravando monta um treino de ~15 min, em fases curtas, com um exercício a mais de <b>" + PROB[focusProb()].emoji + " " + esc(PROB[focusProb()].name.toLowerCase()) + "</b>, porque é o que mais trava você. " + (S.goA2 ? (S.level === "a1" ? "Você vai treinar no <b>A1</b>, começando do tema " + (S.theme + 1) + "." : "Você já passou do " + ({ a2: "A1", b1: "A2", b2: "B1" })[S.level] + ": <b>você começa no " + S.level.toUpperCase() + "!</b> 🚀") : "Você começa no tema <b>" + (S.theme + 1) + " · " + esc((INDEX[S.theme] || INDEX[0]).title) + "</b>.") }),
       el("p", { cls: "small", text: "A nota da fala é automática, pelo reconhecimento de voz: é uma estimativa." })),
       el("button", { cls: "btn big", type: "button", text: "Começar meu treino →", onclick: function () { if (S.goA2) { S.goA2 = false; persist(); location.reload(); } else home(); } }));
   }
@@ -900,12 +902,14 @@
       // Thiago 29/11 ("o 6º parece o 5º"): o extra da fala é sempre um exercício que ainda não está no dia; se todos já estão, vira revisão de tema anterior (com ícone de revisão)
       var falta = ["leitura", "shadow", "rt"].filter(function (k) { return !list.some(function (x) { return x.st === k; }); })[0];
       if (falta) list.push({ st: falta, uid: uid });
-      else list.push({ st: "rt", uid: t > 0 ? INDEX[Math.floor(Math.random() * t)].id : uid, review: t > 0 });
+      else if (t > 0) list.push({ st: "rt", uid: INDEX[Math.floor(Math.random() * t)].id, review: true });
+      else list.push({ st: ear2, uid: GERAL.id });
     }
     if (myErrors().length) list.push({ st: "erros" });
     return list;
   }
   function home() {
+    CUR = null;
     if (!S.test) return welcome();
     try { syncBadge(); } catch (e) {}
     setTimeout(function () { try { offerFace(); sendTz(); joinInvite(); } catch (e) {} }, 900);
@@ -938,7 +942,7 @@
         here ? el("span", { cls: "bubble", text: "VOCÊ ESTÁ AQUI" }) : null,
         el("span", { cls: "disc" }, done ? "✓" : open ? x.emoji : "🔒"),
         el("span", { cls: "tlabel" }, el("b", { text: (i + 1) + " · " + x.title }),
-          el("span", { cls: "small", text: done ? "dominado ✓" : open ? "falta " + falta + " Real Time" + (falta > 1 ? "s" : "") + " com 70%+" : "abre quando o tema " + i + " estiver dominado" })));
+          el("span", { cls: "small", text: done ? "dominado ✓" : open ? (falta > 1 ? "faltam " + falta + " Real Times" : "falta 1 Real Time") + " com 70%+" : "abre quando o tema " + i + " estiver dominado" })));
       if (here) hereNode = node;
       tl.append(node);
       if (i < INDEX.length - 1) tl.append(el("span", { cls: "tline" + (done ? " done" : ""), style: "--x:" + ((XS[i % XS.length] + XS[(i + 1) % XS.length]) / 2) }));
@@ -1012,7 +1016,7 @@
       el("h1", { html: "Pronto pro <mark>" + NEXT_LV[LVL].toUpperCase() + "</mark>?" }),
       el("p", { text: "São 4 partes, uns 20 minutos: " + F.parts.map(function (P) { return P.emoji + " " + P.title; }).join(" · ") + ". Dá pra pausar e continuar depois." }),
       el("p", { cls: "small", text: "Pra passar: " + F.passTotal + " de 100 pontos e pelo menos metade em cada parte. Quem passa libera o " + NEXT_LV[LVL].toUpperCase() + "." })),
-      S[FL] ? el("div", { cls: "card" }, el("b", { text: "Última tentativa: " + S[FL].total + "/100 " + (S[FL].pass ? "✅" : "") }), el("p", { cls: "small", text: S[FL].date })) : "",
+      S[FL] ? el("div", { cls: "card" }, el("b", { text: "Última tentativa: " + S[FL].total + "/100 " + (S[FL].pass ? "✅" : "") }), el("p", { cls: "small", text: "Em " + brDate(S[FL].date) })) : "",
       el("button", { cls: "btn big", type: "button", text: SV ? "Continuar da parte " + (SV.pi + 1) + (SV.ii ? ", questão " + (SV.ii + 1) : "") + " →" : "Começar o teste →", onclick: function () { finalFlow(F); } }),
       SV ? el("button", { cls: "linkish", type: "button", text: "Recomeçar do zero", onclick: function () { S[FS] = null; persist(); finalFlow(F); } }) : "");
   }
@@ -1167,7 +1171,7 @@
   }
   function probPage(k, ti) {
     var P = PROB[k], w = screen(), I = INDEX[ti];
-    w.append(topBar(home), el("span", { cls: "eyebrow", text: "Treino livre · Tema " + (ti + 1) + " · " + I.title }), el("h1", { text: P.emoji + " " + P.name }), el("p", { cls: "small", text: P.pt + " Cada exercício tem 5 variações: errou ou quer mais, faz a próxima." }),
+    w.append(topBar(home), el("span", { cls: "eyebrow", text: "Treino livre · Tema " + (ti + 1) + " · " + I.title }), el("h1", { text: P.emoji + " " + P.name }), el("p", { cls: "small", text: P.pt + " Cada exercício tem várias versões: errou ou quer mais, faz a próxima." }),
       stationGrid(k, ti), el("p", { cls: "small", text: "Quer outro tema? Escolha lá embaixo no início." }));
   }
   function getUnit(uid) { return Promise.all([loadOuv(), loadSeven(), loadParts(), loadRef()]).then(function () { return uid === GERAL.id ? GERAL : loadUnit(uid); }); }
@@ -1175,14 +1179,14 @@
     var w = screen(); w.append(topBar(home), skel());
     getUnit(uid).catch(function () { netError(); return Promise.reject(); }).then(function (u) {
       w.innerHTML = ""; var X = ST[st], i = uidx(uid);
-      w.append(topBar(home), el("span", { cls: "eyebrow", text: X.emoji + " " + X.name + (uid === GERAL.id ? "" : " · Tema " + (i + 1) + " · " + u.title) }), el("h1", { text: "Escolha a variação" }),
+      w.append(topBar(home), el("span", { cls: "eyebrow", text: X.emoji + " " + X.name + (uid === GERAL.id ? "" : " · Tema " + (i + 1) + " · " + u.title) }), el("h1", { text: "Escolha a versão" }),
         el("p", { cls: "small", text: "Mesmo assunto, situação diferente. Precisa treinar mais? Faça a próxima." }));
       var list = el("div", { cls: "vars" });
       variations(u, st).forEach(function (x, v) {
         var r = S.done[dkey(st, uid, v)], ok = playable(x);
         list.append(el("button", { cls: "var" + (ok ? "" : " off"), type: "button", disabled: !ok, onclick: function () { runStation(st, u, v, function () { pickVar(st, uid); }); } },
           el("span", { cls: "vn", text: String(v + 1) }),
-          el("span", { cls: "vt" }, el("b", { text: x.label || "Variação " + (v + 1) }), el("span", { cls: "small", text: ok ? (r ? "feito " + r.n + "x · melhor " + Math.round(r.best * 100) + "%" : "nova") : "vídeo chegando" }))));
+          el("span", { cls: "vt" }, el("b", { text: x.label || "Versão " + (v + 1) }), el("span", { cls: "small", text: ok ? (r ? "feito " + r.n + "x · melhor " + Math.round(r.best * 100) + "%" : "nova") : "em breve" }))));
       });
       w.append(list);
     });
@@ -1268,9 +1272,9 @@
     "Vai dar tudo certo. É só levantar a bunda do sofá. Ah, você já levantou. 👏",
     "Daqui a pouco você vai comprar pão na padaria lá fora sem precisar do Google Tradutor. 🥖",
     "Quer falar inglês? Então fala. Pensar em inglês calado não conta.",
-    "Bora estudar, que você não é a Bruna Marquezine. 💅",
+    "Bora treinar, que você não é a Bruna Marquezine. 💅",
     "Quando der vontade de desistir do inglês, dá uma olhadinha na sua conta bancária. Isso vai te incentivar a continuar. kkkk",
-    "Não adianta jogar tudo pro alto, porque você não tem nada pra jogar pro alto. Bora estudar.",
+    "Não adianta jogar tudo pro alto, porque você não tem nada pra jogar pro alto. Bora treinar.",
     "Nadou, nadou… vai morrer na praia agora? Bora pra próxima.",
     "Nativo também erra. A diferença é que ele não para de falar.",
     "Ninguém fica fluente lendo apostila deitado. Bora, que você tá no caminho.",
@@ -1381,7 +1385,7 @@
   function missionCard(u) {
     var C = (u.lesson && u.lesson.chunks) || []; if (!C.length) return null;
     var c = C[new Date().getDate() % C.length], k = String(c.chunk).split(/\s*\/\s*/)[0].replace(/[…]|\.\.\./g, "").trim();
-    var msg = "Tô treinando inglês todo dia na Destravando 🔓 Hoje aprendi: “" + k + "” (" + c.pt + "). Bora treinar comigo? https://destravando.inglescomjoaquim.com";
+    var msg = "Tô treinando inglês todo dia no Destravando 🔓 Hoje aprendi: “" + k + "” (" + c.pt + "). Bora treinar comigo? https://destravando.inglescomjoaquim.com";
     return el("div", { cls: "card mission" }, el("span", { cls: "eyebrow", text: "🎯 Missão da vida real · 1 minuto" }),
       el("h2", { html: "Mande um áudio em inglês pra alguém usando <mark class=\"ck\">" + esc(k) + "</mark>" }),
       el("p", { cls: "small", text: "Pode ser bobo, pode ser curto. O que vale é usar fora daqui. Falou, validou! 😎" }),
@@ -1408,7 +1412,7 @@
     if (!left) return el("div", { cls: "card proj" }, el("span", { cls: "eyebrow", text: "🎯 Onde você vai chegar" }), el("b", { text: "Trilha do " + LVL.toUpperCase() + " completa! " + (NX ? "Faça o teste final e vá pro " + NX + "." : "Você chegou no topo. 🏆") }));
     return el("div", { cls: "card proj" }, el("span", { cls: "eyebrow", text: "🎯 Onde você vai chegar" }),
       el("p", null, "No seu ritmo (" + perWeek + " dias por semana), você fecha o ", el("b", { text: LVL.toUpperCase() }), " lá por ", el("b", { text: when(perWeek) }), NX ? " e já entra no " + NX + "." : "."),
-      el("p", { cls: "small", text: "Treinando todo dia: " + when(7) + ". Faltam " + left + " de " + n + " temas. Cada dia conta." }),
+      el("p", { cls: "small", text: "Treinando todo dia: " + when(7) + ". " + (left === 1 ? "Falta 1 tema" : "Faltam " + left + " de " + n + " temas") + ". Cada dia conta." }),
       el("div", { cls: "proj-bar" }, el("i", { style: "width:" + Math.max(3, Math.round(done / n * 100)) + "%" })));
   }
   // 📅 lembrete diário na agenda do próprio celular (.ics), sem depender de app nem de notificação
@@ -1432,7 +1436,7 @@
       if (!r || !r.top) { box.remove(); return; }
       var list = el("ol", { cls: "rank-list" });
       r.top.forEach(function (x) { list.append(el("li", { cls: x.me ? "me" : null }, el("span", { text: (x.pos <= 3 ? ["🥇", "🥈", "🥉"][x.pos - 1] : x.pos + "º") + " " + x.n + (x.me ? " (você)" : "") }), el("b", { text: x.xp + " XP" }))); });
-      var msg = !r.me ? "Faça o treino de hoje pra entrar no ranking. 🔥" : r.me.pos === 1 ? "Você tá em 1º! Agora é defender o trono. 👑" : (function () { var ahead = r.top[r.me.pos - 2]; return ahead ? "Faltam " + (ahead.xp - r.me.xp + 1) + " XP pra passar " + ahead.n + ". Bora?" : "Você tá em " + r.me.pos + "º de " + r.total + ". Bora subir!"; })();
+      var msg = !r.me ? "Faça o treino de hoje pra entrar no ranking. 🔥" : r.me.pos === 1 ? "Você tá em 1º! Agora é defender o trono. 👑" : (function () { var ahead = r.top[r.me.pos - 2]; return ahead ? (ahead.xp - r.me.xp + 1 === 1 ? "Falta 1 XP" : "Faltam " + (ahead.xp - r.me.xp + 1) + " XP") + " pra passar " + ahead.n + ". Bora?" : "Você tá em " + r.me.pos + "º de " + r.total + ". Bora subir!"; })();
       box.replaceChildren(el("span", { cls: "eyebrow", text: "🏆 Ranking da semana · XP dos últimos 7 dias" }), el("b", { cls: "rank-msg", text: msg }), list);
     }); });
     return box;
@@ -1471,12 +1475,12 @@
   }
   function myTiles() {
     var nC = (S.caderno || []).filter(function (c) { return !c.lv || c.lv === LVL; }).length, nE = myErrors().length;
-    function tile(ic, t, sub, fn) { return el("button", { cls: "my-tile", type: "button", onclick: function () { pushNav(); fn(); } }, el("span", { cls: "mt-ic", text: ic }), el("b", { text: t }), el("span", { cls: "small", text: sub })); }
+    function tile(ic, t, sub, fn) { return el("button", { cls: "my-tile", type: "button", onclick: function () { pushNav(); fn(); } }, el("span", { cls: "mt-ic" }, icn(ic)), el("b", { text: t }), el("span", { cls: "small", text: sub })); }
     return el("section", { cls: "my-tiles" }, projection(), vozCard(), el("span", { cls: "eyebrow", text: "👤 Seu espaço" }),
       el("div", { cls: "mt-row" },
-        tile("📒", "Meu caderno", nC ? nC + " pra revisar" : "o que você guardar", cadernoPage),
-        tile("🧠", "Meus erros", nE ? nE + " pra corrigir" : "nada pendente 🎉", function () { if (nE) runErrors(); else { emptyErrors(); return; home(); } }),
-        tile("📊", "Progresso", "nível, medalhas, evolução", progressPage)),
+        tile("livro", "Meu caderno", nC ? nC + " pra revisar" : "o que você guardar", cadernoPage),
+        tile("revisar", "Meus erros", nE ? nE + " pra corrigir" : "nada pendente", function () { if (nE) runErrors(); else { emptyErrors(); return; home(); } }),
+        tile("xp", "Progresso", "nível, medalhas, evolução", progressPage)),
       true ? null : el("div", { cls: "card rem-card" }, el("b", { text: "⏰ Constância é tudo" }), el("p", { cls: "small", text: "Escolha um horário e o seu celular te lembra todo dia. 15 minutos, e o 🔥 não apaga." }), reminderBtn()));
   }
   function cadernoPage() {
@@ -1533,7 +1537,7 @@
   // ⚡ RODADA BÔNUS igual ao homework: 30 s, aparece em português, toca na opção certa em inglês, 2 XP por acerto
   function bonusCard() {
     var card = el("div", { cls: "card bonus" }, el("b", { cls: "bonus-title", text: "⚡ Rodada bônus · opcional" }),
-      el("p", { cls: "small", text: "30 segundos! Aparece em português, toque na opção certa em inglês. Cada acerto vale 2 XP." }));
+      el("p", { cls: "small", text: "30 segundos! Aparece uma frase em português: toque na opção certa em inglês. Cada acerto vale 2 XP." }));
     if (S.bonusDay === today()) { card.append(el("p", { cls: "small", text: "✅ Você já fez a de hoje: acertou " + (S.bonusRight || 0) + "." })); return card; }
     var go = el("button", { cls: "btn", type: "button", text: "⚡ Começar" }); card.append(go);
     go.onclick = function () {
@@ -1615,7 +1619,7 @@
   function pauseNow() {
     stopAll();
     if (CUR) { S.paused = { st: CUR.st, uid: CUR.uid, v: CUR.v, i: CUR.i, acc: CUR.acc, daily: CUR.daily, review: CUR.review, date: today() }; persist(); }
-    pausedScreen();
+    CUR = null; pausedScreen();
   }
   function pausedScreen() {
     var w = screen();
@@ -1851,7 +1855,7 @@
     function replay() { if (!canHear()) { notice("🎚️ Na sua fase da Fofoca são no máximo " + MAXL + " escutas."); return; } var a = playUrl(af(u, "g" + v)); a.onended = heardOne; }
     w.append(el("div", { cls: "card" }, evoBadge("fofoca"), el("span", { cls: "eyebrow", text: "🕵️ Fofoca do Sunset Building" }), el("h2", { text: G.title }),
       el("p", { cls: "small", text: "Daqui até o reconto, tudo é sobre esta fofoca: ouvir, entender e recontar." }),
-      el("p", { cls: "small", text: MAXL ? "🚫 Não escreva a história. Na sua fase: no máximo " + MAXL + " escutas, sem ler nada. Pode pausar e voltar 5 s. Depois você vai recontar." : "🚫 Não escreva a história. Ouça 5 vezes, sem ler nada: na 1ª você pega a ideia, nas outras você pega os detalhes. Pode pausar e voltar 5 s. Depois você vai recontar." }),
+      el("p", { cls: "small", text: MAXL ? "🚫 Não escreva a história. Na sua fase: no máximo " + MAXL + " escutas, sem ler nada. Pode pausar e voltar 5 s. Depois você vai recontar." : "🚫 Não escreva a história. Ouça quantas vezes quiser (o ideal é 5), sem ler nada: na 1ª você pega a ideia, nas outras você pega os detalhes. Pode pausar e voltar 5 s. Depois você vai recontar." }),
       player(af(u, "g" + v), { max: MAXL ? Math.max(1, MAXL - heardN) : null, tools: true, onEnd: function (n) { heardOne(); if (n === 1) { lk.remove(); w.append(el("button", { cls: "btn", type: "button", text: "Responder as perguntas →", onclick: function () { quiz(w, G.questions || [], function (p) { qScore = p; qCheer = evoCheer("fofoca", p, dkey("fofoca", u.id, v)); retell(); }, null, counter, replay); } })); } } }), counter()));
     var lk = lockBox("Primeiro ouça a fofoca inteira, sem ler nada. As perguntas aparecem quando o áudio terminar."); w.append(lk);
     function retell() {
@@ -1870,7 +1874,7 @@
       }, { minSecs: minS });
       var fin = false;
       w.append(el("div", { cls: "card" }, evoBadge("reconto"), el("span", { cls: "eyebrow", text: "🗣️ Agora você conta" }), el("h2", { text: "Reconte a fofoca falando" }),
-        el("p", { cls: "small", text: "🎧 Antes de recontar, ouça a fofoca 5 vezes, contando as de antes. Pode pausar e voltar 5 s." }), counter(),
+        el("p", { cls: "small", text: "🎧 Antes de recontar, ouça a fofoca mais uma vez, com atenção nos detalhes. Pode pausar e voltar 5 s." }), counter(),
         el("p", { cls: "small", html: "Aperte o botão e fale, sem pressa · <b>pelo menos " + (minS >= 60 ? "1 minuto" : minS + " s") + "</b>" + (ph < 4 ? ". Comece com: \"So, the story is about…\"" : "") }),
         el("div", { cls: "ears" }, el("button", { cls: "ear", type: "button", text: "🔊 ouvir a fofoca de novo", onclick: replay })),
         seen.length && ph < 4 ? el("p", { cls: "small", text: "💬 Tente usar: " + seen.slice(0, 3).map(function (x) { return x.k; }).join(", ") }) : null, t));
@@ -1940,7 +1944,7 @@
       w.append(el("button", { cls: "btn big res-go", type: "button", text: "Ver o resultado →", onclick: function () { finishBox(w, "leitura", u, v, sc, next, null, [evoCheer("leitura", sc, dkey("leitura", u.id, v))]); } }));
     }, { onLive: function (all) { if (ph < 2) rt.replaceChildren(paintModel(txt, all).node); } });
     w.append(el("div", { cls: "card" }, evoBadge("leitura"), el("h2", { text: "🗣️ Leia em voz alta" }),
-      el("p", { cls: "small", html: ph >= 2 ? "Leia este trecho em voz alta" + (ph >= 3 ? ", <b>no ritmo natural</b>, até uns " + maxS + " s" : "") + ". No fim você vê o que a página entendeu." : "Leia este trecho em voz alta. As palavras que a página entender ficam <b>verdes</b>." }),
+      el("p", { cls: "small", html: ph >= 2 ? "Leia este trecho em voz alta" + (ph >= 3 ? ", <b>no ritmo natural</b>, até uns " + maxS + " s" : "") + ". No fim você vê o que o app entendeu." : "Leia este trecho em voz alta. As palavras que a página entender ficam <b>verdes</b>." }),
       rt, t, res));
   }
 
@@ -1977,7 +1981,7 @@
       w.append(el("button", { cls: "btn big", type: "button", text: "Ver o resultado →", onclick: function () { finishBox(w, "ditado", u, v, pct, next, null, [evoCheer("ditado", pct, dkey("ditado", u.id, v)), el("div", { cls: "card" }, el("span", { cls: "eyebrow", text: "📜 O texto" }), out.cloneNode(true))]); } }));
     } });
     w.append(el("div", { cls: "card" }, evoBadge("ditado"), el("h2", { text: "✍️ Ditado: " + G.title }),
-      el("p", { cls: "small", text: D.length + " frases seguidas, no ritmo normal. Ouça quantas vezes quiser, pause quando precisar" + (ph >= 4 ? ": no máximo 2" : "") + ", e escreva tudo." }),
+      el("p", { cls: "small", text: D.length + " frases seguidas, no ritmo normal." + (ph >= 4 ? " Você pode ouvir no máximo 2 vezes: pause quando precisar e escreva tudo." : " Ouça quantas vezes quiser, pause quando precisar e escreva tudo.") }),
       el("div", { cls: "pt-play" }, playB,
         el("button", { cls: "soft", type: "button", text: "⏸ Pausar", onclick: function (e) { if (!curA) return; if (curA.paused) { curA.play().catch(function () {}); e.currentTarget.textContent = "⏸ Pausar"; } else { curA.pause(); e.currentTarget.textContent = "▶ Continuar"; } } }),
         el("button", { cls: "soft", type: "button", text: "⏪ Frase anterior", onclick: function () { if (seqNext) { stopAll(); seqNext(Math.max(0, dk0 - 1)); } } }),
@@ -2463,7 +2467,7 @@
         el("li", { html: "⭐ Cada fase vale até <b>3 estrelas</b>. Acertos seguidos viram <b>combo 🔥</b> e dão XP." }),
         el("li", { html: "🌱 Cada habilidade <b>evolui</b>: 🌱 → 🌿 → 🌳 → 🍎. Mandou bem 2 vezes seguidas? Sobe de fase." }),
         el("li", { html: "🎙️ Pra falar é igual WhatsApp: <b>toque pra gravar</b>, toque pra finalizar, ouça e <b>✅ Envie</b>." }),
-        el("li", { html: "☕ Cansou? <b>Pause</b>: o site guarda onde você parou." }),
+        el("li", { html: "☕ Cansou? <b>Pause</b>: o app guarda onde você parou." }),
         el("li", { html: "🧠 O que você erra vai pro <b>Meus erros</b> e volta em outro dia." })),
       el("button", { cls: "btn", type: "button", text: "Entendi, bora! 🚀", onclick: function () { try { localStorage.setItem(PK("academia_comojoga"), "1"); } catch (e) {} S.howtoSeen = true; persist(); SFX.go(); card.remove(); } }));
     return card;
@@ -2503,7 +2507,7 @@
   function evoCheer(k, pct, first) {
     var E = EVO[k], good = pct >= 0.8;
     if (typeof first === "string") { var dk = first, sk = k + "|" + dk; S.evoSeen = S.evoSeen || {}; first = !S.done[dk] && !S.evoSeen[sk]; if (first) { S.evoSeen[sk] = 1; persist(); } }
-    if (first === false) return el("p", { cls: "evo-up", html: "🔁 Repetição é ótima pra fixar, mas pra <b>evoluir</b> vale a 1ª vez de cada variação. Faça uma nova!" });
+    if (first === false) return el("p", { cls: "evo-up", html: "🔁 Repetição é ótima pra fixar, mas pra <b>evoluir</b> vale a 1ª vez de cada versão. Faça uma nova!" });
     var r = evoUpdate(k, good), x = evoOf(k);
     if (r.up) {
       var a = EVO_N[r.from - 1], b = EVO_N[r.to - 1];
@@ -2591,7 +2595,7 @@
     if (!SR) {
       b.textContent = "🎤 Este navegador não ouve você";
       b.disabled = true;
-      wrap.append(el("p", { cls: "small", text: "Use o Chrome no Android ou computador, ou o Safari no iPhone. Por enquanto, fale em voz alta e toque em continuar." }),
+      wrap.append(el("p", { cls: "small", text: "Use o Chrome no Android ou computador, ou o Safari no iPhone. Por enquanto, fale em voz alta e toque em “Falei em voz alta”." }),
         el("button", { cls: "btn ghost", type: "button", text: "Falei em voz alta →", onclick: function () { onDone("", true); } }));
       return wrap;
     }
@@ -3091,8 +3095,8 @@
     if (gap >= 3) return { ic: "⚠️", t: "Precisa acelerar", why: "Faz " + gap + " dias sem treinar.", how: "Um treino hoje já muda isso." };
     if (avg >= 0.85 && streak() >= 3) return { ic: "🔥", t: "Em chamas", why: "Média " + m + "% e ofensiva de " + streak() + " dias.", how: "Não para! Mantenha a ofensiva." };
     if (avg >= 0.7) return { ic: "🚀", t: "Decolando", why: "Média " + m + "%.", how: "Pra ficar 🔥 Em chamas: 85% e 3 dias seguidos." };
-    if (avg >= 0.5) return { ic: "🙂", t: "No ritmo", why: "Média " + m + "%.", how: "Pra 🚀 Decolar: 70% nos próximos treinos." };
-    return { ic: "⚠️", t: "Precisa acelerar", why: "Média " + m + "%.", how: "Refaça as variações e passe em 🧠 Meus erros." };
+    if (avg >= 0.5) return { ic: "🙂", t: "No ritmo", why: "Média " + m + "%.", how: "Pra ficar 🚀 Decolando: 70% nos próximos treinos." };
+    return { ic: "⚠️", t: "Precisa acelerar", why: "Média " + m + "%.", how: "Refaça os treinos e passe em 🧠 Meus erros." };
   }
   function medals() {
     var rt70 = Object.keys(S.done).filter(function (k) { return /^rt:/.test(k) && S.done[k].best >= 0.7; }).length;
@@ -3115,7 +3119,7 @@
     LEVELS.forEach(function (x, k) { lad.append(el("li", { cls: k + 1 === L.n ? "cur" : "", text: (k + 1) + " · " + x.name + " · " + x.xp + " XP" })); });
     return el("div", { cls: "card" }, el("span", { cls: "eyebrow", text: "⭐ Seu nível" }), el("b", { cls: "st-big", text: "Nível " + L.n + " · " + L.name }),
       el("div", { cls: "pbar2" }, el("i", { style: "width:" + Math.max(3, Math.round(L.f * 100)) + "%" })),
-      el("p", { cls: "small", text: L.next ? "Faltam " + L.left + " XP pra " + L.next.name + "." : "🏆 Nível máximo!" }),
+      el("p", { cls: "small", text: L.next ? (L.left === 1 ? "Falta 1 XP" : "Faltam " + L.left + " XP") + " pra " + L.next.name + "." : "🏆 Nível máximo!" }),
       el("button", { cls: "linkish", type: "button", text: "❓ O que é o nível?", onclick: function () { lad.hidden = !lad.hidden; } }),
       el("p", { cls: "small", text: "XP só sobe: cada exercício dá de 10 a 30 XP, e combo 🔥 dá mais." }), lad);
   }
@@ -3249,15 +3253,18 @@
     try { if (sessionStorage.getItem("dtv:adopt") === String(p.savedAt)) return false; sessionStorage.setItem("dtv:adopt", String(p.savedAt)); } catch (e) {}
     S = p; try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} location.reload(); return true;
   }
+  var LEAVING = false;
   function pushNow(cb) {
-    clearTimeout(pushT); pushT = null; if (!ACC || PROF || !SYNCED) { if (cb) cb(); return; }
+    clearTimeout(pushT); pushT = null; if (!ACC || PROF || !SYNCED) { if (cb) cb(!ACC || PROF); return; }
     var body = JSON.stringify({ progress: snapshot(), testLevel: S.test && !S.test.skipped ? BANDS[S.test.band] : null, selfLevel: S.self != null && SELF[S.self] ? SELF[S.self].t : null });
     var h = { "Content-Type": "application/json" }; if (ACC && ACC.token) h.Authorization = "Bearer " + ACC.token;
     // keepalive só cabe 64 KB: progresso grande vai sem keepalive
+    var ok = false;
     fetch(API + "progresso", { method: "PUT", headers: h, body: body, keepalive: body.length < 60000 }).then(function (r) {
-      if (r.status === 409) return r.json().then(function (j) { adopt(j.progress); });
+      ok = r.ok || r.status === 409;
+      if (r.status === 409 && !LEAVING) return r.json().then(function (j) { adopt(j.progress); });
       if (r.status === 401 && ACC) { setAcc(null); notice("🔐 Sua sessão expirou. Entre de novo pra continuar salvando o progresso."); }
-    }).catch(function () {}).then(function () { if (cb) cb(); });
+    }).catch(function () {}).then(function () { if (cb) cb(ok); });
   }
   function schedulePush() { if (!ACC || PROF) return; clearTimeout(pushT); pushT = setTimeout(pushNow, 4000); }
   // no boot: se a conta tem progresso mais novo que o deste aparelho, usa o da conta
@@ -3274,8 +3281,8 @@
   function afterLogin(res, after, viaFace) {
     setAcc({ token: res.token, email: res.user.email, name: res.user.name });
     try { if (!viaFace && window.PublicKeyCredential && !localStorage.getItem("dtv-faceid") && !localStorage.getItem("dtv-faceid-nao")) localStorage.setItem("dtv-oferecer-faceid", "1"); } catch (e) {}
-    if (res.progress && typeof res.progress === "object" && res.progress.test) {
-      S = res.progress; try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {}
+    if (res.progress && typeof res.progress === "object" && res.progress.test && !(S.savedAt && res.progress.savedAt === S.savedAt)) {
+      S = res.progress; try { localStorage.setItem(KEY, JSON.stringify(S)); if (after && after.dtvInstall) sessionStorage.setItem("dtv-inst", "1"); } catch (e) {}
       location.reload(); return;
     }
     SYNCED = true; S.name = S.name || res.user.name; persist(); pushNow(); after();
@@ -3340,7 +3347,7 @@
         .then(function (r) {
           go.disabled = false; go.textContent = "Criar minha conta →";
           if (r.token) { SFX.go(); afterLogin(r, after); return; }
-          if (r.verify) return codeScreen(r.email, after, r.mail);
+          if (r.verify) { if (r.again) setTimeout(function () { notice("Esse e-mail já tinha cadastro esperando confirmação: mandei um código novo. Depois, entre com a senha que você criou da primeira vez (ou use “Esqueci a senha”)."); }, 600); return codeScreen(r.email, after, r.mail); }
           err.show(r.error || "Não deu certo. Tente de novo.");
           // servidor fora do ar: não prende o aluno (continua sem conta e pede de novo depois)
           if (!r._status || r._status === 404 || r._status === 429 || r._status >= 500) { err.append(" ", el("button", { cls: "linkish", type: "button", text: "Continuar sem conta por enquanto →", onclick: function () { S.skipAccUntil = today(); persist(); after(); } })); }
@@ -3357,7 +3364,7 @@
         field("Como você se identifica?", gender), field("Idade", age),
         ufBox,
         field("Pra que você quer o inglês?", goal), field("Como conheceu o Destravando?", how),
-        el("label", { cls: "chk chk-lock" }, dados, el("span", { html: "🔒 Entendo que os meus dados servem <b>só pra me dar acesso ao Destravando</b>. Ninguém vende, empresta ou passa eles pra outra pessoa." })),
+        el("label", { cls: "chk chk-lock" }, dados, el("span", { html: "🔒 Entendo que os meus dados servem <b>só pro Destravando</b>: meu acesso, meus lembretes e melhorar o treino. Ninguém vende, empresta ou passa eles pra ninguém." })),
         el("label", { cls: "chk" }, mk, el("span", { text: "Quero receber novidades e dicas por e-mail e WhatsApp." })),
         el("label", { cls: "chk" }, ok, el("span", { html: "Li e aceito a <a href=\"/privacidade.html\" target=\"_blank\">política de privacidade</a>." })),
         err, go, isMobile() && !STANDALONE ? el("p", { cls: "small center", text: "📲 Depois do cadastro, eu te mostro como colocar o Destravando no celular, como app." }) : null),
@@ -3379,7 +3386,7 @@
     } });
     pw.input.addEventListener("keydown", function (e) { if (e.key === "Enter") go.click(); });
     if (window.PublicKeyCredential && lsGet("dtv-faceid")) w.append(el("button", { cls: "btn big gold faceid-go", type: "button", text: "🔐 Entrar com Face ID ou digital", onclick: function (e) { faceLogin(after, e.currentTarget); } }));
-    w.append(el("section", { cls: "hero" }, el("span", { cls: "eyebrow", text: "Destravando · entrar" }), el("h1", { html: STANDALONE ? "Bem-vindo ao <mark>Destravando</mark>!" : "Bem-vindo <mark>de volta</mark>!" }), STANDALONE ? el("p", { text: "Entre com o e-mail e a senha da sua conta. Depois, o app fica logado." }) : null),
+    w.append(el("section", { cls: "hero" }, el("span", { cls: "eyebrow", text: "Destravando · entrar" }), el("h1", { html: STANDALONE ? "Boas-vindas ao <mark>Destravando</mark>!" : "Que bom te ver <mark>de novo</mark>!" }), STANDALONE ? el("p", { text: "Entre com o e-mail e a senha da sua conta. Depois, o app fica logado." }) : null),
       el("div", { cls: "card form" }, field("E-mail", email), field("Senha", pw), err, go,
         el("button", { cls: "linkish", type: "button", text: "🔑 Esqueci a senha", onclick: function () { forgotScreen(after, email.value.trim()); } })),
       el("button", { cls: STANDALONE ? "btn ghost" : "linkish", type: "button", text: STANDALONE ? "Ainda não tenho conta · Criar agora" : "Ainda não tenho conta · Criar", onclick: function () { STANDALONE ? startFlow() : signupScreen(after); } }));
@@ -3394,7 +3401,7 @@
       err.show(""); go.disabled = true; go.textContent = "⏳ Conferindo…";
       api("confirmar", "POST", { email: mail, code: code.value }).then(function (r) {
         go.disabled = false; go.textContent = "Confirmar e entrar →";
-        if (r.token) { clearInterval(tmr); SFX.win(); if (isMobile() && !STANDALONE && !S.installed) { var go0 = after; after = function () { installGuide(go0, true); }; } try { confetti(); } catch (e) {} notice("✅ E-mail confirmado! Bem-vindo(a) ao Destravando."); afterLogin(r, after); }
+        if (r.token) { clearInterval(tmr); SFX.win(); if (isMobile() && !STANDALONE && !S.installed) { var go0 = after; after = function () { installGuide(go0, true); }; after.dtvInstall = true; } try { confetti(); } catch (e) {} notice("✅ E-mail confirmado! Boas-vindas ao Destravando."); afterLogin(r, after); }
         else { err.show(r.error || "Não deu certo. Tente de novo."); code.select(); }
       });
     } });
@@ -3507,7 +3514,7 @@
     Notification.requestPermission().then(function (perm) {
       if (perm !== "granted") { S.pushHide = "9999-12-31"; persist(); if (card) card.remove(); return notice("Tudo bem! Se mudar de ideia, libere as notificações do Destravando nos Ajustes do celular."); }
       return Promise.all([navigator.serviceWorker.ready, api("push", "GET")]).then(function (x) {
-        var reg = x[0], key = x[1] && x[1].key; if (!key) return fail("A notificação ainda não está ligada no servidor. Tente mais tarde.");
+        var reg = x[0], key = x[1] && x[1].key; if (!key) return fail("As notificações ainda não estão disponíveis. Tente mais tarde.");
         return reg.pushManager.getSubscription().then(function (old) { return old || reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64u(key) }); })
           .then(function (sub) { return api("push", "POST", { sub: sub.toJSON(), device: (navigator.userAgent.match(/iPhone|iPad|Android[^;)]*/) || ["?"])[0], teste: true }); })
           .then(function (r) { if (!r.ok) return fail(r.error || "Não deu certo. Tente de novo."); S.pushOn = today(); persist(); syncBadge(); if (card) card.remove(); SFX.win(); notice("🔔 Pronto! Mandei uma notificação de teste agora."); });
@@ -3518,7 +3525,7 @@
     if (!PUSH_OK || !ACC || PROF || S.pushOn || (S.pushHide && S.pushHide > today())) return null;
     if (window.Notification && Notification.permission === "denied") return null;
     var card = el("div", { cls: "card push-card" }, el("span", { cls: "eyebrow", text: "🔔 Lembrete no celular" }),
-      el("b", { text: "Ative e eu te lembro do treino no fim do dia, direto na tela do celular, como qualquer app." }),
+      el("b", { text: "Ative e eu te lembro do treino no horário que você escolher, direto na tela do celular, como qualquer app." }),
       el("p", { cls: "small", text: "Só 1 por dia, no horário que você escolher (na aba 👤 Você), e só se você ainda não treinou. De férias, não chega nada." }));
     var go = el("button", { cls: "btn", type: "button", text: "🔔 Ativar notificação", onclick: function () { pushOn(go, card); } });
     card.append(go, el("button", { cls: "linkish", type: "button", text: "Agora não", onclick: function () { var d = new Date(); d.setDate(d.getDate() + 5); S.pushHide = isoOf(d); persist(); card.remove(); } }));
@@ -3528,7 +3535,10 @@
   function logoutNow(btn) {
     if (btn) { btn.disabled = true; btn.textContent = "⏳ Saindo…"; }
     function fim() { api("sair", "POST").then(function () { setAcc(null); try { localStorage.removeItem(KEY); navigator.clearAppBadge && navigator.clearAppBadge(); } catch (e) {} location.reload(); }); }
-    pushNow(function () {
+    LEAVING = true;
+    pushNow(function (salvou) {
+      // sem internet (ou falhou): não apaga nada do aparelho, senão o treino de hoje sumiria
+      if (!salvou) { LEAVING = false; if (btn) { btn.disabled = false; btn.textContent = "🚪 Sair da conta"; } return notice("📶 Não consegui salvar seu progresso agora. Conecte na internet e tente sair de novo."); }
       var p = (navigator.serviceWorker && S.pushOn) ? navigator.serviceWorker.ready.then(function (reg) { return reg.pushManager.getSubscription(); }).then(function (sub) { if (!sub) return; return api("push", "DELETE", { endpoint: sub.endpoint }).then(function () { return sub.unsubscribe(); }); }).catch(function () {}) : Promise.resolve();
       p.then(fim, fim);
     });
@@ -3585,7 +3595,7 @@
         el("p", { cls: "small", text: "Da próxima vez, nada de digitar e-mail e senha: é só olhar pro celular (ou encostar o dedo) e pronto." }), go,
         el("button", { cls: "linkish", type: "button", text: "Agora não", onclick: function () { try { localStorage.setItem("dtv-faceid-nao", "1"); localStorage.removeItem("dtv-oferecer-faceid"); } catch (e) {} close(); } }));
       var ov = el("div", { cls: "fb-ov", onclick: function (e) { if (e.target === ov) close(); } }, card);
-      function close() { ov.remove(); }
+      function close() { ov.remove(); try { localStorage.removeItem("dtv-oferecer-faceid"); } catch (e) {} }
       go.onclick = function () { faceOn(go, function (ok) { if (ok) close(); }); };
       document.body.append(ov); sheetify(ov, card, close);
     });
@@ -3593,7 +3603,7 @@
   // ⏰ fuso do aparelho vai pra conta (o lembrete chega na hora local de cada um)
   function sendTz() { var tz = ""; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone; } catch (e) {} if (!ACC || !tz || S.tz === tz) return; api("preferencias", "POST", { fuso: tz }).then(function (r) { if (r && r.ok) { S.tz = tz; persist(); } }); }
   // 🏆 conquista: notificação no celular (se a pessoa ativou)
-  function conquista(title, body) { try { if (window.Notification && Notification.permission === "granted" && navigator.serviceWorker) navigator.serviceWorker.ready.then(function (reg) { reg.showNotification(title, { body: body, icon: "/academia/app/icon-192.png", badge: "/academia/app/icon-96.png", tag: "conquista", data: { url: "/?app=1&ir=progresso" } }); }); } catch (e) {} }
+  function conquista(title, body) { try { if (window.Notification && Notification.permission === "granted" && navigator.serviceWorker) navigator.serviceWorker.ready.then(function (reg) { reg.showNotification(title, { body: body, icon: "/academia/app/icon-192.png", badge: "/academia/app/icon-96.png", tag: "conquista", data: { url: "/?ir=progresso" } }); }); } catch (e) {} }
   // 👆 GESTOS: puxar pra atualizar (início) e deslizar pro lado pra trocar de aba
   (function () {
     var x0 = 0, y0 = 0, pulling = false, ind = null, ok = false, t0 = null;
@@ -3658,7 +3668,7 @@
       w.replaceChildren(topBar(home));
       var items = [];
       ((u.lesson && u.lesson.chunks) || []).slice(0, 5).forEach(function (c, ci) { (c.examples || []).slice(0, 2).forEach(function (en, k) { var f = af(u, "ex" + ci + "_" + k); if (f) items.push({ en: en, pt: (c.examplesPt || [])[k] || "", ck: c.chunk, f: f }); }); });
-      if (!items.length) { w.append(emptyBox("Esse tema ainda não tem treino no fone.", "Faça o treino do dia que, no próximo tema, ele aparece aqui.", "Voltar →", home)); return; }
+      if (!items.length) { w.append(emptyBox("Esse tema ainda não tem treino no fone.", "Ele aparece a partir do próximo tema.", "Voltar →", home)); return; }
       var STEPS = []; items.forEach(function (it, i) { STEPS.push({ i: i, ph: 0, src: it.f }, { i: i, ph: 1, src: "/academia/app/silencio-3.mp3" }, { i: i, ph: 2, src: it.f }, { i: i, ph: 3, src: "/academia/app/silencio-2.mp3" }); });
       var PH = [["🎧", "Ouça"], ["🗣️", "Sua vez: repita em voz alta"], ["✅", "Confira"], ["⏭️", "Próxima"]];
       var A = new Audio(); A.preload = "auto"; var si = 0, on = false, showTxt = true, fim = false;
@@ -3673,7 +3683,8 @@
       function pause() { on = false; pp.textContent = "▶"; A.pause(); try { navigator.mediaSession.playbackState = "paused"; } catch (e) {} }
       function jump(d) { var cur = STEPS[si].i, ti = Math.max(0, Math.min(items.length - 1, cur + d)); si = STEPS.findIndex(function (x) { return x.i === ti; }); load(); if (on) A.play().catch(function () {}); }
       A.addEventListener("ended", function () {
-        if (si + 1 >= STEPS.length) { on = false; fim = true; pp.textContent = "↺"; S.xp += 10; S.xpByDay = S.xpByDay || {}; S.xpByDay[today()] = (S.xpByDay[today()] || 0) + 10; persist(); SFX.win(); notice("🎧 Treino no fone concluído! +10 XP"); return; }
+        if (si + 1 >= STEPS.length) { on = false; fim = true; pp.textContent = "↺"; SFX.win();
+          if (S.foneDay !== today()) { S.foneDay = today(); S.xp += 10; S.xpByDay = S.xpByDay || {}; S.xpByDay[today()] = (S.xpByDay[today()] || 0) + 10; markDay(); persist(); notice("🎧 Treino no fone concluído! +10 XP"); } else notice("🎧 Mais uma rodada no fone! (o XP do fone conta 1 vez por dia)"); return; }
         si++; load(); A.play().catch(function () {});
       });
       try { if ("mediaSession" in navigator) { var ms = navigator.mediaSession; ms.setActionHandler("play", play); ms.setActionHandler("pause", pause); ms.setActionHandler("nexttrack", function () { jump(1); }); ms.setActionHandler("previoustrack", function () { jump(-1); }); } } catch (e) {}
@@ -3913,6 +3924,7 @@
     if (Q.get("teste") === "1") return runTest();
     if (PROF && Q.get("cert")) { var cw = screen(); cw.append(topBar(home), certCard(Q.get("cert"), 82)); return; } // professor: ver o certificado
     if (Q.get("resultado") === "1" && S.test) return result();
+    try { if (sessionStorage.getItem("dtv-inst") && ACC && !STANDALONE) { sessionStorage.removeItem("dtv-inst"); return installGuide(function () { S.test ? home() : welcome(true); }, true); } } catch (e) {}
     if (Q.get("instalar") === "1" && !STANDALONE) return installGuide(function () { if (CONTA_OK && !ACC && !PROF) landing(); else S.test ? home() : welcome(); });
     // 🔐 quem já treina sem conta: cria a conta (o progresso do aparelho vai junto)
     // 📲 aberto pelo ícone (app instalado) e sem conta: vai direto pro Entrar, sem a página de vendas (Thiago 28/11)

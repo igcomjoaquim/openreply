@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
   if (pw.length < 6 || pw.length > 100) return json(req, { error: "A senha precisa ter pelo menos 6 caracteres." }, 400);
   if (b.consent !== true) return json(req, { error: "Pra criar a conta, aceite a política de privacidade." }, 400);
   // só conta tentativa válida (quem erra o e-mail não fica bloqueado); 15/h por IP aguenta um Wi-Fi compartilhado
-  if (tooMany(req, "cadastro", 15, 3_600_000)) return json(req, { error: "Muitas contas criadas daqui agora há pouco. Tente de novo daqui a pouco." }, 429);
+  if (tooMany(req, "cadastro", 15, 3_600_000)) return json(req, { error: "Muitas contas criadas desta conexão. Tente de novo em alguns minutos." }, 429);
   const whatsapp = clean(b.whatsapp, 30)?.replace(/[^\d+]/g, "") || null;
   const gender = GENDERS.includes(String(b.gender)) ? String(b.gender) : clean(b.gender, 40);
   const ageRange = AGES.includes(String(b.ageRange)) ? String(b.ageRange) : null;
@@ -29,9 +29,9 @@ export async function POST(req: NextRequest) {
   const confirma = b.confirma === true;
   const old = confirma ? await getPrisma().dtvUser.findUnique({ where: { email } }) : null;
   if (old && !old.emailVerifiedAt) {
-    const u = await getPrisma().dtvUser.update({ where: { id: old.id }, data: { name, passwordHash: await hashPassword(pw), marketingOk: b.marketingOk === true, ...(progress ? { progress, progressAt: new Date() } : {}) } });
-    const st = await issueVerify(u);
-    return json(req, { verify: true, email: u.email, mail: st });
+    // segurança: não troca senha nem dados de uma conta que ninguém confirmou ainda (só manda outro código)
+    const st = await issueVerify(old);
+    return json(req, { verify: true, email: old.email, mail: st, again: true });
   }
   try {
     const u = await getPrisma().dtvUser.create({

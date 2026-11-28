@@ -750,3 +750,6 @@ body.premium .daily::after{content:"";position:absolute;left:-40px;bottom:-60px;
 .cg.c3{width:90px;height:90px;left:50px;bottom:-10px;background:#8E3A52;opacity:.45;animation-delay:-4s}
 .celeb-viva{font:700 30px/1.1 "Caveat",cursive;color:#8E3A52;margin:6px 0 0;transform:rotate(-3deg);animation:dtvPop .6s cubic-bezier(.2,1.6,.4,1) .9s both}
 @media (prefers-reduced-motion:reduce){body.premium .daily::before,body.premium .daily::after,.stat.fire .icn,.streak .fire .icn,.week .wd i .icn,.celeb-jump,.cg,.celeb-viva{animation:none!important}}
+/* "Seu espaço": ícones de traço */
+.my-tile .mt-ic{display:grid;place-items:center;width:40px;height:40px;border-radius:12px;background:rgba(237,197,95,.22);color:#6F2A3D}
+.my-tile .mt-ic .icn{width:22px;height:22px}

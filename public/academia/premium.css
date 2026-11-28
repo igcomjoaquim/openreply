@@ -569,3 +569,6 @@ body.premium .top .back{background:none!important;border:0!important;box-shadow:
 .empty p{margin:0 0 8px;max-width:330px;color:#5b5040;line-height:1.5}
 @keyframes dtvFloat{50%{transform:rotate(-5deg) translateY(-8px)}}
 @media (prefers-reduced-motion:reduce){.empty img{animation:none}}
+.top .brand{transition:opacity .2s}body.lt-mini .top .brand{opacity:0}
+body:has(.upd) .fb-tab{display:none}
+.top .tt{left:16px!important;max-width:48%!important;transform:translateY(-30%)!important}body.lt-mini .top .tt{transform:translateY(-50%)!important}

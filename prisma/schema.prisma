@@ -597,6 +597,8 @@ model DtvUser {
   timezone     String?
   /// Dia (AAAA-MM-DD, no fuso da pessoa) da última notificação de lembrete.
   pushAt       String?
+  /// Código do convite do "desafio com amigo" (link destravando…/?amigo=CODIGO).
+  inviteCode   String?   @unique
   consentAt    DateTime  @default(now())
   /// E-mail confirmado com o código de 6 números (sem isso não entra). Quem já tinha conta em 28/11 ficou confirmado.
   emailVerifiedAt DateTime?
@@ -611,6 +613,23 @@ model DtvUser {
   resets   DtvReset[]
   pushes   DtvPush[]
   passkeys DtvPasskey[]
+  amigosA  DtvFriend[] @relation("amigoA")
+  amigosB  DtvFriend[] @relation("amigoB")
+}
+
+/// 🤝 Destravando: amizade do desafio (aId < bId). pokeA = dia em que A cutucou B; pokeB = dia em que B cutucou A.
+model DtvFriend {
+  id        String   @id @default(cuid())
+  aId       String
+  bId       String
+  pokeA     String?
+  pokeB     String?
+  createdAt DateTime @default(now())
+  a         DtvUser  @relation("amigoA", fields: [aId], references: [id], onDelete: Cascade)
+  b         DtvUser  @relation("amigoB", fields: [bId], references: [id], onDelete: Cascade)
+
+  @@unique([aId, bId])
+  @@index([bId])
 }
 
 /// 🔐 Destravando: chave de acesso (Face ID / digital) do aparelho.

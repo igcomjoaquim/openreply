@@ -842,7 +842,7 @@
   function home() {
     if (!S.test) return welcome();
     try { syncBadge(); } catch (e) {}
-    setTimeout(function () { try { offerFace(); sendTz(); } catch (e) {} }, 900);
+    setTimeout(function () { try { offerFace(); sendTz(); joinInvite(); } catch (e) {} }, 900);
     var fresh = unlockCheck(); if (fresh) return unlockScreen(fresh);
     var w = screen(), t = curTheme(), I = INDEX[t];
     var D = todayPlan(), plan = D.plan, doneToday = (S.dailyDone === today()), roundOver = D.i >= plan.length, resume = D.i > 0 && !roundOver;
@@ -851,6 +851,9 @@
         el("div", { cls: "lvl" }, el("span", { cls: "lvl-badge", text: LVL === "b2" ? "B2 · intermediário superior" : LVL === "b1" ? "B1 · intermediário" : LVL === "a2" ? "A2 · pré-intermediário" : BANDS[S.test.band] }), S.test.skipped ? el("span", { cls: "small", text: "começando pelo tema 1" }) : el("span", { cls: "small", text: "foco: " + PROB[focusProb()].emoji + " " + PROB[focusProb()].name.toLowerCase() }))),
       recadoCard(recadoHoje()),
       installCard() || pushCard(),
+      retroCard(),
+      foneCard(),
+      amigosCard(),
       howTo(),
       streakCard(),
       S.paused ? el("button", { cls: "paused-card", type: "button", onclick: resumePaused }, el("span", { cls: "pe", text: "☕" }),
@@ -3562,6 +3565,141 @@
   }
   document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible") checkUpdate(); });
   setInterval(checkUpdate, 15 * 60000); setTimeout(checkUpdate, 20000);
+  var DSEM = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"];
+  function addDays(iso, n) { var d = new Date(iso + "T12:00:00"); d.setDate(d.getDate() + n); return isoOf(d); }
+  // 🎧 MODO FONE NO OUVIDO: treino só de áudio (ouça → repita na pausa → confira), com o player na tela bloqueada
+  function foneCard() {
+    if (!S.test) return null;
+    return el("button", { cls: "card fone-card", type: "button", onclick: function () { pushNav(); fonePage(); } },
+      el("span", { cls: "fone-ic", text: "🎧" }), el("span", { cls: "fone-t" }, el("b", { text: "Treino no fone · 5 min" }), el("small", { text: "Andando, na academia, no trânsito: o app fala, você repete. Funciona com a tela bloqueada." })), el("span", { cls: "set-go", text: "›" }));
+  }
+  function fonePage() {
+    var w = screen(); w.append(topBar(home), skel());
+    var I = INDEX[curTheme()];
+    getUnit(I.id).then(function (u) {
+      w.replaceChildren(topBar(home));
+      var items = [];
+      ((u.lesson && u.lesson.chunks) || []).slice(0, 5).forEach(function (c, ci) { (c.examples || []).slice(0, 2).forEach(function (en, k) { var f = af(u, "ex" + ci + "_" + k); if (f) items.push({ en: en, pt: (c.examplesPt || [])[k] || "", ck: c.chunk, f: f }); }); });
+      if (!items.length) { w.append(emptyBox("Esse tema ainda não tem treino no fone.", "Faça o treino do dia que, no próximo tema, ele aparece aqui.", "Voltar →", home)); return; }
+      var STEPS = []; items.forEach(function (it, i) { STEPS.push({ i: i, ph: 0, src: it.f }, { i: i, ph: 1, src: "/academia/app/silencio-3.mp3" }, { i: i, ph: 2, src: it.f }, { i: i, ph: 3, src: "/academia/app/silencio-2.mp3" }); });
+      var PH = [["🎧", "Ouça"], ["🗣️", "Sua vez: repita em voz alta"], ["✅", "Confira"], ["⏭️", "Próxima"]];
+      var A = new Audio(); A.preload = "auto"; var si = 0, on = false, showTxt = true, fim = false;
+      var phase = el("div", { cls: "fone-ph" }), en = el("h2", { cls: "fone-en" }), pt = el("p", { cls: "fone-pt" }), ck = el("span", { cls: "eyebrow" });
+      var fill = el("i"), cnt = el("span", { cls: "small" });
+      var pp = el("button", { cls: "fone-pp", type: "button", "aria-label": "Tocar ou pausar", text: "▶", onclick: function () { on ? pause() : play(); } });
+      function draw() { var st = STEPS[si], it = items[st.i]; phase.replaceChildren(el("span", { text: PH[st.ph][0] }), el("b", { text: PH[st.ph][1] })); phase.className = "fone-ph p" + st.ph;
+        en.textContent = showTxt ? it.en : "🙈 texto escondido"; pt.textContent = showTxt ? it.pt : ""; ck.textContent = "🔑 " + it.ck; cnt.textContent = "Frase " + (st.i + 1) + " de " + items.length; fill.style.width = Math.round((si + 1) / STEPS.length * 100) + "%";
+        try { if ("mediaSession" in navigator) navigator.mediaSession.metadata = new MediaMetadata({ title: it.en, artist: "🔓 Destravando · " + PH[st.ph][1], album: "Treino no fone · " + I.title, artwork: [{ src: "/academia/app/icon-512.png", sizes: "512x512", type: "image/png" }] }); } catch (e) {} }
+      function load() { A.src = STEPS[si].src; draw(); }
+      function play() { if (fim) { si = 0; fim = false; load(); } on = true; pp.textContent = "⏸"; A.play().catch(function () { on = false; pp.textContent = "▶"; }); try { navigator.mediaSession.playbackState = "playing"; } catch (e) {} }
+      function pause() { on = false; pp.textContent = "▶"; A.pause(); try { navigator.mediaSession.playbackState = "paused"; } catch (e) {} }
+      function jump(d) { var cur = STEPS[si].i, ti = Math.max(0, Math.min(items.length - 1, cur + d)); si = STEPS.findIndex(function (x) { return x.i === ti; }); load(); if (on) A.play().catch(function () {}); }
+      A.addEventListener("ended", function () {
+        if (si + 1 >= STEPS.length) { on = false; fim = true; pp.textContent = "↺"; S.xp += 10; S.xpByDay = S.xpByDay || {}; S.xpByDay[today()] = (S.xpByDay[today()] || 0) + 10; persist(); SFX.win(); notice("🎧 Treino no fone concluído! +10 XP"); return; }
+        si++; load(); A.play().catch(function () {});
+      });
+      try { if ("mediaSession" in navigator) { var ms = navigator.mediaSession; ms.setActionHandler("play", play); ms.setActionHandler("pause", pause); ms.setActionHandler("nexttrack", function () { jump(1); }); ms.setActionHandler("previoustrack", function () { jump(-1); }); } } catch (e) {}
+      TALKS.push(function () { try { A.pause(); A.removeAttribute("src"); A.load(); var ms = navigator.mediaSession; ms.metadata = null; ["play", "pause", "nexttrack", "previoustrack"].forEach(function (k) { ms.setActionHandler(k, null); }); } catch (e) {} });
+      w.append(el("h1", { text: "🎧 Treino no fone" }), el("p", { cls: "small", text: "Tema " + (curTheme() + 1) + " · " + I.title + ". Coloque o fone, aperte o play e pode bloquear a tela: o app fala, dá a pausa pra você repetir e segue sozinho." }),
+        el("div", { cls: "card fone-card-big" }, phase, ck, en, pt, el("div", { cls: "lb-track fone-bar" }, fill), cnt,
+          el("div", { cls: "fone-ctrl" }, el("button", { type: "button", cls: "fone-sk", "aria-label": "Frase anterior", text: "⏮", onclick: function () { jump(-1); } }), pp, el("button", { type: "button", cls: "fone-sk", "aria-label": "Próxima frase", text: "⏭", onclick: function () { jump(1); } }))),
+        el("button", { cls: "linkish", type: "button", text: "🙈 Esconder o texto (só ouvido)", onclick: function (e) { showTxt = !showTxt; e.currentTarget.textContent = showTxt ? "🙈 Esconder o texto (só ouvido)" : "👀 Mostrar o texto"; draw(); } }));
+      load();
+    }, netError);
+  }
+  // 📊 RETROSPECTIVA DA SEMANA (estilo stories): semana passada, segunda a domingo
+  function retroWeek() { var t = new Date(today() + "T12:00:00"), dow = (t.getDay() + 6) % 7, mon = addDays(today(), -dow - 7); return { de: mon, ate: addDays(mon, 6) }; }
+  function retroData() {
+    var W = retroWeek(), dias = (S.days || []).filter(function (d) { return d >= W.de && d <= W.ate; }).sort(), xb = S.xpByDay || {}, xp = 0, best = null;
+    for (var i = 0; i < 7; i++) { var d = addDays(W.de, i), v = xb[d] || 0; xp += v; if (v && (!best || v > xb[best])) best = d; }
+    var cad = (S.caderno || []).filter(function (c) { return c.at >= W.de && c.at <= W.ate; }), exp = cad.length ? cad[(dias.length * 7 + xp) % cad.length] : null;
+    return { W: W, dias: dias, xp: xp, best: best, bestXp: best ? xb[best] : 0, exp: exp };
+  }
+  function retroCard() {
+    if (!S.test) return null; var R0 = retroData();
+    if (!R0.dias.length || S.wrapSeen === R0.W.de) return null;
+    return el("button", { cls: "card retro-card", type: "button", onclick: function () { retroOpen(); } }, el("span", { cls: "retro-ic", text: "📊" }),
+      el("span", { cls: "fone-t" }, el("b", { text: "Sua retrospectiva da semana" }), el("small", { text: R0.dias.length + (R0.dias.length === 1 ? " dia" : " dias") + " de treino · toque pra ver e postar no story" })), el("span", { cls: "set-go", text: "›" }));
+  }
+  function retroOpen(force) {
+    var R0 = retroData(); if (!R0.dias.length && !force) return;
+    var br = function (iso) { var p = iso.split("-"); return p[2] + "/" + p[1]; }, nd = R0.dias.length;
+    var frase = nd >= 5 ? "Constância de atleta. Tô orgulhoso! 🏆" : nd >= 3 ? "Bom ritmo! Bora fechar 5 essa semana?" : "Começo é começo. Essa semana a gente dobra! 💪";
+    var SL = [
+      ["retro-s1", "Sua semana no Destravando 🔓", br(R0.W.de) + " a " + br(R0.W.ate), null],
+      ["retro-s2", nd + " de 7 dias", frase, "🔥"],
+      ["retro-s3", "+" + R0.xp + " XP", R0.best ? "Seu melhor dia foi " + DSEM[new Date(R0.best + "T12:00:00").getDay()] + " (" + R0.bestXp + " XP)." : "Bora somar mais XP essa semana!", "⭐"],
+      ["retro-s4", R0.exp ? "“" + R0.exp.k + "”" : "Expressão da semana", R0.exp ? R0.exp.pt + " · sua expressão da semana" : "Termine treinos pra guardar expressões no caderno.", "💬"],
+      ["retro-s5", "🔥 " + streak() + (streak() === 1 ? " dia" : " dias") + " seguidos", "Falou, validou! Compartilha e marca @inglescomjoaquim 😉", null]
+    ];
+    var i = 0, tmr = null, bars = el("div", { cls: "st-bars" }), body = el("div", { cls: "st-body" });
+    SL.forEach(function () { bars.append(el("i", null, el("b"))); });
+    var ov = el("div", { cls: "story", role: "dialog", "aria-modal": "true" }, bars, el("button", { cls: "st-x", type: "button", "aria-label": "Fechar", text: "✕", onclick: close }), body);
+    function close() { clearTimeout(tmr); ov.remove(); S.wrapSeen = R0.W.de; persist(); var c = root.querySelector(".retro-card"); if (c) c.remove(); }
+    function show(k) {
+      i = Math.max(0, Math.min(SL.length - 1, k)); clearTimeout(tmr); var x = SL[i];
+      [].forEach.call(bars.children, function (b, n) { b.className = n < i ? "done" : n === i ? "on" : ""; });
+      body.className = "st-body " + x[0]; body.replaceChildren(x[3] ? el("div", { cls: "st-em", text: x[3] }) : el("img", { cls: "st-logo", src: "/academia/app/icon-192.png", alt: "" }), el("h1", { text: x[1] }), el("p", { text: x[2] }));
+      if (i === SL.length - 1) body.append(el("button", { cls: "btn big gold", type: "button", text: "📲 Postar no story", onclick: function (e) { e.stopPropagation(); retroShare(R0, frase); } }));
+      else tmr = setTimeout(function () { show(i + 1); }, 4500);
+    }
+    ov.addEventListener("click", function (e) { if (e.target.closest(".st-x,.btn")) return; var r = ov.getBoundingClientRect(); show(e.clientX < r.width * 0.3 ? i - 1 : i + 1); });
+    document.body.append(ov); show(0); buzz(10);
+  }
+  function retroShare(R0, frase) {
+    var cv = document.createElement("canvas"); cv.width = 1080; cv.height = 1920; var c = cv.getContext("2d");
+    var g = c.createLinearGradient(0, 0, 1080, 1920); g.addColorStop(0, "#F6E3B4"); g.addColorStop(.55, "#F4EBDD"); g.addColorStop(1, "#E9C9CF"); c.fillStyle = g; c.fillRect(0, 0, 1080, 1920);
+    var img = new Image(); img.onload = function () {
+      c.save(); c.translate(540, 360); c.rotate(-0.06); c.drawImage(img, -150, -150, 300, 300); c.restore();
+      c.textAlign = "center"; c.fillStyle = "#6F2A3D"; c.font = "700 64px Fraunces, Georgia, serif"; c.fillText("Minha semana no Destravando", 540, 640);
+      c.fillStyle = "#211A10"; c.font = "800 190px Fraunces, Georgia, serif"; c.fillText(R0.dias.length + "/7", 540, 880);
+      c.font = "600 52px Inter, sans-serif"; c.fillText("dias de treino", 540, 960);
+      c.font = "800 110px Fraunces, Georgia, serif"; c.fillStyle = "#8E3A52"; c.fillText("+" + R0.xp + " XP", 540, 1160);
+      c.fillStyle = "#211A10"; c.font = "700 60px Inter, sans-serif"; c.fillText("🔥 " + streak() + " dias seguidos", 540, 1300);
+      if (R0.exp) { c.font = "italic 600 58px Fraunces, Georgia, serif"; c.fillStyle = "#6F2A3D"; c.fillText("“" + R0.exp.k + "”", 540, 1460); c.font = "500 40px Inter, sans-serif"; c.fillStyle = "#5b5040"; c.fillText(R0.exp.pt, 540, 1520); }
+      c.fillStyle = "#6F2A3D"; c.font = "700 92px Caveat, cursive"; c.fillText("Falou, validou!", 540, 1700);
+      c.fillStyle = "#211A10"; c.font = "600 40px Inter, sans-serif"; c.fillText("@inglescomjoaquim · destravando.inglescomjoaquim.com", 540, 1830);
+      cv.toBlob(function (b) { var f = new File([b], "minha-semana-destravando.png", { type: "image/png" });
+        if (navigator.canShare && navigator.canShare({ files: [f] })) navigator.share({ files: [f], text: "Minha semana no Destravando 🔓 @inglescomjoaquim" }).catch(function () {});
+        else { var a = el("a", { href: URL.createObjectURL(b), download: "minha-semana-destravando.png" }); document.body.append(a); a.click(); a.remove(); } }, "image/png");
+    }; img.src = "/academia/app/icon-512.png";
+  }
+  // 🤝 DESAFIO COM AMIGO
+  var AMIGOS = null;
+  function joinInvite() { var c = lsGet("dtv-amigo"); if (!c || !ACC) return; api("amigos", "POST", { codigo: c }).then(function (r) { try { localStorage.removeItem("dtv-amigo"); } catch (e) {} if (r.ok) { AMIGOS = null; SFX.win(); notice("🤝 Você entrou no desafio com " + r.amigo + "! Um vê a ofensiva do outro."); } else if (r._status !== 0) notice(r.error || "Não deu certo o convite."); }); }
+  function inviteText(code) { return "Bora treinar inglês comigo no Destravando? 15 min por dia, e um vê a ofensiva do outro 🔥 Entra pelo meu link: https://destravando.inglescomjoaquim.com/?amigo=" + code; }
+  function invite(code) { var t = inviteText(code); if (navigator.share) navigator.share({ text: t }).catch(function () {}); else location.href = "https://wa.me/?text=" + encodeURIComponent(t); }
+  function amigosCard() {
+    if (!ACC || PROF) return null;
+    var box = el("button", { cls: "card amigos-card", type: "button", onclick: function () { pushNav(); amigosPage(); } }, el("span", { cls: "retro-ic", text: "🤝" }),
+      el("span", { cls: "fone-t" }, el("b", { text: "Desafio com amigos" }), el("small", { text: "Chame alguém pra treinar junto: um vê a ofensiva do outro." })), el("span", { cls: "set-go", text: "›" }));
+    function fill(r) { if (!r || !r.amigos || !r.amigos.length) return; var sm = box.querySelector("small"), hoje = r.amigos.filter(function (a) { return a.treinouHoje; }).length;
+      sm.textContent = r.amigos.slice(0, 3).map(function (a) { return a.nome.split(" ")[0] + " " + (a.treinouHoje ? "✅" : "⏳") + " 🔥" + a.foguinho; }).join(" · ") + (r.amigos.length > 3 ? " · +" + (r.amigos.length - 3) : ""); }
+    if (AMIGOS) fill(AMIGOS); else api("amigos").then(function (r) { if (r && r.codigo) { AMIGOS = r; fill(r); } });
+    return box;
+  }
+  function amigosPage() {
+    var w = screen(); w.append(topBar(home), el("h1", { text: "Desafio com amigos" }), skel());
+    api("amigos").then(function (r) {
+      if (!r || !r.codigo) { w.querySelector(".skel").replaceWith(emptyBox("Entre na sua conta pra usar o desafio.", "O desafio fica salvo na conta, pra funcionar em qualquer celular.", null, null)); return; }
+      AMIGOS = r; var list = el("div", { cls: "card set-card" }, el("span", { cls: "eyebrow", text: "🔥 Ofensiva lado a lado" }));
+      var all = [Object.assign({ eu: true }, r.eu)].concat(r.amigos).sort(function (a, b) { return b.foguinho - a.foguinho; });
+      all.forEach(function (a) {
+        var right = a.eu ? el("span", { cls: "am-eu", text: "você" }) : a.treinouHoje ? el("span", { cls: "am-ok", text: "✅ treinou" }) : el("button", { cls: "btn sm", type: "button", disabled: a.jaCutuqueiHoje, text: a.jaCutuqueiHoje ? "👉 cutucado" : "👉 Cutucar", onclick: function (e) {
+          var b = e.currentTarget; b.disabled = true; b.textContent = "⏳";
+          api("amigos", "POST", { cutucar: a.id }).then(function (x) { if (x.ok) { b.textContent = "👉 cutucado"; buzz(15); notice(x.sent ? "👉 Cutucada enviada pro celular de " + a.nome.split(" ")[0] + "!" : "👉 Cutucada registrada! " + a.nome.split(" ")[0] + " não ativou a notificação: manda um zap 😉"); } else { b.disabled = false; b.textContent = "👉 Cutucar"; notice(x.error || "Não deu certo."); } }); } });
+        list.append(el("div", { cls: "set-row" + (a.eu ? " am-me" : "") }, el("span", { cls: "am-av", text: a.nome.charAt(0).toUpperCase() }), el("span", { cls: "set-t" }, el("b", { text: a.eu ? (ACC.name || "Você").split(" ")[0] : a.nome }), el("small", { text: "🔥 " + a.foguinho + (a.foguinho === 1 ? " dia" : " dias") + " · " + a.nivel + (a.eu ? "" : a.treinouHoje ? "" : " · ainda não treinou hoje") })), right));
+      });
+      if (!r.amigos.length) list.append(el("p", { cls: "small", text: "Ainda é só você aqui. Chame alguém: treinar com companhia dobra a constância 😉" }));
+      var cod = el("input", { type: "text", placeholder: "Código (ex.: K7Q2XA)", maxlength: "12", autocapitalize: "characters", autocomplete: "off" }), err = errBox();
+      var join = el("button", { cls: "btn", type: "button", text: "Entrar no desafio", onclick: function () { err.show(""); api("amigos", "POST", { codigo: cod.value }).then(function (x) { if (x.ok) { SFX.win(); notice("🤝 Agora você e " + x.amigo + " estão no desafio!"); amigosPage(); } else err.show(x.error || "Não deu certo."); }); } });
+      w.querySelector(".skel").replaceWith(list);
+      w.append(el("div", { cls: "card set-card" }, el("span", { cls: "eyebrow", text: "📲 Chamar alguém" }),
+          el("p", { cls: "small", text: "Seu código: " }), el("div", { cls: "am-code", text: r.codigo }),
+          el("button", { cls: "btn big gold", type: "button", text: "📲 Convidar amigo", onclick: function () { invite(r.codigo); } })),
+        el("div", { cls: "card set-card form" }, el("span", { cls: "eyebrow", text: "🔑 Recebeu um código?" }), cod, err, join), menuBar("voce"));
+    });
+  }
   // ⬆️ JANELA QUE SOBE DE BAIXO: alcinha em cima, arrasta pra baixo pra fechar (igual iPhone)
   function sheetify(ov, card, close) {
     ov.classList.add("bsheet"); card.classList.add("bs-card"); card.prepend(el("div", { cls: "bs-h", "aria-hidden": "true" }));
@@ -3628,6 +3766,7 @@
     var g2 = el("div", { cls: "card set-card" }, el("span", { cls: "eyebrow", text: "💬 Ajuda" }),
       el("button", { cls: "set-row set-btn", type: "button", onclick: feedbackOpen }, el("span", { cls: "set-ic", text: "🐞" }), el("span", { cls: "set-t" }, el("b", { text: "Achou um problema?" }), el("small", { text: "Me conta, chega direto pra mim" })), el("span", { cls: "set-go", text: "›" })),
       el("a", { cls: "set-row set-btn", href: "/privacidade.html", target: "_blank" }, el("span", { cls: "set-ic", text: "🔒" }), el("span", { cls: "set-t" }, el("b", { text: "Privacidade" }), el("small", { text: "Seus dados servem só pro seu acesso" })), el("span", { cls: "set-go", text: "›" })));
+    if (ACC) w.append(el("div", { cls: "card set-card" }, el("span", { cls: "eyebrow", text: "🤝 Amigos" }), el("button", { cls: "set-row set-btn", type: "button", onclick: function () { pushNav(); amigosPage(); } }, el("span", { cls: "set-ic", text: "🔥" }), el("span", { cls: "set-t" }, el("b", { text: "Desafio com amigos" }), el("small", { text: "Ofensiva lado a lado e cutucadas" })), el("span", { cls: "set-go", text: "›" }))));
     w.append(g2);
     // 🚪 sair da conta (Thiago 29/11: "precisa ter um botão pra deslogar")
     if (ACC) w.append(el("div", { cls: "card set-card" }, el("span", { cls: "eyebrow", text: "🔐 Conta" }),
@@ -3658,6 +3797,7 @@
   }
   profPanel();
 
+  try { if (Q.get("amigo")) localStorage.setItem("dtv-amigo", Q.get("amigo")); } catch (e) {}
   // ---------- início ----------
   Promise.all([loadIndex(), loadParts(), probeConta()]).then(syncDown).then(function () {
     if (CONTA_OK && !PROF) feedbackTab();
@@ -3669,6 +3809,6 @@
     if (CONTA_OK && !ACC && !PROF && S.skipAccUntil !== today()) { if (!STANDALONE) return landing(); return lsGet("dtv-onb") ? loginFromLanding() : onboarding(loginFromLanding); }
     S.test ? home() : welcome();
     // 📲 atalhos do ícone (segurar o ícone no Android): ?ir=treino | erros | caderno
-    var IR = Q.get("ir"); if (IR && S.test) setTimeout(function () { if (IR === "treino") runDaily(); else if (IR === "erros" && myErrors().length) runErrors(); else if (IR === "caderno") cadernoPage(); else if (IR === "progresso") progressPage(); }, 60);
+    var IR = Q.get("ir"); if (IR && S.test) setTimeout(function () { if (IR === "treino") runDaily(); else if (IR === "erros" && myErrors().length) runErrors(); else if (IR === "caderno") cadernoPage(); else if (IR === "progresso") progressPage(); else if (IR === "amigos") amigosPage(); else if (IR === "fone") fonePage(); else if (IR === "retro") retroOpen(true); }, 60);
   }).catch(function () { root.innerHTML = "<p class='boot'>Não consegui carregar. Confira a internet e recarregue.</p>"; });
 })();

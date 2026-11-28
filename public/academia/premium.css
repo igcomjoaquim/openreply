@@ -572,3 +572,46 @@ body.premium .top .back{background:none!important;border:0!important;box-shadow:
 .top .brand{transition:opacity .2s}body.lt-mini .top .brand{opacity:0}
 body:has(.upd) .fb-tab{display:none}
 .top .tt{left:16px!important;max-width:48%!important;transform:translateY(-30%)!important}body.lt-mini .top .tt{transform:translateY(-50%)!important}
+/* 🎧 treino no fone · 📊 retrospectiva · 🤝 amigos: cartões da tela inicial */
+.fone-card,.retro-card,.amigos-card{display:flex!important;align-items:center;gap:12px;text-align:left;width:100%;cursor:pointer;font:inherit;color:inherit}
+.fone-ic,.retro-ic{font-size:30px;width:48px;height:48px;flex:none;display:grid;place-items:center;border-radius:14px;background:linear-gradient(135deg,rgba(237,197,95,.35),rgba(142,58,82,.18));transform:rotate(-4deg)}
+.fone-t{flex:1;display:flex;flex-direction:column;gap:3px}
+.fone-t small{color:#7F735C;font-size:13px;line-height:1.35}
+.retro-card{background:linear-gradient(120deg,#F6E3B4,#F4EBDD 55%,#EAD0D5)!important;border:0!important}
+/* player do treino no fone */
+.fone-card-big{display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;padding:22px 18px!important}
+.fone-ph{display:flex;align-items:center;gap:8px;font:600 15px "Inter",system-ui,sans-serif;padding:7px 14px;border-radius:999px;background:#FFF8EC;border:1px solid #E6D3BC}
+.fone-ph span{font-size:20px}
+.fone-ph.p1{background:#6F2A3D;color:#FFF8EC;border-color:#6F2A3D;animation:dtvPop .5s}
+.fone-en{font-size:26px;line-height:1.25;margin:4px 0 0}
+.fone-pt{margin:0;color:#7F735C}
+.fone-bar{width:100%;margin-top:6px}
+.fone-ctrl{display:flex;align-items:center;justify-content:center;gap:26px;margin-top:8px}
+.fone-pp{width:84px;height:84px;border-radius:50%;border:0;font-size:34px;color:#2B2008;background:linear-gradient(180deg,#EDC55F,#D4A843 55%,#BF922F);box-shadow:0 14px 26px -12px rgba(111,42,61,.6);cursor:pointer}
+.fone-sk{width:54px;height:54px;border-radius:50%;border:1px solid #E6D3BC;background:#FFF8EC;font-size:20px;cursor:pointer}
+/* 📊 stories da retrospectiva */
+.story{position:fixed;inset:0;z-index:95;display:flex;flex-direction:column;padding:calc(env(safe-area-inset-top,0px) + 12px) 16px calc(env(safe-area-inset-bottom,0px) + 20px);background:#211A10;animation:evofade .25s ease}
+.st-bars{display:flex;gap:5px}
+.st-bars i{flex:1;height:3px;border-radius:3px;background:rgba(255,255,255,.3);overflow:hidden}
+.st-bars i b{display:block;height:100%;width:0;background:#fff}
+.st-bars i.done b{width:100%}
+.st-bars i.on b{animation:stFill 4.5s linear forwards}
+@keyframes stFill{to{width:100%}}
+.st-x{position:absolute;right:14px;top:calc(env(safe-area-inset-top,0px) + 24px);width:40px;height:40px;border-radius:50%;border:0;background:rgba(255,255,255,.18);color:#fff;font-size:18px;z-index:2}
+.st-body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:16px;border-radius:26px;margin-top:12px;padding:26px;animation:dtvIn .3s ease}
+.st-body h1{font-size:44px;line-height:1.05;margin:0;color:#211A10}
+.st-body p{font-size:19px;line-height:1.45;margin:0;color:#3a3025;max-width:320px}
+.st-em{font-size:84px;transform:rotate(-6deg)}
+.st-logo{width:120px;height:120px;border-radius:28px;transform:rotate(-5deg);box-shadow:0 16px 30px -14px rgba(0,0,0,.45)}
+.retro-s1{background:linear-gradient(160deg,#F6E3B4,#F4EBDD)}
+.retro-s2{background:linear-gradient(160deg,#EDC55F,#F4EBDD)}
+.retro-s3{background:linear-gradient(160deg,#F4EBDD,#E9C9CF)}
+.retro-s4{background:linear-gradient(160deg,#6F2A3D,#8E3A52)}
+.retro-s4 h1,.retro-s4 p{color:#FFF8EC}
+.retro-s5{background:linear-gradient(160deg,#F6E3B4,#E9C9CF)}
+/* 🤝 desafio com amigos */
+.am-av{width:40px;height:40px;flex:none;border-radius:50%;display:grid;place-items:center;font:700 18px/1 "Fraunces",Georgia,serif;color:#FFF8EC;background:linear-gradient(135deg,#D4A843,#8E3A52)}
+.am-me{background:rgba(237,197,95,.14);border-radius:14px;padding-left:8px!important;padding-right:8px!important}
+.am-eu{font:600 13px "Inter",system-ui,sans-serif;color:#A0741F}
+.am-ok{font:600 13px "Inter",system-ui,sans-serif;color:#3E7A4E}
+.am-code{font:800 34px/1 "Inter",system-ui,sans-serif;letter-spacing:6px;text-align:center;padding:14px;margin:4px 0 12px;border-radius:16px;background:#FFF8EC;border:1.5px dashed #D4A843;color:#6F2A3D;-webkit-user-select:all;user-select:all}

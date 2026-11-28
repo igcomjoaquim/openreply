@@ -497,6 +497,7 @@
         el("p", { cls: "hand", text: "Falou, validou." }),
         cta(),
         el("button", { cls: "btn ghost", type: "button", text: "▶ Ver como funciona", onclick: function () { go("como-funciona"); } }),
+        el("p", { cls: "land-closed", text: lsGet("dtv-convite") ? "🎟️ Você recebeu um convite: o seu acesso já está garantido." : "🎟️ Teste fechado: por enquanto, só com convite." }),
         el("div", { cls: "land-badges" }, el("span", { cls: "stars", text: "★★★★★" }), el("span", { text: "Método aprovado por alunos A1–B2" })),
         el("button", { cls: "land-app-link", type: "button", onclick: function () { go("app-celular"); } }, el("img", { src: "/academia/app/icon-96.png", alt: "" }), el("span", null, el("b", { text: "Tem app no celular 📲" }), el("small", { text: "15 min por dia · veja como instalar" }))),
         heroCard),
@@ -3304,6 +3305,7 @@
   // 📝 CRIAR CONTA (é o lead): nome, e-mail, senha, WhatsApp, como se identifica, idade, cidade/estado, objetivo, como conheceu
   function signupScreen(after, why) {
     var w = screen();
+    var conv = el("input", { type: "text", placeholder: "DTV-XXXXX", autocomplete: "off", autocapitalize: "characters", spellcheck: "false", value: lsGet("dtv-convite") || "", cls: "conv-in" });
     var name = el("input", { type: "text", placeholder: "Seu nome", autocomplete: "name", value: S.name || "" });
     var email = el("input", { type: "email", placeholder: "seuemail@exemplo.com", autocomplete: "email", inputmode: "email", autocapitalize: "off" });
     var pw = pwInput();
@@ -3333,6 +3335,7 @@
     var err = errBox();
     var go = el("button", { cls: "btn big", type: "button", text: "Criar minha conta →", onclick: function () {
       err.show("");
+      if (!conv.value.trim()) return err.show("Coloque o código do seu convite (ele vem no link que você recebeu).");
       if (!name.value.trim()) return err.show("Escreva o seu nome.");
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.value.trim())) return err.show("Confira o seu e-mail.");
       if (pw.input.value.length < 6) return err.show("A senha precisa ter pelo menos 6 caracteres.");
@@ -3343,7 +3346,7 @@
       var br = pais.value === "Brasil", num = wpp.value.replace(/\D/g, "");
       api("cadastro", "POST", { name: S.name, email: email.value.trim(), password: pw.input.value, whatsapp: num ? (ddi.value.replace(/[^\d]/g, "") ? "+" + ddi.value.replace(/[^\d]/g, "") + " " : "") + wpp.value.trim() : "", gender: gender.val(), ageRange: age.val(),
         country: pais.value === "Outro país" ? (paisOutro.value.trim() || "Outro país") : pais.value, state: br ? uf.value : ufTxt.value.trim(), city: city.value, goal: goal.val(), howFound: how.val(),
-        marketingOk: mk.checked, consent: true, confirma: true, selfLevel: S.self != null && SELF[S.self] ? SELF[S.self].t : null, testLevel: S.test && !S.test.skipped ? BANDS[S.test.band] : null, progress: snapshot() })
+        marketingOk: mk.checked, consent: true, confirma: true, convite: conv.value.trim(), selfLevel: S.self != null && SELF[S.self] ? SELF[S.self].t : null, testLevel: S.test && !S.test.skipped ? BANDS[S.test.band] : null, progress: snapshot() })
         .then(function (r) {
           go.disabled = false; go.textContent = "Criar minha conta →";
           if (r.token) { SFX.go(); afterLogin(r, after); return; }
@@ -3358,6 +3361,7 @@
         el("h1", { html: why ? esc(why) : "Crie sua conta e <mark>salve seu progresso</mark>." }),
         el("p", { text: "Assim você continua de qualquer celular ou computador, sem perder nada." })),
       el("div", { cls: "card form" },
+        el("div", { cls: "conv-box" }, el("span", { cls: "eyebrow", text: "🎟️ Teste fechado · só com convite" }), field("Código do convite", conv, conv.value ? "Já veio no seu link. Cada convite vale pra uma pessoa só." : "Ele vem no link que você recebeu. Cada convite vale pra uma pessoa só.")),
         field("Nome", name), field("E-mail", email), field("Crie uma senha", pw),
         field("Onde você mora?", el("div", { cls: "fld-stack" }, pais, paisOutro)),
         field("WhatsApp", el("div", { cls: "tel-row" }, ddi, wpp), "Com o código do país (Brasil é +55, Estados Unidos é +1). Pra te mandar lembretes e novidades, se você quiser."),
@@ -3917,7 +3921,7 @@
   }
   profPanel();
 
-  try { if (Q.get("amigo")) localStorage.setItem("dtv-amigo", Q.get("amigo")); } catch (e) {}
+  try { if (Q.get("amigo")) localStorage.setItem("dtv-amigo", Q.get("amigo")); if (Q.get("convite")) localStorage.setItem("dtv-convite", Q.get("convite").toUpperCase()); } catch (e) {}
   // ---------- início ----------
   Promise.all([loadIndex(), loadParts(), probeConta()]).then(syncDown).then(function () {
     // (o botão flutuante "Problema?" saiu: virou o ícone de ajuda no topo de cada tela)

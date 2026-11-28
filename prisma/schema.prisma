@@ -688,3 +688,12 @@ model DtvReset {
 
   @@index([userId])
 }
+
+/// 🎟️ Destravando: convite pessoal de uso único (teste fechado com os amigos). usedById = conta que usou.
+model DtvInvite {
+  code      String    @id
+  label     String?
+  usedById  String?
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+}

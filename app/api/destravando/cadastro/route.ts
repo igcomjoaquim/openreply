@@ -33,6 +33,18 @@ export async function POST(req: NextRequest) {
     const st = await issueVerify(old);
     return json(req, { verify: true, email: old.email, mail: st, again: true });
   }
+  // 🎟️ teste fechado: só cria conta com convite pessoal válido e ainda não usado (DESTRAVANDO_CONVITE=off desliga)
+  let convite: string | null = null;
+  if (process.env.DESTRAVANDO_CONVITE !== "off") {
+    convite = String(b.convite ?? "").trim().toUpperCase().replace(/\s+/g, "").slice(0, 20);
+    if (convite && !convite.startsWith("DTV-")) convite = "DTV-" + convite.replace(/^DTV/, "");
+    if (!convite) return json(req, { error: "O Destravando está em teste fechado: precisa do código de convite.", convite: true }, 403);
+    const claim = await getPrisma().dtvInvite.updateMany({ where: { code: convite, usedById: null }, data: { usedById: "reservando", usedAt: new Date() } });
+    if (claim.count !== 1) {
+      const existe = await getPrisma().dtvInvite.findUnique({ where: { code: convite } });
+      return json(req, { error: existe ? "Esse convite já foi usado. Cada convite vale pra uma pessoa só." : "Esse código de convite não existe. Confira com quem te convidou.", convite: true }, 403);
+    }
+  }
   try {
     const u = await getPrisma().dtvUser.create({
       data: {
@@ -42,6 +54,7 @@ export async function POST(req: NextRequest) {
         progress, progressAt: progress ? new Date() : null, lastSeenAt: new Date(),
       },
     });
+    if (convite) await getPrisma().dtvInvite.update({ where: { code: convite }, data: { usedById: u.id } });
     if (!confirma) {
       await getPrisma().dtvUser.update({ where: { id: u.id }, data: { emailVerifiedAt: new Date() } });
       sendWelcome(u.email, u.name).catch((err) => console.error("[destravando] boas-vindas", String(err).slice(0, 200)));
@@ -51,6 +64,7 @@ export async function POST(req: NextRequest) {
     const st = await issueVerify(u);
     return json(req, { verify: true, email: u.email, mail: st });
   } catch (e) {
+    if (convite) await getPrisma().dtvInvite.updateMany({ where: { code: convite, usedById: "reservando" }, data: { usedById: null, usedAt: null } }).catch(() => null); // devolve o convite
     if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") return json(req, { error: "Esse e-mail já tem conta. Toque em Entrar.", exists: true }, 409);
     throw e;
   }

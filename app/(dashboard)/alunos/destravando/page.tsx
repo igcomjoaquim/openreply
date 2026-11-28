@@ -61,6 +61,9 @@ export default async function DestravandoLeadsPage() {
   const users = await prisma.dtvUser.findMany({ orderBy: { createdAt: "desc" }, take: 500 });
   const total = await prisma.dtvUser.count();
   const feedbacks = await prisma.dtvFeedback.findMany({ orderBy: { createdAt: "desc" }, take: 100 });
+  const convites = await prisma.dtvInvite.findMany({ orderBy: { createdAt: "asc" } });
+  const porId = new Map(users.map((u) => [u.id, u]));
+  const usados = convites.filter((c) => c.usedById && c.usedById !== "reservando").length;
   const now = Date.now();
   const ativos7 = users.filter((u) => u.lastSeenAt && now - u.lastSeenAt.getTime() < 7 * DAY).length;
   const hoje = users.filter((u) => now - u.createdAt.getTime() < DAY).length;
@@ -83,6 +86,29 @@ export default async function DestravandoLeadsPage() {
           <div key={String(k)} className="rounded-xl border border-border bg-surface p-4"><div className="text-sm text-muted">{k}</div><div className="text-2xl font-semibold">{v}</div></div>
         ))}
       </div>
+
+      <section className="space-y-3">
+        <h2 className="text-lg font-semibold">🎟️ Convites do teste fechado ({usados} de {convites.length} usados)</h2>
+        <p className="text-sm text-muted">Cada link vale pra uma pessoa só. Mande um diferente pra cada amigo e anote quem recebeu qual.</p>
+        <div className="overflow-x-auto rounded-xl border border-border">
+          <table className="w-full text-sm">
+            <thead className="bg-surface text-left"><tr>{["#", "Código", "Link pra mandar", "Situação"].map((h) => <th key={h} className="px-3 py-2 font-medium whitespace-nowrap">{h}</th>)}</tr></thead>
+            <tbody>
+              {convites.map((c, i) => {
+                const u = c.usedById ? porId.get(c.usedById) : undefined;
+                return (
+                  <tr key={c.code} className="border-t border-border">
+                    <td className={cell}>{i + 1}</td>
+                    <td className={cell + " font-mono"}>{c.code}</td>
+                    <td className={cell + " font-mono text-xs"}>destravando.inglescomjoaquim.com/?convite={c.code}</td>
+                    <td className={cell}>{u ? `✅ ${u.name} · ${u.email}` : c.usedById ? "⏳ sendo usado agora" : "livre"}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </section>
 
       <section className="space-y-3">
         <h2 className="text-lg font-semibold">💬 Mensagens dos alunos ({feedbacks.length})</h2>

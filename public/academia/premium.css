@@ -753,3 +753,7 @@ body.premium .daily::after{content:"";position:absolute;left:-40px;bottom:-60px;
 /* "Seu espaço": ícones de traço */
 .my-tile .mt-ic{display:grid;place-items:center;width:40px;height:40px;border-radius:12px;background:rgba(237,197,95,.22);color:#6F2A3D}
 .my-tile .mt-ic .icn{width:22px;height:22px}
+/* 🎟️ convite */
+.conv-box{background:linear-gradient(120deg,rgba(237,197,95,.22),rgba(142,58,82,.1));border:1.5px dashed rgba(212,168,67,.7);border-radius:16px;padding:12px 12px 4px;margin-bottom:6px}
+.conv-in{font:700 18px/1 "Inter",system-ui,sans-serif!important;letter-spacing:2px;text-transform:uppercase}
+.land-closed{font:600 13px "Inter",system-ui,sans-serif;color:#6F2A3D;margin:6px 0 0;text-align:center}

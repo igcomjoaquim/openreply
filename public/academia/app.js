@@ -82,8 +82,9 @@
   // ---------- progresso ----------
   var S = (function () { try { return JSON.parse(localStorage.getItem(KEY) || "null"); } catch (e) { return null; } })() || {};
   // nível (A1 / A2): cada nível tem o seu conteúdo e o seu ponto na trilha
-  LVL = S.level === "a2" ? "a2" : "a1";
-  if (LVL === "a2") { DATA = "/aprender/a2/data/"; AUD = "/aprender/a2/audio/"; }
+  // nível (A1 / A2 / B1): cada nível tem a sua pasta em /aprender/<nível>/
+  LVL = ["a2", "b1", "b2"].indexOf(S.level) > -1 ? S.level : "a1";
+  if (LVL !== "a1") { DATA = "/aprender/" + LVL + "/data/"; AUD = "/aprender/" + LVL + "/audio/"; }
   S.byLevel = S.byLevel || {};
   function setLevel(lv) {
     if (lv === LVL) return;
@@ -93,7 +94,12 @@
     S.level = lv; persist(); location.reload();
   }
   var A2_READY = true; // liga quando o conteúdo do A2 estiver publicado
-  function a2Open() { return A2_READY && (ALL || S.level === "a2" || (S.test && S.test.band >= 3) || S.a1Done); }
+  function a2Open() { return A2_READY && (ALL || S.level === "a2" || S.level === "b1" || S.level === "b2" || (S.test && S.test.band >= 3) || S.a1Done); }
+  var B1_READY = Q.get("b1") === "1" || (PROF && lsGet("prof:b1") === "1"); // 🔒 B1 em construção (28/11): só aparece com ?b1=1 até o conteúdo estar pronto
+  function b1Open() { return B1_READY && (ALL || S.level === "b1" || S.level === "b2" || S.a2Done); }
+  var B2_READY = B1_READY; // B1 e B2 ficam prontos juntos
+  function b2Open() { return B2_READY && (ALL || S.level === "b2" || S.b1Done); }
+  var LV_LABEL = { a1: "A1 · Básico", a2: "A2 · Pré-intermediário", b1: "B1 · Intermediário", b2: "B2 · Intermediário superior" };
   S.done = S.done || {};     // "est:uid:v" -> {n, best, last}
   S.errors = S.errors || []; // [{uid, kind, en, pt, file}]
   S.days = S.days || []; S.xp = S.xp || 0;
@@ -116,7 +122,8 @@
     if (S.errors.some(function (x) { return x.en === e.en; })) return;
     S.errors.push(e); S.errors = S.errors.slice(-60); persist();
   }
-  function myErrors() { var a2 = LVL === "a2"; return S.errors.filter(function (e) { return /^(a2u|geral2)/.test(e.uid || "") === a2; }); }
+  function lvlOfUid(uid) { return /^(b2u|geral4)/.test(uid || "") ? "b2" : /^(b1u|geral3)/.test(uid || "") ? "b1" : /^(a2u|geral2)/.test(uid || "") ? "a2" : "a1"; }
+  function myErrors() { return S.errors.filter(function (e) { return lvlOfUid(e.uid) === LVL; }); }
   function fixError(en) {
     // erro sai da lista com acerto em 2 dias diferentes (igual ao homework)
     var gone = false;
@@ -134,10 +141,10 @@
   function j(url) { return fetch(url).then(function (r) { if (!r.ok) throw new Error(url); return r.json(); }); }
   function loadIndex() { return j(DATA + "index.json?v=" + (window.__v || 1)).then(function (x) { INDEX = x.units; return x; }); }
   function loadUnit(uid) { if (U[uid]) return Promise.resolve(U[uid]); return j(DATA + uid + ".json?v=" + (window.__v || 1)).then(function (x) { U[uid] = x; return x; }); }
-  function loadTest() { if (TEST) return Promise.resolve(TEST); return j(DATA + "teste.json?v=" + (window.__v || 1)).then(function (x) { TEST = x; return x; }); }
+  function loadTest() { if (TEST) return Promise.resolve(TEST); return j("/aprender/data/teste.json?v=" + (window.__v || 1)).then(function (x) { TEST = x; return x; }); }
   var OUV = null;
   function loadOuv() { if (OUV) return Promise.resolve(OUV); return j(DATA + "ouvido.json?v=" + (window.__v || 1)).then(function (x) { OUV = x; return x; }, function () { OUV = {}; return OUV; }); }
-  var GERAL = { id: LVL === "a2" ? "geral2" : "geral", title: "Geral" }; // exercícios que não dependem do tema
+  var GERAL = { id: LVL === "b2" ? "geral4" : LVL === "b1" ? "geral3" : LVL === "a2" ? "geral2" : "geral", title: "Geral" }; // exercícios que não dependem do tema
   var GLOBAL_ST = { grudada: 1, pares: 1 };
   function af(u, key) { var f = u.audio && u.audio[key]; return f ? AUD + f : null; }
   function uidx(uid) { for (var i = 0; i < INDEX.length; i++) if (INDEX[i].id === uid) return i; return 0; }
@@ -523,7 +530,7 @@
       scored = false;
       var P = parts[pi], it = items[ii], w = screen();
       w.append(testHead(P, ii + 1, items.length));
-      var url = AUD + it.file;
+      var url = "/aprender/audio/" + it.file; // o teste de nível mora sempre na pasta do A1, seja qual for o nível do aluno
       if (P.key === "listen") {
         var opts = el("div", { cls: "pics" }), picked = false;
         it.options.forEach(function (o, k) {
@@ -571,18 +578,20 @@
         var top = -1; r.forEach(function (x) { if (x.ok >= 0.6) top = Math.max(top, x.band); });
         bands.push(top);
         var sum = 0, wsum = 0; r.forEach(function (x) { var wgt = 1 + x.band; sum += x.ok * wgt; wsum += wgt; });
-        skills[k] = Math.round(Math.min(1, (sum / wsum) * 0.6 + ((top + 1) / 4) * 0.4) * 100);
+        skills[k] = Math.round(Math.min(1, (sum / wsum) * 0.6 + ((top + 1) / 6) * 0.4) * 100);
       });
       bands.sort(); var band = Math.max(0, bands[1] != null ? bands[1] : 0); // 2ª menor: não deixa uma habilidade só puxar o nível
       S.test = { band: band, skills: skills, at: today() }; S.testSave = null;
       S.theme = [0, 3, 8, 12][band] || 0;
-      if (band >= 3 && A2_READY) { S.byLevel.a1 = { theme: 12 }; S.level = "a2"; S.theme = 0; S.daily = null; S.dailyDone = null; S.paused = null; S.goA2 = true; }
+      // faixas: 0–2 A1 · 3 A2 · 4 B1 · 5 B2 (cada nível só entra se já estiver publicado)
+      var goLv = band >= 5 && B2_READY ? "b2" : band >= 4 && B1_READY ? "b1" : band >= 3 && A2_READY ? "a2" : null;
+      if (goLv) { S.byLevel.a1 = { theme: 12 }; if (goLv !== "a2") { S.byLevel.a2 = { theme: 0 }; S.a1Done = true; } if (goLv === "b2") { S.byLevel.b1 = { theme: 0 }; S.a2Done = true; } S.level = goLv; S.theme = 0; S.daily = null; S.dailyDone = null; S.paused = null; S.goA2 = true; }
       markDay(); persist(); nameScreen(result);
     }
     nextPart();
   }
   function weakest() { var s = (S.test && S.test.skills) || {}; var k = Object.keys(SKILLS).sort(function (a, b) { return (s[a] || 0) - (s[b] || 0); }); return k[0]; }
-  var BANDS = ["Iniciante · A1 começo", "A1 · meio", "A1 · final", "Acima do A1"];
+  var BANDS = ["Iniciante · A1 começo", "A1 · meio", "A1 · final", "A2", "B1", "B2"];
   function selfCompare() {
     if (S.self == null || !S.test || S.test.skipped) return null;
     var me = S.self, real = S.test.band, x = SELF[me];
@@ -646,7 +655,7 @@
     var D = todayPlan(), plan = D.plan, doneToday = (S.dailyDone === today()), roundOver = D.i >= plan.length, resume = D.i > 0 && !roundOver;
     w.append(topBar(),
       el("section", { cls: "hello" }, el("p", { cls: "hand", text: "Bora treinar" + (S.name ? ", " + S.name : "") + "!" }),
-        el("div", { cls: "lvl" }, el("span", { cls: "lvl-badge", text: LVL === "a2" ? "A2 · pré-intermediário" : BANDS[S.test.band] }), S.test.skipped ? el("button", { cls: "linkish", type: "button", text: "Fazer o teste de nível", onclick: runTest }) : el("span", { cls: "small", text: "foco: " + PROB[focusProb()].emoji + " " + PROB[focusProb()].name.toLowerCase() }))),
+        el("div", { cls: "lvl" }, el("span", { cls: "lvl-badge", text: LVL === "b2" ? "B2 · intermediário superior" : LVL === "b1" ? "B1 · intermediário" : LVL === "a2" ? "A2 · pré-intermediário" : BANDS[S.test.band] }), S.test.skipped ? el("button", { cls: "linkish", type: "button", text: "Fazer o teste de nível", onclick: runTest }) : el("span", { cls: "small", text: "foco: " + PROB[focusProb()].emoji + " " + PROB[focusProb()].name.toLowerCase() }))),
       howTo(),
       streakCard(),
       S.paused ? el("button", { cls: "paused-card", type: "button", onclick: resumePaused }, el("span", { cls: "pe", text: "☕" }),
@@ -689,10 +698,10 @@
     var er = el("button", { cls: "station errs" + (nErr ? "" : " off"), type: "button", disabled: !nErr, onclick: function () { runErrors(); } },
       el("span", { cls: "se", text: "🧠" }), el("span", { cls: "tt" }, el("b", { text: "Meus erros" }), el("span", { cls: "small", text: nErr ? nErr + " pra revisar" : "nada por enquanto 🎉" })));
     var lvSw = el("div", { cls: "lvsw" });
-    [["a1", "A1", "Básico"], ["a2", "A2", "Pré-intermediário"]].forEach(function (L) {
-      var locked = L[0] === "a2" && !a2Open();
+    [["a1", "A1", "Básico"], ["a2", "A2", "Pré-intermediário"]].concat(B1_READY ? [["b1", "B1", "Intermediário"], ["b2", "B2", "Interm. superior"]] : []).forEach(function (L) {
+      var locked = (L[0] === "a2" && !a2Open()) || (L[0] === "b1" && !b1Open()) || (L[0] === "b2" && !b2Open());
       lvSw.append(el("button", { cls: "lvs" + (L[0] === LVL ? " sel" : "") + (locked ? " locked" : ""), type: "button", disabled: locked && L[0] !== LVL,
-        onclick: function () { setLevel(L[0]); } }, el("b", { text: (locked ? "🔒 " : "") + L[1] }), el("span", { cls: "small", text: locked ? "passe no teste final do A1" : L[2] })));
+        onclick: function () { setLevel(L[0]); } }, el("b", { text: (locked ? "🔒 " : "") + L[1] }), el("span", { cls: "small", text: locked ? (L[0] === "b2" ? "domine todo o B1" : L[0] === "b1" ? "domine todo o A2" : "passe no teste final do A1") : L[2] })));
     });
     var more = el("details", { cls: "more" }, el("summary", {}, el("span", { text: "➕ Mais treinos" }), el("span", { cls: "small", text: "inglês de verdade, treino livre, meus erros" + (nErr ? " (" + nErr + ")" : "") + ", nível" })),
       el("button", { cls: "station errs", type: "button", onclick: extrasPage }, el("span", { cls: "se", text: "🎧" }), el("span", { cls: "tt" }, el("b", { text: "Inglês de verdade" }), el("span", { cls: "small", text: "entrevista de rua, série, vlog: ouvir e escolher" }))),
@@ -712,14 +721,18 @@
   }
   function unlockScreen(uid) {
     var i = uidx(uid), I = INDEX[i], N = INDEX[i + 1], w = screen();
+    if (!N && LVL === "a2") S.a2Done = true; // dominou o A2 inteiro: libera o B1
+    if (!N && LVL === "b1") S.b1Done = true; // dominou o B1 inteiro: libera o B2
     markDay(); persist();
     w.append(topBar(), el("section", { cls: "hero center unlock" }, el("div", { cls: "big-emoji", text: "🔓" }),
       el("span", { cls: "eyebrow", text: "Tema " + (i + 1) + " dominado" }),
-      el("h1", { html: N ? "Liberou o <mark>tema " + (i + 2) + "</mark>!" : LVL === "a1" ? "Você dominou <mark>todo o A1</mark>!" : "Você dominou <mark>todo o A2</mark>!" }),
+      el("h1", { html: N ? "Liberou o <mark>tema " + (i + 2) + "</mark>!" : "Você dominou <mark>todo o " + LVL.toUpperCase() + "</mark>!" }),
       el("p", { text: "Você mandou bem em " + I.emoji + " " + I.title + "." }),
       N ? el("div", { cls: "card nextph" }, el("span", { cls: "eyebrow", text: "Próximo tema" }), el("b", { text: N.emoji + " " + N.title }), el("span", { cls: "small", text: N.titlePt || "" })) : null,
       el("p", { cls: "hand", text: "🔥 " + streak() + (streak() === 1 ? " dia" : " dias") + " de ofensiva. Falou, validou!" })),
       !N && LVL === "a1" && !S.a1Done ? el("button", { cls: "btn big", type: "button", text: "🎓 Fazer o teste final do A1 →", onclick: runFinal }) :"",
+      !N && LVL === "a2" && B1_READY ? el("button", { cls: "btn big gold", type: "button", text: "Ir pro B1 →", onclick: function () { setLevel("b1"); } }) : "",
+      !N && LVL === "b1" && B2_READY ? el("button", { cls: "btn big gold", type: "button", text: "Ir pro B2 →", onclick: function () { setLevel("b2"); } }) : "",
       el("button", { cls: N || S.a1Done || LVL !== "a1" ? "btn big" : "linkish", type: "button", text: N ? "Bora pro próximo →" : "Ver minha trilha", onclick: home }));
     buzz([40, 60, 40]);
   }
@@ -2385,7 +2398,7 @@
     for (var i = 0; i < REF.length; i++) { var R = REF[i]; try { if (new RegExp(R.match.said, "i").test(e.said) && new RegExp(R.match.right, "i").test(e.en) && !new RegExp(R.match.said, "i").test(e.en)) return R; } catch (x) {} }
     return null;
   }
-  function rulesNow() { var seen = {}, out = []; myErrors().forEach(function (e) { var R = ruleFor(e); if (R && !seen[R.id] && (LVL === "a2" || R.level === "A1")) { seen[R.id] = 1; out.push(R); } }); return out; }
+  function rulesNow() { var seen = {}, out = []; myErrors().forEach(function (e) { var R = ruleFor(e); if (R && !seen[R.id] && (LVL !== "a1" || R.level === "A1")) { seen[R.id] = 1; out.push(R); } }); return out; }
   function runRule(R0, back) {
     var w = screen(), RA = "/academia/reforco/audio/";
     w.append(el("header", { cls: "top" }, el("button", { cls: "back", type: "button", text: "← Sair", onclick: back })));
@@ -2749,7 +2762,7 @@
       el("button", { cls: "btn", type: "button", text: "🔄 Começar do zero, como aluno novo", onclick: function () { set(KEY, null); ["academia_comojoga", "academia-menu-visto"].forEach(function (k) { set(PK(k), null); }); location.reload(); } }),
       el("button", { cls: "btn ghost", type: "button", text: ALL ? "🔓 Tudo aberto: LIGADO" : "🔒 Tudo aberto: desligado", onclick: function () { set("prof:tudo", ALL ? null : "1"); location.reload(); } }),
       el("span", { cls: "small", text: "Nível da trilha:" }),
-      el("div", { cls: "prof-row" }, ["a1", "a2"].map(function (lv) { return el("button", { cls: "soft" + (LVL === lv ? " on" : ""), type: "button", text: lv.toUpperCase(), onclick: function () { if (lv !== LVL) setLevel(lv); } }); })),
+      el("div", { cls: "prof-row" }, ["a1", "a2"].concat(B1_READY ? ["b1", "b2"] : []).map(function (lv) { return el("button", { cls: "soft" + (LVL === lv ? " on" : ""), type: "button", text: lv.toUpperCase(), onclick: function () { if (lv !== LVL) setLevel(lv); } }); })),
       el("span", { cls: "small", text: "Fase das habilidades:" }),
       el("div", { cls: "prof-row" }, [["Real", 0], ["🌱", 1], ["🌿", 2], ["🌳", 3], ["🍎", 4]].map(function (x) { return el("button", { cls: "soft" + (ph === x[1] ? " on" : ""), type: "button", text: x[0], onclick: function () { set("prof:nivel", x[1] ? String(x[1]) : null); location.reload(); } }); })),
       el("button", { cls: "btn ghost", type: "button", text: "🎉 Ver a tela de evolução", onclick: function () { sheet.hidden = true; evolve("🌿", "🌳", "Árvore", "Ouvido", "3 partes maiores"); } }),

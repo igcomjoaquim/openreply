@@ -95,7 +95,7 @@
   }
   var A2_READY = true; // liga quando o conteúdo do A2 estiver publicado
   function a2Open() { return A2_READY && (ALL || S.level === "a2" || S.level === "b1" || S.level === "b2" || (S.test && S.test.band >= 3) || S.a1Done); }
-  var B1_READY = Q.get("b1") === "1" || (PROF && lsGet("prof:b1") === "1"); // 🔒 B1 em construção (28/11): só aparece com ?b1=1 até o conteúdo estar pronto
+  var B1_READY = true; // ✅ B1 e B2 liberados pra todos em 28/11/2026 (Thiago: "pode subir")
   function b1Open() { return B1_READY && (ALL || S.level === "b1" || S.level === "b2" || S.a2Done); }
   var B2_READY = B1_READY; // B1 e B2 ficam prontos juntos
   function b2Open() { return B2_READY && (ALL || S.level === "b2" || S.b1Done); }

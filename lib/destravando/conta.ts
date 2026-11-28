@@ -123,6 +123,8 @@ export function ipOf(req: NextRequest): string {
   const key = process.env.DESTRAVANDO_PROXY_KEY;
   if (key && req.headers.get("x-dtv-key") === key) return req.headers.get("x-dtv-ip")?.trim() || "?";
   const xff = (req.headers.get("x-forwarded-for") ?? "").split(",").map((x) => x.trim()).filter(Boolean);
+  // sem a chave configurada: comportamento antigo (IP que o worker repassa), pra não juntar todos os alunos num IP só
+  if (!key) return (req.headers.get("cf-connecting-ip") ?? xff[0] ?? "").trim() || "?";
   return xff[xff.length - 1] || "?";
 }
 export function tooMany(req: NextRequest, key: string, max: number, windowMs: number): boolean {

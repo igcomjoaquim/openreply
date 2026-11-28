@@ -193,7 +193,6 @@
       // Thiago 27/11: a cena tem que ser SEMPRE igual à do homework (em partes). Se o tema tem cena em partes, só elas aparecem.
       var withParts = a.filter(function (x) { return x.kind === "video" && partsOf(x.v); });
       if (withParts.length) a = withParts.map(function (x) { return { kind: "video", v: x.v, label: x.label }; });
-      while (a.length < 7) a.push({ kind: "soon", label: "Em breve" });
       return a.slice(0, 7); // 7 cenas por tema (Thiago 27/11): uma por dia da semana
     }
     if (st === "ditado") return (u.gossips || []).slice(0, 5).map(function (g, i) { return { g: g, i: i, label: "Ditado: " + g.title }; });
@@ -1265,6 +1264,7 @@
     w.append(el("div", { cls: "thead" },
       el("span", { cls: "eyebrow", text: (ctx && ctx.n ? "Treino do dia · " : "") + X.emoji + " " + X.name + (u.id === GERAL.id ? "" : " · Tema " + (i + 1) + (ctx && ctx.review ? " · revisão" : "")) + " · variação " + (v + 1) }),
       ctx && ctx.n && S.daily ? steps(ctx.i, ctx.n, "Fase", S.daily.plan.map(function (x) { return ST[x.st].emoji; })) : null,
+      lbar(ctx),
       el("p", { cls: "ck-legend", html: '🔑 Fique de olho: o que aparecer <mark class="ck">assim</mark> é inglês de nativo. Guarde!' })));
     return w;
   }
@@ -1289,7 +1289,19 @@
   var CUR = null;
   function startAt(ctx) { return (ctx && ctx.startAt) || 0; }
   function startAcc(ctx) { return (ctx && ctx.acc) || 0; }
-  function mark(st, u, v, ctx, i, acc) { CUR = { st: st, uid: u.id, v: v, i: i, acc: acc, daily: !!(ctx && ctx.n), review: !!(ctx && ctx.review) }; }
+  // 📏 barra de previsibilidade (Thiago 28/11): em todo exercício dá pra ver quanto falta, do exercício e do treino do dia
+  var LBAR = null;
+  function lbar(ctx) {
+    var fill = el("i"), txt = el("span", { cls: "lb-t", text: "Começando…" }), box = el("div", { cls: "lbar" }, el("div", { cls: "lb-track" }, fill), txt);
+    LBAR = { fill: fill, txt: txt, ctx: ctx }; return box;
+  }
+  function setBar(frac, i, n) {
+    if (!LBAR || !LBAR.fill.isConnected) return; frac = Math.max(0, Math.min(1, frac)); var c = LBAR.ctx;
+    var tot = c && c.n ? ((c.i - 1) + frac) / c.n : frac; LBAR.fill.style.width = Math.max(3, Math.round(tot * 100)) + "%";
+    var left = n ? Math.max(0, n - i) : null;
+    LBAR.txt.textContent = (n ? (left === 0 ? "Última! " : left === 1 ? "Falta só 1 · " : frac >= 0.75 ? "Falta pouco · " : "") + Math.min(i + 1, n) + " de " + n + " neste exercício" : "Neste exercício") + (c && c.n ? " · treino " + Math.round(tot * 100) + "%" : "");
+  }
+  function mark(st, u, v, ctx, i, acc, n) { CUR = { st: st, uid: u.id, v: v, i: i, acc: acc, daily: !!(ctx && ctx.n), review: !!(ctx && ctx.review) }; if (n) setBar(i / n, i, n); }
   function pauseNow() {
     stopAll();
     if (CUR) { S.paused = { st: CUR.st, uid: CUR.uid, v: CUR.v, i: CUR.i, acc: CUR.acc, daily: CUR.daily, review: CUR.review, date: today() }; persist(); }
@@ -1346,7 +1358,7 @@
   }
   function finishBox(w, st, u, v, pct, next, msg, extra) {
     var daily = !!(CUR && CUR.daily);
-    record(st, u.id, v, pct); clearStage(w); streakToast(w);
+    record(st, u.id, v, pct); setBar(1, 0, 0); clearStage(w); streakToast(w);
     CUR = null; var pbtn = w.querySelector(".top .pause"); if (pbtn) pbtn.remove();
     if (st === "shadow" && pct >= 0.99) { S.ouro = (S.ouro || 0) + 1; persist(); }
     w.append(stageClear(pct, msg || null));
@@ -1556,7 +1568,7 @@
     var B = variations(u, "shadow")[v], w = frame("shadow", u, v, ctx, next), i = startAt(ctx), total = startAcc(ctx), res = [];
     w.append(el("div", { cls: "card" }, el("h2", { text: B.label }),
       el("div", { cls: "sh-how" }, el("span", { html: "<b>1.</b> 🔊 Ouça a frase" }), el("span", { html: "<b>2.</b> 🎙️ Grave repetindo igualzinho" }), el("span", { html: "<b>3.</b> ✅ Verde = entendeu você" }))));
-    function one() { mark("shadow", u, v, ctx, i, total);
+    function one() { mark("shadow", u, v, ctx, i, total, B.list.length);
       if (i >= B.list.length) return finishBox(w, "shadow", u, v, total / B.list.length, next);
       var s = B.list[i], url = af(u, s.key), heard = false, tries = 0, best = 0, hl = null;
       var dots = el("div", { cls: "pt-dots" }); B.list.forEach(function (_, k) { dots.append(el("i", { cls: k < i ? (res[k] >= 0.95 ? "ok" : "meh") : k === i ? "cur" : "", text: String(k + 1) })); });
@@ -1679,7 +1691,7 @@
     if (evoOf("rt").phase >= 4) return stRTTexto(u, v, next, ctx);
     var R = u.realtimes[v], w = frame("rt", u, v, ctx, next), pairs = R.pairs || [], i = startAt(ctx), total = startAcc(ctx), ph = evoOf("rt").phase, TF = [1, 1, 0.8, 0.65][ph - 1];
     w.append(el("div", { cls: "card" }, evoBadge("rt"), el("h2", { text: R.title }), el("p", { cls: "small", text: "Leia a frase em português e fale em inglês, rápido, como numa conversa. ⏱️ " + pairs.length + " frases." })));
-    function one() { mark("rt", u, v, ctx, i, total);
+    function one() { mark("rt", u, v, ctx, i, total, pairs.length);
       if (i >= pairs.length) {
         var pct = total / Math.max(1, pairs.length);
         return finishBox(w, "rt", u, v, pct, next, pct >= 0.7 ? "Real Time aprovado: conta pro domínio do tema." : null, [evoCheer("rt", pct, dkey("rt", u.id, v)), el("div", { cls: "card" }, el("span", { cls: "eyebrow", text: "🎧 O texto inteiro em inglês" }), player(af(u, "rt" + (v + 1)) || ""))]);
@@ -1846,7 +1858,7 @@
     var ph4 = evoOf("lacunas").phase >= 4;
     w.append(el("div", { cls: "card" }, el("h2", { text: B.label }), el("p", { cls: "small", text: "O nativo fala uma frase e algumas palavras somem. Ouça e complete." + (ph4 ? " Na sua fase: no máximo 2 escutas por frase." : "") })));
     w.firstChild && w.querySelector(".card").prepend(evoBadge("lacunas"));
-    function one() { mark("lacuna", u, v, ctx, i, total);
+    function one() { mark("lacuna", u, v, ctx, i, total, list.length);
       if (i >= list.length) return finishBox(w, "lacuna", u, v, total / list.length, next, null, [evoCheer("lacunas", total / list.length, dkey("lacuna", u.id, v)), nativeRecap(seen)]);
       var L = list[i], nb = lv === 1 ? 1 : Math.min(2, Math.max(1, words(L.en).length >= 5 ? 2 : 1)), P = pickBlanks(L, nb), fills = [], done = false;
       var line = el("p", { cls: "lac-line" }), slots = [];
@@ -1912,7 +1924,7 @@
   function stContar(u, v, next, ctx) {
     var B = variations(u, "contar")[v], w = frame("contar", u, v, ctx, next), list = B.list, i = startAt(ctx), ok = startAcc(ctx);
     w.append(el("div", { cls: "card" }, el("h2", { text: B.label }), el("p", { cls: "small", text: "O nativo cola uma palavra na outra. Ouça e diga quantas palavras tem a frase. \"I'm\", \"don't\" e \"it's\" contam como 1." })));
-    function one() { mark("contar", u, v, ctx, i, ok);
+    function one() { mark("contar", u, v, ctx, i, ok, list.length);
       if (i >= list.length) return finishBox(w, "contar", u, v, ok / list.length, next);
       var L = list[i], ws = words(L.en), n = ws.length, done = false;
       var opts = el("div", { cls: "opts row locked" }), res = el("div", { cls: "rt-res" });
@@ -1935,7 +1947,7 @@
   function stGrudada(u, v, next, ctx) {
     var B = variations(GERAL, "grudada")[v], w = frame("grudada", u, v, ctx, next), list = B.list, i = startAt(ctx), ok = startAcc(ctx);
     w.append(el("div", { cls: "card" }, el("h2", { text: B.label }), el("p", { cls: "small", text: "Nativo não fala \"what do you want to\". Fala \"whaddaya wanna\". Ouça e escolha o que ele quis dizer." })));
-    function one() { mark("grudada", u, v, ctx, i, ok);
+    function one() { mark("grudada", u, v, ctx, i, ok, list.length);
       if (i >= list.length) return finishBox(w, "grudada", u, v, ok / list.length, next);
       var it = list[i], url = AUD + it.file, done = false, res = el("div", { cls: "rt-res" });
       var opts = el("div", { cls: "opts locked" });
@@ -1958,7 +1970,7 @@
   function stPares(u, v, next, ctx) {
     var B = variations(GERAL, "pares")[v], w = frame("pares", u, v, ctx, next), list = dayShuffle(B.list, "pares" + v), i = startAt(ctx), ok = startAcc(ctx);
     w.append(el("div", { cls: "card" }, el("h2", { text: B.label }), el("p", { cls: "small", text: "Duas palavras quase iguais. O nativo fala uma delas: qual foi?" })));
-    function one() { mark("pares", u, v, ctx, i, ok);
+    function one() { mark("pares", u, v, ctx, i, ok, list.length);
       if (i >= list.length) return finishBox(w, "pares", u, v, ok / list.length, next);
       var it = list[i], k = Math.random() < 0.5 ? 0 : 1, url = AUD + it.files[k], done = false, res = el("div", { cls: "rt-res" });
       var opts = el("div", { cls: "opts row locked" });
@@ -2492,7 +2504,7 @@
     }
     // passo 2: cada parte → perguntas em português → pedaço difícil → só então texto + Raio-X
     function part(pi) {
-      mark("cena", u, v, ctx, pi + 1, 0);
+      mark("cena", u, v, ctx, pi + 1, 0, PP.length + 1);
       var x = PP[pi], qi = 0, tries = 0, qTries = 0, heard = false, mb = miniBar();
       var dots = el("div", { cls: "pt-dots" }); PP.forEach(function (_, k) { dots.append(el("i", { cls: k < pi ? (result[k] ? "ok" : "meh") : k === pi ? "cur" : "", text: String(k + 1) })); });
       var msg = el("p", { cls: "small pt-msg", text: x.qs.length > 3 ? "👀 Esta parte é maior: tem " + x.qs.length + " perguntas. Toque no botão amarelo e ouça a parte inteira, sem pausa." : "👀 Leia a pergunta e toque no botão amarelo pra ouvir." }), qBox = el("div", { cls: "pt-q" }), after = el("div", { cls: "pt-after", hidden: true });

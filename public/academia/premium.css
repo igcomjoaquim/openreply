@@ -422,3 +422,8 @@ body.premium .keep-st{width:100%;margin-top:10px}
 .vac.on{margin-top:8px;background:linear-gradient(110deg,rgba(130,200,230,.18),rgba(237,197,95,.18))!important}
 .vac-help{background:rgba(237,197,95,.14);border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:6px}
 .vac-help p{margin:0;font-size:14px;line-height:1.45}
+/* 📏 barra de previsibilidade */
+.lbar{display:flex;flex-direction:column;gap:4px;margin:8px 0 2px}
+.lb-track{height:8px;border-radius:999px;background:rgba(111,42,61,.1);overflow:hidden}
+.lb-track i{display:block;height:100%;width:3%;border-radius:999px;background:linear-gradient(90deg,#EDC55F,#D4A843 60%,#8E3A52);transition:width .35s ease}
+.lb-t{font-size:12px;color:var(--muted,#7F735C);font-weight:600}

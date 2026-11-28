@@ -349,3 +349,8 @@ body:has(.land) .fb-tab{display:none}
 .fb-where{margin:0;font-size:12px;color:#7F735C}
 .fb-x{position:absolute;right:12px;top:12px;width:36px;height:36px;border-radius:50%;border:1px solid #E4DED2;background:#FFFDF8;cursor:pointer;font-size:15px}
 .fb-card .big-emoji{font-size:44px;text-align:center}
+
+/* 🔑 "Entrar" bem visível (Thiago 28/11: "tá super apagado"), no celular e no computador */
+body.premium .land-login{background:var(--marsala)!important;color:#FFF8EC!important;border:0!important;font-weight:700;padding:9px 16px!important;box-shadow:0 8px 18px -8px rgba(111,42,61,.7)!important;position:relative;isolation:isolate}
+body.premium .land-login::after{content:"";position:absolute;inset:4px 8%;z-index:-1;border-radius:999px;background:var(--blur-gm);filter:blur(10px);opacity:.6;transform:translateY(6px)}
+@media (max-width:899px){body.premium .land-top{gap:8px}body.premium .land-logo{height:42px}body.premium .land-burger{padding:0 13px}}

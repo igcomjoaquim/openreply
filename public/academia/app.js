@@ -21,6 +21,8 @@
   (function () { var t = Q.get("tema"); try { if (t) localStorage.setItem("destravando:tema", t); t = localStorage.getItem("destravando:tema") || t; } catch (e) {} if (t !== "classico") document.body.classList.add("premium"); })(); // premium é o padrão desde 27/11 (aprovado pelo Thiago)
 
   // ---------- helpers ----------
+  // nunca escrever "null"/"undefined"/"false" na tela: o append nativo transforma isso em texto (achado no pente-fino de 28/11)
+  (function () { var nat = Element.prototype.append; if (nat.__dtv) return; var safe = function () { return nat.apply(this, [].filter.call(arguments, function (x) { return x != null && x !== false && x !== ""; })); }; safe.__dtv = true; Element.prototype.append = safe; })();
   function el(tag, attrs) {
     var e = document.createElement(tag);
     if (attrs) for (var k in attrs) {
@@ -107,7 +109,9 @@
   S.done = S.done || {};     // "est:uid:v" -> {n, best, last}
   S.errors = S.errors || []; // [{uid, kind, en, pt, file}]
   S.days = S.days || []; S.xp = S.xp || 0;
-  function persist() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} schedulePush(); }
+  // ☁️ sincronização entre aparelhos (pente-fino 28/11): cada gravação leva a hora; no boot, o app compara com a conta antes de mandar qualquer coisa
+  var LOCAL_SAVED = S.savedAt || 0, SYNCED = false;
+  function persist() { S.savedAt = Date.now(); try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} schedulePush(); }
   function markDay() { var t = today(); if (S.days.indexOf(t) < 0) { S.days.push(t); S.days = S.days.slice(-120); S.litNow = t; } }
   function streak() {
     var n = 0, d = new Date();
@@ -227,7 +231,9 @@
   var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 
   // ---------- telas ----------
-  function screen() { stopAll(); root.innerHTML = ""; window.scrollTo(0, 0); var w = el("main", { cls: "wrap" }); root.append(w); return w; }
+  var TALKS = [];
+  function screen() { stopAll(); TALKS.splice(0).forEach(function (f) { try { f(); } catch (e) {} }); root.innerHTML = ""; window.scrollTo(0, 0); var w = el("main", { cls: "wrap" }); root.append(w);
+    return w; }
   function topBar(back) {
     var s = streak();
     return el("header", { cls: "top" },
@@ -327,13 +333,13 @@
     if (!PROF && CONTA_OK) menu.append(el("button", { cls: "nav-login", type: "button", text: "Entrar na minha conta", onclick: function () { menu.classList.remove("open"); loginFromLanding(); } }));
     var burger = el("button", { cls: "land-burger", type: "button", "aria-label": "Abrir menu", text: "☰ Menu", onclick: function () { menu.classList.toggle("open"); burger.textContent = menu.classList.contains("open") ? "✕ Fechar" : "☰ Menu"; } });
     var top = el("header", { cls: "land-top" }, el("img", { cls: "land-logo", src: SITE + "logo.png", alt: "Inglês com Joaquim" }), menu,
-      el("div", { cls: "land-top-r" }, PROF || !CONTA_OK ? null : el("button", { cls: "btn ghost sm hide-m", type: "button", text: "Entrar", onclick: loginFromLanding }),
+      el("div", { cls: "land-top-r" }, PROF || !CONTA_OK ? null : el("button", { cls: "btn sm land-login", type: "button", text: "Entrar", onclick: loginFromLanding }),
         el("button", { cls: "btn gold sm hide-m", type: "button", text: "Começar agora →", onclick: startFlow }), burger));
     // 📸 cartão com a foto do Joaquim e o áudio da prévia (como o cartão do site)
     var heroPlay = el("button", { cls: "hc-play", type: "button", "aria-label": "Ouvir a prévia", text: "▶", onclick: function () { go("previa"); demoPlay(); } });
     var wave = el("span", { cls: "hc-wave" }); for (var wi = 0; wi < 26; wi++) wave.append(el("i", { style: "height:" + (6 + Math.round(Math.abs(Math.sin(wi * 1.7)) * 18)) + "px" }));
     var heroCard = el("div", { cls: "land-hcard" }, el("img", { src: SITE + "profile.png", alt: "Joaquim sorrindo" }),
-      el("div", { cls: "hc-tag" }, el("small", { text: "SÉRIE · MODERN FAMILY" }), el("b", { text: "Quem corre mais rápido?" }), el("span", { text: "10 segundos, tela coberta" })),
+      el("div", { cls: "hc-tag" }, el("small", { text: "TRECHO DA SÉRIE MODERN FAMILY" }), el("b", { text: "Quem corre mais rápido?" }), el("span", { text: "10 segundos, tela coberta" })),
       el("div", { cls: "hc-bar" }, heroPlay, wave, el("span", { cls: "hc-t", text: "0:10" })),
       el("span", { cls: "hc-badge", text: "Falou, validou!" }));
     // ➖ faixa que corre
@@ -394,7 +400,7 @@
           el("li", null, el("i", { text: "03" }), el("b", { text: "Treina todo dia" }), el("span", { text: "Cena real, ditado, fofoca, shadowing, leitura em voz alta e Real Time, em fases curtas." })),
           el("li", null, el("i", { text: "04" }), el("b", { text: "Evolui e valida" }), el("span", { text: "O que você erra volta até acertar. Falou, validou. Aí vem o próximo tema." }))));
         return x; })(),
-      (function () { var x = sec("Prévia · experimenta agora", "10 segundos de Modern Family. Você entende?", "land-demo"); x.id = "previa";
+      (function () { var x = sec("Prévia · experimenta agora", "10 segundos de um trecho da série Modern Family. Você entende?", "land-demo"); x.id = "previa";
         x.append(el("p", { cls: "small", text: "A Claire avisou que corre rápido demais pro Phil. Ele se gaba da caminhada que faz toda manhã, e ela responde. Ouça com a tela coberta, sem ler nada, e responda." }),
           dBox, playB, el("p", { cls: "comp-q", text: "❓ O que a Claire acha da corrida dos dois?" }), opts, dmsg,
           el("p", { cls: "small", text: "Achou rápido? É assim que nativo fala. No treino tem série, desenho, talk show, entrevista de rua e vlog, e cada cena vem em partes, com o Raio-X do som, até você entender tudo." }));
@@ -590,10 +596,16 @@
       });
       bands.sort(); var band = Math.max(0, bands[1] != null ? bands[1] : 0); // 2ª menor: não deixa uma habilidade só puxar o nível
       S.test = { band: band, skills: skills, at: today() }; S.testSave = null;
-      S.theme = [0, 3, 8, 12][band] || 0;
       // faixas: 0–2 A1 · 3 A2 · 4 B1 · 5 B2 (cada nível só entra se já estiver publicado)
-      var goLv = band >= 5 && B2_READY ? "b2" : band >= 4 && B1_READY ? "b1" : band >= 3 && A2_READY ? "a2" : null;
-      if (goLv) { S.byLevel.a1 = { theme: 12 }; if (goLv !== "a2") { S.byLevel.a2 = { theme: 0 }; S.a1Done = true; } if (goLv === "b2") { S.byLevel.b1 = { theme: 0 }; S.a2Done = true; } S.level = goLv; S.theme = 0; S.daily = null; S.dailyDone = null; S.paused = null; S.goA2 = true; }
+      var goLv = band >= 5 && B2_READY ? "b2" : band >= 4 && B1_READY ? "b1" : band >= 3 && A2_READY ? "a2" : "a1";
+      var ORD = ["a1", "a2", "b1", "b2"], gi = ORD.indexOf(goLv), LAST = { a1: 12, a2: 13, b1: 14 };
+      // níveis abaixo do destino ficam concluídos e abertos (sem perder o plano do dia que já existia lá)
+      ORD.slice(0, gi).forEach(function (lv) { S[DONE_KEY[lv]] = true; var B = S.byLevel[lv] || {}; B.theme = Math.max(B.theme || 0, LAST[lv]); S.byLevel[lv] = B; });
+      if (goLv !== LVL) {
+        S.byLevel[LVL] = { theme: S.theme, daily: S.daily, dailyDone: S.dailyDone, paused: S.paused }; // guarda onde parou no nível atual
+        S.level = goLv; S.daily = null; S.dailyDone = null; S.paused = null; S.goA2 = true;
+        S.theme = goLv === "a1" ? ([0, 3, 8][band] || 0) : Math.max(0, (S.byLevel[goLv] && S.byLevel[goLv].theme) || 0);
+      } else if (goLv === "a1") S.theme = Math.max(S.theme || 0, [0, 3, 8][band] || 0);
       markDay(); persist(); nameScreen(result);
     }
     nextPart();
@@ -628,7 +640,7 @@
     w.append(bars, el("div", { cls: "card plan" },
       el("span", { cls: "eyebrow", text: "🎯 Seu plano" }),
       el("h2", { text: "Seu foco: " + PROB[focusProb()].emoji + " " + PROB[focusProb()].name.toLowerCase() }),
-      el("p", { html: "Todo dia a Destravando monta um treino de ~15 min, em fases curtas, com um exercício a mais de <b>" + PROB[focusProb()].emoji + " " + esc(PROB[focusProb()].name.toLowerCase()) + "</b>, porque é o que mais trava você. " + (S.goA2 ? "Você já passou do A1: <b>você começa no A2!</b> 🚀" : "Você começa no tema <b>" + (S.theme + 1) + " · " + esc(INDEX[S.theme].title) + "</b>.") }),
+      el("p", { html: "Todo dia a Destravando monta um treino de ~15 min, em fases curtas, com um exercício a mais de <b>" + PROB[focusProb()].emoji + " " + esc(PROB[focusProb()].name.toLowerCase()) + "</b>, porque é o que mais trava você. " + (S.goA2 ? (S.level === "a1" ? "Você vai treinar no <b>A1</b>, começando do tema " + (S.theme + 1) + "." : "Você já passou do " + ({ a2: "A1", b1: "A2", b2: "B1" })[S.level] + ": <b>você começa no " + S.level.toUpperCase() + "!</b> 🚀") : "Você começa no tema <b>" + (S.theme + 1) + " · " + esc((INDEX[S.theme] || INDEX[0]).title) + "</b>.") }),
       el("p", { cls: "small", text: "A nota da fala é automática, pelo reconhecimento de voz: é uma estimativa." })),
       el("button", { cls: "btn big", type: "button", text: "Começar meu treino →", onclick: function () { if (S.goA2) { S.goA2 = false; persist(); location.reload(); } else home(); } }));
   }
@@ -691,7 +703,7 @@
     });
     var NX = NEXT_LV[LVL] ? NEXT_LV[LVL].toUpperCase() : "", OKF = S[DONE_KEY[LVL]];
     tl.append(hasFinal() ? el("button", { cls: "tgoal final", type: "button", onclick: runFinal }, el("span", { cls: "disc" }, OKF ? "🎓" : "🏆"), el("b", { text: OKF ? "Teste final: aprovado ✅" : "🎓 Teste final do " + LVL.toUpperCase() }), el("span", { cls: "small", text: OKF ? NX + " liberado" : nDone >= INDEX.length ? "Bora! Quem passa libera o " + NX + " →" : "Recomendado depois do tema " + INDEX.length + " · passe e libere o " + NX }))
-      : el("div", { cls: "tgoal" }, el("span", { cls: "disc" }, "🏆"), el("b", { text: LVL.toUpperCase() + " completo!" }), el("span", { cls: "small", text: LVL === "b2" ? "Você chegou ao topo da trilha. Falou, validou!" : "Próximo nível em breve" })));
+      : el("div", { cls: "tgoal" }, el("span", { cls: "disc" }, "🏆"), el("b", { text: nDone >= INDEX.length ? LVL.toUpperCase() + " completo!" : "🏁 Meta: o " + LVL.toUpperCase() + " inteiro" }), el("span", { cls: "small", text: nDone >= INDEX.length ? (LVL === "b2" ? "Você chegou ao topo da trilha. Falou, validou!" : "Próximo nível em breve") : "Faltam " + (INDEX.length - nDone) + " temas pra fechar a trilha" })));
     w.append(el("h2", { cls: "sec", text: "🗺️ Sua trilha do " + LVL.toUpperCase() }),
       el("div", { cls: "trail-head" }, steps(t + 1, INDEX.length, "Tema"), el("p", { cls: "small", text: nDone + " de " + INDEX.length + " temas dominados. Cada tema abre o próximo quando você manda bem (70%+) em 2 Real Times dele." })), tl);
     // ➕ mais treinos: tudo que é opcional fica guardado aqui (menos escolha = mais treino)
@@ -763,7 +775,7 @@
     var SV = S[FS], res = SV ? SV.res : {}, pi = SV ? SV.pi : 0, ii = 0, got = [];
     var resumeAt = SV && SV.ii ? { ii: SV.ii, got: SV.got || [] } : null; // pausa volta na questão exata
     function save() { S[FS] = { res: res, pi: pi, ii: ii, got: got.slice(), date: today() }; persist(); }
-    var A = "/aprender/audio/";
+    var A = LVL === "a1" ? "/aprender/audio/" : AUD; // teste final do A2/B1 mora na pasta do próprio nível
     function head(P, intro) {
       return el("div", { cls: "thead" }, el("header", { cls: "top" }, el("span", { cls: "brand", text: "🎓 Teste final" }),
         el("button", { cls: "pause", type: "button", text: "☕ Pausar", onclick: function () {
@@ -1055,7 +1067,7 @@
         var order = shuffle(pairs).slice(0, 8), qi = 0, right = 0, left = 30, over = false;
         var barI = el("i"), timeEl = el("span", { text: "30 s" }), q = el("p", { cls: "bonus-q" }), opts = el("div", { cls: "pt-q" });
         card.append(el("div", { cls: "bonus-time" }, el("div", { cls: "mb-track" }, barI), timeEl), q, opts); barI.style.width = "100%";
-        var tmr = setInterval(function () { left--; timeEl.textContent = left + " s"; barI.style.width = Math.max(0, left / 30 * 100) + "%"; if (left <= 0) end(); }, 1000);
+        var tmr = setInterval(function () { if (!timeEl.isConnected) { clearInterval(tmr); over = true; return; } left--; timeEl.textContent = left + " s"; barI.style.width = Math.max(0, left / 30 * 100) + "%"; if (left <= 0) end(); }, 1000);
         function nx() {
           if (qi >= order.length) return end();
           var it = order[qi], others = shuffle(pairs.filter(function (x) { return x.en !== it.en; })).slice(0, 2), ch = shuffle(others.concat([it]));
@@ -1375,7 +1387,8 @@
       if (ph >= 4 && pct < 0.9) { sc = Math.min(sc, 0.6); extra += " 🍎 Na Árvore com frutos a meta é 90% entendido."; }
       fb(sc >= 0.8);
       res.replaceChildren(el("b", { text: "Você leu " + Math.round(pct * 100) + "% certinho." }), pm && pm.miss.length ? el("span", { cls: "small miss-list", text: "Treine: " + pm.miss.slice(0, 6).join(", ") }) : null, extra ? el("span", { cls: "small", text: extra }) : null);
-      w.append(el("button", { cls: "btn big", type: "button", text: "Ver o resultado →", onclick: function () { finishBox(w, "leitura", u, v, sc, next, null, [evoCheer("leitura", sc, dkey("leitura", u.id, v))]); } }));
+      var oldGo = w.querySelector(".res-go"); if (oldGo) oldGo.remove(); // regravou: um botão só
+      w.append(el("button", { cls: "btn big res-go", type: "button", text: "Ver o resultado →", onclick: function () { finishBox(w, "leitura", u, v, sc, next, null, [evoCheer("leitura", sc, dkey("leitura", u.id, v))]); } }));
     }, { onLive: function (all) { if (ph < 2) rt.replaceChildren(paintModel(txt, all).node); } });
     w.append(el("div", { cls: "card" }, evoBadge("leitura"), el("h2", { text: "🗣️ Leia em voz alta" }),
       el("p", { cls: "small", html: ph >= 2 ? "Leia este trecho em voz alta" + (ph >= 3 ? ", <b>no ritmo natural</b>, até uns " + maxS + " s" : "") + ". No fim você vê o que a página entendeu." : "Leia este trecho em voz alta. As palavras que a página entender ficam <b>verdes</b>." }),
@@ -1798,7 +1811,7 @@
       var t = talk(function (said, manual) {
         var o = manual ? 0.8 : overlap(e.en, said);
         res.innerHTML = ""; res.append(el("b", { text: (o >= 0.6 ? "✅ " : "🔴 ") + Math.round(o * 100) + "%" }), el("p", { cls: "model" }, manual ? e.en : paintModel(e.en, said).node));
-        if (o >= 0.6) { fixError(e.en); fixed++; } else { e.said = said; persist(); }
+        if (o >= 0.6) { if (!t.__fixed) { t.__fixed = true; fixError(e.en); fixed++; } } else { e.said = said; persist(); }
         nx0.disabled = false;
       }, {});
       w.append(el("div", { cls: "card" }, el("span", { cls: "eyebrow", text: e.kind === "rt" ? "⚡ Passe pro inglês" : "🔁 Ouça e repita" }), steps(i + 1, list.length, ""),
@@ -1893,7 +1906,7 @@
   function xpLevel() { var i = 0; while (i + 1 < LEVELS.length && S.xp >= LEVELS[i + 1].xp) i++; var n = LEVELS[i + 1] || null; return { n: i + 1, name: LEVELS[i].name, next: n, left: n ? n.xp - S.xp : 0, f: n ? (S.xp - LEVELS[i].xp) / (n.xp - LEVELS[i].xp) : 1 }; }
   // 🎮 como funciona: aparece no início até tocar em "Entendi"
   function howTo() {
-    var seen = false; try { seen = localStorage.getItem(PK("academia_comojoga")) === "1"; } catch (e) {}
+    var seen = !!S.howtoSeen; try { seen = seen || localStorage.getItem(PK("academia_comojoga")) === "1"; } catch (e) {} // S.howtoSeen vai junto com a conta
     if (seen) return null;
     var card = el("section", { cls: "card howto" }, el("b", { cls: "howto-title", text: "🎮 Como funciona" }),
       el("ul", null,
@@ -1903,7 +1916,7 @@
         el("li", { html: "🎙️ Pra falar é igual WhatsApp: <b>toque pra gravar</b>, toque pra finalizar, ouça e <b>✅ Envie</b>." }),
         el("li", { html: "☕ Cansou? <b>Pause</b>: o site guarda onde você parou." }),
         el("li", { html: "🧠 O que você erra vai pro <b>Meus erros</b> e volta em outro dia." })),
-      el("button", { cls: "btn", type: "button", text: "Entendi, bora! 🚀", onclick: function () { try { localStorage.setItem(PK("academia_comojoga"), "1"); } catch (e) {} SFX.go(); card.remove(); } }));
+      el("button", { cls: "btn", type: "button", text: "Entendi, bora! 🚀", onclick: function () { try { localStorage.setItem(PK("academia_comojoga"), "1"); } catch (e) {} S.howtoSeen = true; persist(); SFX.go(); card.remove(); } }));
     return card;
   }
 
@@ -1924,7 +1937,8 @@
   function evoOf(k) {
     if (FORCE >= 1 && FORCE <= 4) return { phase: FORCE, streak: 0 };
     var x = S.evo[k];
-    if (!x) x = S.evo[k] = { phase: k === "lacunas" ? (S.lacLevel || [1, 1, 2, 3][(S.test && S.test.band) || 0]) : 1, streak: 0 };
+    if (!x) x = S.evo[k] = { phase: k === "lacunas" ? (S.lacLevel || [1, 1, 2, 3, 3, 3][(S.test && S.test.band) || 0] || 1) : 1, streak: 0 };
+    if (!(x.phase >= 1 && x.phase <= 4)) x.phase = 1; // conserta progresso salvo com fase inválida (faixa 4/5 no teste)
     return x;
   }
   function evoUpdate(k, good) {
@@ -2030,6 +2044,8 @@
       return wrap;
     }
     var rec = null, finals = "", interim = "", base = "", state = "idle", empties = 0, redo = 0, mr = null, chunks = [], stream = null, t0 = 0, tick = null, blobUrl = null, an = null, liveIdx = 0, srReady = false, mrReady = false, cdDone = false, armT = null;
+    // sair da tela no meio da gravação: desliga microfone, reconhecimento e timers (pente-fino 28/11)
+    TALKS.push(function () { state = "idle"; clearTimeout(armT); clearInterval(tick); try { if (rec) rec.abort(); } catch (e) {} rec = null; try { if (mr && mr.state !== "inactive") mr.stop(); } catch (e) {} try { if (stream) stream.getTracks().forEach(function (t) { t.stop(); }); } catch (e) {} });
     function fallback() {
       if (!wrap.querySelector(".mic-fallback")) wrap.append(el("button", { cls: "btn ghost mic-fallback", type: "button", text: "Não consigo usar o microfone: falei em voz alta →", onclick: function () { onDone("", true); } }));
     }
@@ -2066,7 +2082,7 @@
         if (wc) { var nw = all.split(/\s+/).filter(Boolean).length; wc.textContent = nw + " palavras · mínimo " + opts.minWords; wc.classList.toggle("ok", nw >= opts.minWords); }
         if (opts.onLive && opts.onLive(all) === true) stop();
       };
-      rec.onend = function () { if ((state === "live" || state === "arming") && rec) { base = finals; liveIdx = 0; try { rec.start(); } catch (e) {} } };
+      rec.onend = function () { if ((state === "live" || state === "arming") && rec && b.isConnected) { base = finals; liveIdx = 0; try { rec.start(); } catch (e) {} } };
       // Android: o reconhecimento pega o microfone primeiro; o gravador liga logo depois
       rec.onaudiostart = function () { if (srReady) return; srReady = true; setTimeout(startMR, 120); maybeLive(); };
       rec.onerror = function (ev) {
@@ -2157,12 +2173,15 @@
     } };
   }
   // player do YouTube escondido atrás de uma capa (tela coberta): toca pedaços [t, end]
-  function ytScene(holder, id, T0, T1) {
-    var p = null, ready = null, stopAt = 0, onStop = null, at = 0, ticks = [];
+  function ytScene(holder, id, T0, T1, onFail) {
+    var p = null, ready = null, stopAt = 0, onStop = null, at = 0, ticks = [], ok = false, failed = false;
+    // vídeo que não abre (bloqueador de anúncio, rede que bloqueia YouTube, vídeo restrito): avisa e deixa pular (pente-fino 28/11)
+    function fail() { if (ok || failed) return; failed = true; if (onFail && document.body.contains(holder)) onFail(); }
+    setTimeout(fail, 12000);
     ready = loadYT().then(function (YT) {
       return new Promise(function (res) {
         p = new YT.Player(holder, { videoId: id, playerVars: { start: Math.floor(T0), end: Math.ceil(T1) + 1, controls: 0, disablekb: 1, fs: 0, rel: 0, playsinline: 1, modestbranding: 1, cc_load_policy: 0, iv_load_policy: 3 },
-          events: { onReady: function () { try { if (MUDO) p.mute(); else { p.unMute(); p.setVolume(100); } } catch (e) {} res(p); } } });
+          events: { onError: function () { ok = false; fail(); }, onReady: function () { ok = true; try { if (MUDO) p.mute(); else { p.unMute(); p.setVolume(100); } } catch (e) {} res(p); } } });
       });
     });
     var iv = setInterval(function () {
@@ -2186,7 +2205,10 @@
     var w = frame("cena", u, v, ctx, next), T0 = X.start, T1 = X.end, ear = evoOf("ouvido");
     var holder = el("div"), cover = el("div", { cls: "yt-cover2" }, el("span", { cls: "cv-ic", text: "🎧" }), el("span", { text: "Tela coberta · só ouvido" }));
     var vbox = el("div", { cls: "yt yt-wrap2" }, holder, cover);
-    var Y = ytScene(holder, V.youtubeId, T0, T1);
+    var Y = ytScene(holder, V.youtubeId, T0, T1, function () {
+      w.append(el("div", { cls: "sheet" }, el("b", { text: "😕 O vídeo não abriu aqui." }), el("p", { cls: "small", text: "Pode ser bloqueador de anúncio, internet instável ou rede que bloqueia o YouTube. Sem problema: pule esta cena e siga o treino." }),
+        el("button", { cls: "btn big", type: "button", text: "Pular esta cena →", onclick: function () { next(); } })));
+    });
     var head = el("div", { cls: "card" }, evoBadge("ouvido"), el("span", { cls: "eyebrow", text: (function (t) { return /^[A-Za-zÀ-ú0-9]/.test(t) ? "🎬 " + t : t; })(String(V.source || "Vídeo real").replace(/\s*\(.*?\)\s*/g, " ").trim()) }),
       el("p", { html: rich(X.intro || V.context || "") }),
       el("ol", { cls: "pt-steps" }, el("li", { html: "🎧 <b>Ouça tudo</b>" }), el("li", { html: ear.phase >= 4 ? "🍎 <b>Sem partes</b>" : "✂️ <b>Em partes</b>" }), el("li", { html: "🎧 <b>Tudo de novo</b>" }), el("li", { html: "👀 <b>Com imagem</b>" })), vbox);
@@ -2379,7 +2401,7 @@
   }
   function bitCard(B, title, onAns) {
     var holder = el("div"), cover = el("div", { cls: "yt-cover2" }, el("span", { cls: "cv-ic", text: "🎧" }), el("span", { text: "Tela coberta" }));
-    var Y = ytScene(holder, B.yt, B.t, B.end), heard = false, done = false, tries = 0;
+    var Y = ytScene(holder, B.yt, B.t, B.end, function () { heard = true; [].forEach.call(row.querySelectorAll(".pt-opt.wait"), function (o) { o.classList.remove("wait"); }); m.textContent = "😕 O vídeo não abriu aqui (bloqueador de anúncio ou internet). Responda pelo que você lembra, ou siga em frente."; }), heard = false, done = false, tries = 0;
     var row = el("div", { cls: "pt-q" }), m = el("p", { cls: "small" });
     function play(r) { Y.play(Math.max(0, B.t - 0.3), B.end + 0.5, r, function () { heard = true; [].forEach.call(row.querySelectorAll(".pt-opt.wait"), function (o) { o.classList.remove("wait"); }); }); }
     shuffle(B.options.map(function (_, i) { return i; })).forEach(function (i) {
@@ -2437,7 +2459,7 @@
             box.append(el("div", { cls: "card" }, el("b", { text: "👂 Qual você ouviu? " + (k + 1) + " de " + R.ouvir.length }), ears(RA + it.audio, function () { op.classList.remove("locked"); }, { fast: false }), op, m));
           })();
           w.append(box);
-        } else {
+        } else if (s === "falar") {
           var k2 = 0, box2 = el("div");
           (function one2() {
             box2.replaceChildren(); var it = R.falar[k2]; if (!it) { box2.append(nxt); return; }
@@ -2581,7 +2603,7 @@
         if (r.status === 401 && ACC) setAcc(null);
         return CONTA_OK;
       }).catch(function () { return false; }),
-      new Promise(function (res) { setTimeout(function () { res(false); }, 3500); })
+      new Promise(function (res) { setTimeout(function () { res(false); }, 9000); })
     ]);
   }
   function api(path, method, body) {
@@ -2624,11 +2646,31 @@
     if (document.querySelector(".fb-tab")) return;
     document.body.append(el("button", { cls: "fb-tab", type: "button", "aria-label": "Achou um problema? Me conta", onclick: feedbackOpen }, el("span", { text: "💬 Achou um problema?" })));
   }
-  function pushNow() {
-    clearTimeout(pushT); pushT = null; if (!ACC || PROF) return;
-    api("progresso", "PUT", { progress: snapshot(), testLevel: S.test && !S.test.skipped ? BANDS[S.test.band] : null, selfLevel: S.self != null && SELF[S.self] ? SELF[S.self].t : null });
+  function adopt(p) { // a conta tem progresso mais novo (outro aparelho): ele vale
+    if (!p || typeof p !== "object") return false;
+    try { if (sessionStorage.getItem("dtv:adopt") === String(p.savedAt)) return false; sessionStorage.setItem("dtv:adopt", String(p.savedAt)); } catch (e) {}
+    S = p; try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} location.reload(); return true;
+  }
+  function pushNow(cb) {
+    clearTimeout(pushT); pushT = null; if (!ACC || PROF || !SYNCED) { if (cb) cb(); return; }
+    var body = JSON.stringify({ progress: snapshot(), testLevel: S.test && !S.test.skipped ? BANDS[S.test.band] : null, selfLevel: S.self != null && SELF[S.self] ? SELF[S.self].t : null });
+    var h = { "Content-Type": "application/json" }; if (ACC && ACC.token) h.Authorization = "Bearer " + ACC.token;
+    // keepalive só cabe 64 KB: progresso grande vai sem keepalive
+    fetch(API + "progresso", { method: "PUT", headers: h, body: body, keepalive: body.length < 60000 }).then(function (r) {
+      if (r.status === 409) return r.json().then(function (j) { adopt(j.progress); });
+      if (r.status === 401 && ACC) { setAcc(null); notice("🔐 Sua sessão expirou. Entre de novo pra continuar salvando o progresso."); }
+    }).catch(function () {}).then(function () { if (cb) cb(); });
   }
   function schedulePush() { if (!ACC || PROF) return; clearTimeout(pushT); pushT = setTimeout(pushNow, 4000); }
+  // no boot: se a conta tem progresso mais novo que o deste aparelho, usa o da conta
+  function syncDown() {
+    if (!CONTA_OK || !ACC || PROF) { SYNCED = true; return Promise.resolve(); }
+    return api("progresso", "GET").then(function (r) {
+      var p = r && r.progress;
+      if (p && typeof p === "object" && p.test && (p.savedAt || 0) > LOCAL_SAVED + 1000 && adopt(p)) return new Promise(function () {}); // recarregando
+      SYNCED = true; if (pushT || (p && (p.savedAt || 0) < LOCAL_SAVED)) pushNow();
+    }, function () { SYNCED = true; });
+  }
   document.addEventListener("visibilitychange", function () { if (document.visibilityState === "hidden" && pushT) pushNow(); });
   // depois de entrar: se a conta já tem progresso, ele vale (é o mesmo aluno em outro aparelho); se não, sobe o do aparelho
   function afterLogin(res, after) {
@@ -2637,7 +2679,7 @@
       S = res.progress; try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {}
       location.reload(); return;
     }
-    S.name = S.name || res.user.name; persist(); pushNow(); after();
+    SYNCED = true; S.name = S.name || res.user.name; persist(); pushNow(); after();
   }
   function field(label, input, tip) { return el("label", { cls: "fld" }, el("span", { cls: "fld-l", text: label }), input, tip ? el("span", { cls: "small", text: tip }) : null); }
   function chips(opts, cur, onPick) {
@@ -2683,7 +2725,7 @@
           if (r.token) { SFX.go(); afterLogin(r, after); return; }
           err.show(r.error || "Não deu certo. Tente de novo.");
           // servidor fora do ar: não prende o aluno (continua sem conta e pede de novo depois)
-          if (!r._status || r._status === 404 || r._status >= 500) { err.append(" ", el("button", { cls: "linkish", type: "button", text: "Continuar sem conta por enquanto →", onclick: function () { S.skipAccUntil = today(); persist(); after(); } })); }
+          if (!r._status || r._status === 404 || r._status === 429 || r._status >= 500) { err.append(" ", el("button", { cls: "linkish", type: "button", text: "Continuar sem conta por enquanto →", onclick: function () { S.skipAccUntil = today(); persist(); after(); } })); }
           if (r.exists) { err.append(" ", el("button", { cls: "linkish", type: "button", text: "Entrar →", onclick: function () { loginScreen(after, email.value.trim()); } })); }
         });
     } });
@@ -2754,7 +2796,7 @@
     if (!ACC) return el("div", { cls: "card acc-card" }, el("span", { cls: "eyebrow", text: "🔐 Sua conta" }), el("p", { cls: "small", text: "Você ainda não tem conta: o progresso está só neste aparelho." }),
       el("button", { cls: "btn", type: "button", text: "Criar conta e salvar meu progresso", onclick: function () { signupScreen(home); } }));
     return el("div", { cls: "card acc-card" }, el("span", { cls: "eyebrow", text: "🔐 Sua conta" }), el("p", null, el("b", { text: ACC.name || "" }), el("br"), el("span", { cls: "small", text: ACC.email + " · progresso salvo ☁️" })),
-      el("button", { cls: "linkish", type: "button", text: "Sair desta conta", onclick: function () { pushNow(); api("sair", "POST").then(function () { setAcc(null); try { localStorage.removeItem(KEY); } catch (e) {} location.reload(); }); } }));
+      el("button", { cls: "linkish", type: "button", text: "Sair desta conta", onclick: function () { pushNow(function () { api("sair", "POST").then(function () { setAcc(null); try { localStorage.removeItem(KEY); } catch (e) {} location.reload(); }); }); } }));
   }
 
   // 👩‍🏫 painel do modo professor
@@ -2780,7 +2822,7 @@
   profPanel();
 
   // ---------- início ----------
-  Promise.all([loadIndex(), loadParts(), probeConta()]).then(function () {
+  Promise.all([loadIndex(), loadParts(), probeConta()]).then(syncDown).then(function () {
     if (CONTA_OK && !PROF) feedbackTab();
     if (Q.get("teste") === "1") return runTest();
     if (Q.get("resultado") === "1" && S.test) return result();

@@ -510,7 +510,7 @@
     onScroll();
   }
   function welcome(fromLanding) {
-    if (!fromLanding && !ACC && !S.self && !(S.testSave && S.testSave.res)) return landing();
+    if (!fromLanding && !ACC && !S.self && !(S.testSave && S.testSave.res)) return STANDALONE ? loginFromLanding() : landing();
     if (CONTA_OK && !ACC && !PROF && S.skipAccUntil !== today()) return signupScreen(function () { welcome(true); }, "Crie sua conta pra começar.");
     var w = screen();
     if (S.testSave && S.testSave.res) w.append(el("button", { cls: "paused-card", type: "button", onclick: runTest }, el("span", { cls: "pe", text: "☕" }),
@@ -3269,10 +3269,10 @@
       });
     } });
     pw.input.addEventListener("keydown", function (e) { if (e.key === "Enter") go.click(); });
-    w.append(el("section", { cls: "hero" }, el("span", { cls: "eyebrow", text: "Destravando · entrar" }), el("h1", { html: "Bem-vindo <mark>de volta</mark>!" })),
+    w.append(el("section", { cls: "hero" }, el("span", { cls: "eyebrow", text: "Destravando · entrar" }), el("h1", { html: STANDALONE ? "Bem-vindo ao <mark>Destravando</mark>!" : "Bem-vindo <mark>de volta</mark>!" }), STANDALONE ? el("p", { text: "Entre com o e-mail e a senha da sua conta. Depois, o app fica logado." }) : null),
       el("div", { cls: "card form" }, field("E-mail", email), field("Senha", pw), err, go,
         el("button", { cls: "linkish", type: "button", text: "🔑 Esqueci a senha", onclick: function () { forgotScreen(after, email.value.trim()); } })),
-      el("button", { cls: "linkish", type: "button", text: "Ainda não tenho conta · Criar", onclick: function () { signupScreen(after); } }));
+      el("button", { cls: STANDALONE ? "btn ghost" : "linkish", type: "button", text: STANDALONE ? "Ainda não tenho conta · Criar agora" : "Ainda não tenho conta · Criar", onclick: function () { STANDALONE ? startFlow() : signupScreen(after); } }));
     setTimeout(function () { (pre ? pw.input : email).focus(); }, 250);
   }
   // 📩 CONFIRMAR O E-MAIL (Thiago 28/11: "todo lugar é assim"): código de 6 números → confirma → entra
@@ -3340,7 +3340,7 @@
   }
 
   // 📲 APP INSTALÁVEL (Thiago 28/11: "não dá muito aquela impressão de aplicativo"): ícone na tela, tela cheia, sem barra do navegador
-  var STANDALONE = (window.matchMedia && matchMedia("(display-mode: standalone)").matches) || navigator.standalone === true;
+  var STANDALONE = (window.matchMedia && matchMedia("(display-mode: standalone)").matches) || navigator.standalone === true || Q.get("app") === "1"; // o ícone abre em /?app=1
   if (STANDALONE) document.documentElement.classList.add("is-app");
   var IOS = !/Android/.test(navigator.userAgent) && (/iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1));
   var INSTALL_EVT = null;
@@ -3392,7 +3392,8 @@
     if (PROF && Q.get("cert")) { var cw = screen(); cw.append(topBar(home), certCard(Q.get("cert"), 82)); return; } // professor: ver o certificado
     if (Q.get("resultado") === "1" && S.test) return result();
     // 🔐 quem já treina sem conta: cria a conta (o progresso do aparelho vai junto)
-    if (CONTA_OK && !ACC && !PROF && S.skipAccUntil !== today()) return landing();
+    // 📲 aberto pelo ícone (app instalado) e sem conta: vai direto pro Entrar, sem a página de vendas (Thiago 28/11)
+    if (CONTA_OK && !ACC && !PROF && S.skipAccUntil !== today()) return STANDALONE ? loginFromLanding() : landing();
     S.test ? home() : welcome();
   }).catch(function () { root.innerHTML = "<p class='boot'>Não consegui carregar. Confira a internet e recarregue.</p>"; });
 })();

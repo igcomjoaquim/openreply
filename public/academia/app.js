@@ -300,7 +300,9 @@
     entender: { emoji: "👂", name: "Entender", st: "cena", good: "Você entende bem o que ouve.", bad: "Entender o nativo ainda é difícil pra você." },
     repetir: { emoji: "🔁", name: "Pronúncia e ritmo", st: "shadow", good: "Sua pronúncia acompanha bem.", bad: "Repetir frases longas ainda trava." },
     reagir: { emoji: "⚡", name: "Responder rápido", st: "rt", good: "Você responde sem travar.", bad: "Na hora de responder, você trava." },
-    recontar: { emoji: "🗣️", name: "Falar com suas palavras", st: "fofoca", good: "Você consegue contar uma história.", bad: "Contar uma história com suas palavras ainda é difícil." }
+    recontar: { emoji: "🗣️", name: "Falar com suas palavras", st: "fofoca", good: "Você consegue contar uma história.", bad: "Contar uma história com suas palavras ainda é difícil." },
+    ver: { emoji: "🎬", name: "Entender cenas reais", st: "cena", good: "Você pega o que acontece numa cena real.", bad: "Cena real, sem legenda, ainda escapa." },
+    ditado: { emoji: "✍️", name: "Ouvir cada palavra", st: "ditado", good: "Você separa bem as palavras que ouve.", bad: "As palavras ainda grudam umas nas outras." }
   };
   var ST = {
     aula: { emoji: "🔑", name: "Frases-chave", pt: "ouça, entenda e já fale as frases do tema", skill: null },
@@ -320,7 +322,7 @@
     ouvir: { emoji: "👂", name: "Não entendo o nativo", pt: "Ele fala rápido, engole palavra, e some tudo.", list: ["cena", "ditado", "lacuna", "grudada", "pares", "contar"] },
     falar: { emoji: "🗣️", name: "Travo na hora de falar", pt: "Você sabe, mas na hora a frase não sai.", list: ["rt", "fofoca", "shadow", "leitura"] }
   };
-  function focusProb() { var s = (S.test && S.test.skills) || {}; if (S.test && S.test.skipped) return "ouvir"; var f = ((s.repetir || 0) + (s.reagir || 0) + (s.recontar || 0)) / 3; return (s.entender || 0) <= f ? "ouvir" : "falar"; }
+  function focusProb() { var s = (S.test && S.test.skills) || {}; if (S.test && S.test.skipped) return "ouvir"; var f = ((s.repetir || 0) + (s.reagir || 0) + (s.recontar || 0)) / 3, o = ["entender", "ver", "ditado"].filter(function (k) { return s[k] != null; }), e = o.reduce(function (a, k) { return a + s[k]; }, 0) / Math.max(1, o.length); return e <= f ? "ouvir" : "falar"; }
 
   // ===== boas-vindas =====
   // Thiago 27/11: muita gente compra com inglês zero. 1) a pessoa diz o nível que ACHA que tem,
@@ -531,8 +533,8 @@
         el("h1", { html: k === 0 ? "Bora começar do <mark>zero</mark>, sem pressão." : "Agora vamos ver o seu <mark>nível de fato</mark>." }),
         el("p", { text: k === 0 ? "Começando do zero? Perfeito: a Destravando foi feita pra isso. Você começa no tema 1, com cada frase em áudio e com tradução, e já pratica falando desde o primeiro dia. Se preferir, dá pra fazer o teste também." : k === 3 ? "Bora ver se é isso mesmo ou se é coisa da sua cabeça 😏. O teste vai ficando mais difícil conforme você acerta." : "Um teste rápido, só de ouvir e falar: nada de ler, nada de escrever. Ele mostra o seu nível e o que mais trava você." })),
       k === 0 ? null : el("ul", { cls: "how card" },
-        el("li", { text: "👂 Ouvir e reagir" }), el("li", { text: "🔁 Repetir frases" }), el("li", { text: "⚡ Responder rápido" }), el("li", { text: "🗣️ Recontar uma fofoca" }),
-        el("li", { cls: "small", text: "⏱️ Uns 5 a 8 minutos: quem acerta pula perguntas. Use fone e fique num lugar onde possa falar." })),
+        el("li", { text: "👂 Ouvir e reagir" }), el("li", { text: "🎬 Cena real, só ouvindo" }), el("li", { text: "✍️ Ditado com lacunas" }), el("li", { text: "🔁 Repetir frases" }), el("li", { text: "⚡ Responder rápido" }), el("li", { text: "🗣️ Recontar uma fofoca" }),
+        el("li", { cls: "small", text: "⏱️ Uns 8 a 10 minutos: é um pouquinho de cada treino do app, e quem acerta pula perguntas. Use fone e fique num lugar onde possa falar." })),
       // 😶 nível zero: o caminho principal é começar do zero (o teste em inglês só assustaria); quem quiser, testa
       k === 0 ? el("button", { cls: "btn big gold", type: "button", text: "Começar do zero, sem teste →", onclick: function () { S.test = { skipped: true, band: 0, skills: { entender: 50, repetir: 50, reagir: 50, recontar: 50 }, at: today() }; S.theme = 0; persist(); nameScreen(home); } }) : null,
       el("button", { cls: k === 0 ? "linkish" : "btn big", type: "button", text: k === 0 ? "Quero fazer o teste mesmo assim" : "Começar o teste →", onclick: runTest }),
@@ -557,22 +559,28 @@
     loadTest().then(function (T) { testFlow(T); }).catch(function () { w.innerHTML = ""; w.append(el("p", { text: "Não consegui carregar o teste. Confira a internet e tente de novo." }), el("button", { cls: "btn", type: "button", text: "Tentar de novo", onclick: runTest })); });
   }
   // acerto mínimo por parte: ouvir (múltipla escolha) 0.6; fala 0.5 (o reconhecimento de voz erra palavras de quem fala bem)
-  var PASS = { entender: 0.6, repetir: 0.5, reagir: 0.5, recontar: 0.5 };
+  var PASS = { entender: 0.6, ver: 0.75, ditado: 0.5, repetir: 0.5, reagir: 0.5, recontar: 0.5 };
   // feedback rápido no teste de nível (Thiago 28/11: "o aluno precisa ver na hora o que acertou e o que errou")
+  function noSkip() { var x = document.querySelector(".skip-q"); if (x) x.remove(); } // respondeu: some o "pular"
   function testFb(w, good, txt, then) {
-    fb(good); w.append(el("div", { cls: "sheet " + (good ? "good" : "bad") }, el("b", { text: good ? "✅ Boa!" : "🟡 Quase." }), el("p", { cls: "small", text: txt })));
+    fb(good); noSkip(); w.append(el("div", { cls: "sheet " + (good ? "good" : "bad") }, el("b", { text: good ? "✅ Boa!" : "🟡 Quase." }), el("p", { cls: "small", text: txt })));
     setTimeout(then, good ? 1300 : 2200);
   }
   function topOf(r, k) { var t = -1; (r || []).forEach(function (x) { if (x.ok >= PASS[k]) t = Math.max(t, x.band); }); return t; }
   function testFlow(T) {
+    // 🧪 Thiago 28/11: o teste passa por TODOS os treinos do app (cena, ditado com lacunas, fala), bem enxuto
     var parts = [
-      { key: "listen", skill: "entender", title: "👂 Parte 1 de 4 · Ouvir e reagir", tip: "Ouça e toque na figura certa. Você pode ouvir 2 vezes." },
-      { key: "repeat", skill: "repetir", title: "🔁 Parte 2 de 4 · Repetir a frase", tip: "Ouça e repita igualzinho. A frase fica escondida: é só ouvido." },
-      { key: "answer", skill: "reagir", title: "⚡ Parte 3 de 4 · Pergunta rápida", tip: "Ouça a pergunta e responda falando, do seu jeito." },
-      { key: "retell", skill: "recontar", title: "🗣️ Parte 4 de 4 · Mini fofoca", tip: "Ouça a historinha e reconte com as suas palavras." }
+      { key: "listen", skill: "entender", em: "👂", name: "Ouvir e reagir", tip: "Ouça e toque na figura certa. Você pode ouvir 2 vezes." },
+      { key: "cena", skill: "ver", em: "🎬", name: "Cena real", tip: "A tela fica coberta: primeiro só ouvindo. Escolha o que está acontecendo, complete a frase e depois assista sem a tela." },
+      { key: "ditado", skill: "ditado", em: "✍️", name: "Ditado com lacunas", tip: "Ouça a frase e toque na palavra que falta em cada espaço." },
+      { key: "repeat", skill: "repetir", em: "🔁", name: "Repetir a frase", tip: "Ouça e repita igualzinho. A frase fica escondida: é só ouvido." },
+      { key: "answer", skill: "reagir", em: "⚡", name: "Pergunta rápida", tip: "Ouça a pergunta e responda falando, do seu jeito." },
+      { key: "retell", skill: "recontar", em: "🗣️", name: "Mini fofoca", tip: "Ouça a historinha e reconte com as suas palavras. É uma só." }
     ];
+    parts.forEach(function (P, i) { P.title = P.em + " Parte " + (i + 1) + " de " + parts.length + " · " + P.name; });
     var SV = S.testSave && S.testSave.res ? S.testSave : null;
-    var res = SV ? SV.res : { entender: [], repetir: [], reagir: [], recontar: [] };
+    var res = SV ? SV.res : {};
+    parts.forEach(function (P) { res[P.skill] = res[P.skill] || []; });
     var pi = SV ? SV.pi : 0, items = [], ii = 0, missStreak = 0, scored = false, base = null;
     var resumeT = SV && SV.ii ? { ii: SV.ii, miss: SV.miss || 0 } : null; // pausa volta na pergunta exata
     function saveT() { S.testSave = { res: res, pi: pi, ii: ii, miss: missStreak, date: today() }; persist(); }
@@ -581,14 +589,21 @@
       var P = parts[pi];
       // começa sempre do mais fácil; quem disse "nível zero"/"um pouquinho" nem vê as perguntas de B1/B2 (Thiago 28/11: "começar mais simples")
       var cap = S.self == null ? 5 : [3, 4, 5, 5][S.self] || 5;
-      items = (T[P.key] || []).filter(function (x) { return x.band <= cap; }).sort(function (a, b) { return a.band - b.band; }); ii = 0; missStreak = 0;
+      // ditado usa a 1ª frase de cada faixa e o "repetir" usa a 2ª (a pessoa não vê a mesma frase duas vezes)
+      var src = P.key === "ditado" || P.key === "repeat" ? (T.repeat || []).filter(function (x, i, A) { var first = A.findIndex(function (y) { return y.band === x.band; }) === i; return P.key === "ditado" ? first : !first; }) : (T[P.key] || []);
+      items = src.filter(function (x) { return x.band <= cap; }).sort(function (a, b) { return a.band - b.band; }); ii = 0; missStreak = 0;
+      var lt = topOf(res.entender, "entender");
+      // mini fofoca: UMA só, no nível que o ouvido mostrou (1 abaixo)
+      if (P.key === "retell") { var rb = Math.max(1, Math.min(cap, lt - 1)), one = items.filter(function (x) { return x.band === rb; })[0] || items[items.length - 1]; items = one ? [one] : []; }
       base = JSON.parse(JSON.stringify(res));
       if (resumeT) { ii = resumeT.ii; missStreak = resumeT.miss; resumeT = null; return nextItem(); }
       // ⚡ Thiago 28/11 ("longo demais" e "sou B2, deu A2"): 1 pergunta por faixa enquanto acerta; as partes de fala
       // começam 2 faixas abaixo do que o ouvido mostrou (as faixas de baixo contam como feitas). Quem "domina bem" já começa o ouvido na faixa 2.
       var start = 0;
       if (P.key === "listen") start = S.self === 3 ? 2 : 0;
-      else { var lt = topOf(res.entender, "entender"); start = Math.max(0, lt - 2); }
+      else if (P.key === "retell") start = items[0] ? items[0].band : 0;
+      else start = Math.max(0, lt - 1);
+      if (!items.length) { pi++; return nextPart(); }
       if (start > 0) { var si = 0; while (si < items.length && items[si].band < start) si++; if (si < items.length) { ii = si; res[P.skill].push({ band: start - 1, ok: 1, credit: true }); } }
       var w = screen();
       w.append(testHead(P, 0, items.length), el("div", { cls: "card intro" }, el("h2", { text: P.title.replace(/ · /, " — ") }), el("p", { text: P.tip })),
@@ -601,12 +616,12 @@
             stopAll(); saveT();
             var w2 = screen();
             w2.append(el("section", { cls: "hero center rest" }, el("div", { cls: "big-emoji", text: "☕" }), el("h1", { text: "Teste pausado." }),
-              el("p", { text: "Tudo salvo. Quando voltar, você continua exatamente daqui: parte " + (pi + 1) + " de 4, pergunta " + (ii + 1) + "." })),
+              el("p", { text: "Tudo salvo. Quando voltar, você continua exatamente daqui: parte " + (pi + 1) + " de " + parts.length + "." })),
               el("button", { cls: "btn big", type: "button", text: "Continuar agora →", onclick: runTest }),
               el("button", { cls: "linkish", type: "button", text: "Ir pro início", onclick: function () { S.test ? home() : welcome(); } }));
           } })),
         el("span", { cls: "eyebrow", text: "Teste de nível · " + P.title.replace(/^\S+\s/, "").replace(/Parte \d de \d · /, "") }),
-        steps(pi + 1, total, "Parte", ["👂", "🔁", "⚡", "🗣️"]),
+        steps(pi + 1, total, "Parte", parts.map(function (x) { return x.em; })),
         n && i > 0 ? steps(Math.min(i, n), n, "Nível") : (n ? el("p", { cls: "small", text: "Começa fácil e vai subindo. Acertou? Pula pro próximo nível. Errou 2 no mesmo nível? A parte acaba e você não perde nada." }) : null));
     }
     function score(ok, band) {
@@ -626,12 +641,68 @@
       if (P.key === "listen") {
         var opts = el("div", { cls: "pics" }), picked = false;
         it.options.forEach(function (o, k) {
-          opts.append(el("button", { cls: "pic", type: "button", onclick: function (e) { if (picked) return; picked = true; var g = k === it.answer; e.currentTarget.classList.add(g ? "ok" : "bad"); if (!g) opts.children[it.answer].classList.add("ok"); fb(g); setTimeout(function () { score(g ? 1 : 0, it.band); }, g ? 500 : 1100); } },
+          opts.append(el("button", { cls: "pic", type: "button", onclick: function (e) { if (picked) return; picked = true; noSkip(); var g = k === it.answer; e.currentTarget.classList.add(g ? "ok" : "bad"); if (!g) opts.children[it.answer].classList.add("ok"); fb(g); setTimeout(function () { score(g ? 1 : 0, it.band); }, g ? 500 : 1100); } },
             el("span", { cls: "pe", text: o.emoji }), el("span", { text: o.pt })));
         });
         opts.classList.add("locked");
         w.append(el("div", { cls: "card" }, el("h2", { text: it.q }), player(url, { max: 2, onEnd: function () { opts.classList.remove("locked"); } }), opts));
         setTimeout(function () { var b = w.querySelector(".pbtn"); if (b) b.click(); }, 300);
+      } else if (P.key === "cena") {
+        // 🎬 cena real: ouve com a tela coberta → o que está acontecendo → completa a frase → assiste sem a tela
+        var holder = el("div"), cover = el("div", { cls: "yt-cover2" }, el("span", { cls: "cv-ic", text: "🎧" }), el("span", { text: "Tela coberta · só ouvido" }));
+        var vbox = el("div", { cls: "yt yt-wrap2" }, holder, cover), qa = el("div"), plays = 0, got = 0;
+        var Y = ytScene(holder, it.yt, it.t, it.end, function () {
+          qa.replaceChildren(el("div", { cls: "sheet" }, el("b", { text: "😕 O vídeo não abriu aqui." }), el("p", { cls: "small", text: "Pode ser internet ou bloqueador. Sem problema: vamos pra próxima parte." }),
+            el("button", { cls: "btn", type: "button", text: "Próxima parte →", onclick: function () { scored = true; pi++; ii = 0; missStreak = 0; saveT(); nextPart(); } })));
+        });
+        var lb = el("button", { cls: "btn big", type: "button", text: "▶ Ouvir a cena", onclick: function () {
+          if (plays >= 2) return; plays++; lb.disabled = true; lb.textContent = "🎧 Ouvindo…";
+          Y.play(it.t, it.end, 1, function () { lb.disabled = plays >= 2; lb.textContent = plays >= 2 ? "✅ Ouviu 2 vezes" : "↺ Ouvir de novo (1 vez)"; if (!qa.children.length) askComp(); });
+        } });
+        function mcq(opts, ans, onDone, gapEl) {
+          var box = el("div", { cls: "opts" }), dn = false;
+          opts.forEach(function (o, k) { box.append(el("button", { cls: "opt", type: "button", text: o, onclick: function (e) {
+            if (dn) return; dn = true; noSkip(); var g = k === ans; if (gapEl) { gapEl.textContent = opts[ans]; gapEl.classList.add(g ? "ok" : "no"); } e.currentTarget.classList.add(g ? "ok" : "bad"); if (!g) box.children[ans].classList.add("ok"); fb(g); if (g) got++; setTimeout(function () { onDone(g); }, g ? 500 : 1000); } })); });
+          return box;
+        }
+        function askComp() {
+          qa.append(el("div", { cls: "card" }, el("b", { text: "1️⃣ " + it.q }), mcq(it.options, it.answer, function () { askGap(); })));
+        }
+        function askGap() {
+          var pr = String(it.prompt).split("___"), gEl = el("b", { cls: "x-gap", text: "____" });
+          qa.append(el("div", { cls: "card" }, el("b", { text: "2️⃣ Complete o que ele(a) falou:" }), el("p", { cls: "x-line" }, el("span", { text: pr[0] }), gEl, el("span", { text: pr[1] || "" })),
+            mcq(it.gopts, it.gans, function () { reveal(); }, gEl)));
+        }
+        function reveal() {
+          var ok3 = got === 2;
+          qa.append(el("div", { cls: "sheet " + (ok3 ? "good" : "bad") }, el("b", { text: ok3 ? "✅ Mandou bem nas duas!" : got ? "🟡 Acertou uma das duas." : "🔴 Essa escapou." }),
+            el("p", { cls: "small", text: "Ele(a) falou: “" + it.en + "”" + (it.pt ? " · " + it.pt : "") })),
+            el("button", { cls: "btn", type: "button", text: "👀 Agora assista sem a tela", onclick: function (e) { cover.remove(); e.currentTarget.remove(); Y.play(it.t, it.end, 1, function () {}); } }),
+            el("button", { cls: "btn big", type: "button", text: "Próxima →", onclick: function () { Y.pause(); score(got / 2, it.band); } }));
+          lb.remove();
+        }
+        w.append(el("div", { cls: "card" }, it.intro ? el("p", { cls: "small", text: "🎬 " + it.intro }) : null, vbox, lb), qa);
+      } else if (P.key === "ditado") {
+        // ✍️ ditado com lacunas: ouve a frase e toca na palavra que falta (1 espaço até o A1; 2 do A2 pra cima)
+        var toks = it.en.split(" "), cand = toks.map(function (t, i) { return { i: i, w: (t.match(/[A-Za-z']+/) || [""])[0] }; }).filter(function (x) { return x.w.length >= 3 && x.i > 0; }).sort(function (a, b) { return b.w.length - a.w.length; });
+        var gaps = cand.slice(0, it.band >= 3 ? 2 : 1).sort(function (a, b) { return a.i - b.i; }), gi = 0, right = 0;
+        var pool = []; (T.repeat || []).concat(T.answer || []).forEach(function (x) { String(x.en || x.q || "").split(/\s+/).forEach(function (t) { var m = (t.match(/[A-Za-z']+/) || [""])[0]; if (m.length >= 3 && pool.indexOf(m) < 0) pool.push(m); }); });
+        var line = el("p", { cls: "x-line" }), slots = {};
+        toks.forEach(function (t, i) { var g = gaps.filter(function (x) { return x.i === i; })[0]; if (g) { var sl = el("b", { cls: "x-gap", text: t.replace(g.w, "____") }); slots[i] = sl; line.append(sl, " "); } else line.append(el("span", { text: t + " " })); });
+        var ob = el("div", { cls: "opts locked" }), msg = el("div");
+        function ask() {
+          ob.replaceChildren(); if (gi >= gaps.length) return done();
+          var g = gaps[gi], opts = shuffle([g.w].concat(distract(g.w, pool).slice(0, 2))), dn = false;
+          slots[g.i].classList.add("cur");
+          opts.forEach(function (o) { ob.append(el("button", { cls: "opt word", type: "button", text: o, onclick: function (e) {
+            if (dn || ob.classList.contains("locked")) return; dn = true; noSkip(); var ok = o.toLowerCase() === g.w.toLowerCase(); if (ok) right++;
+            e.currentTarget.classList.add(ok ? "ok" : "bad"); if (!ok) [].forEach.call(ob.children, function (b) { if (b.textContent.toLowerCase() === g.w.toLowerCase()) b.classList.add("ok"); });
+            fb(ok); slots[g.i].textContent = toks[g.i]; slots[g.i].classList.remove("cur"); slots[g.i].classList.add(ok ? "ok" : "no"); gi++; setTimeout(ask, ok ? 450 : 1000); } })); });
+        }
+        function done() { var v = right / gaps.length; msg.append(el("div", { cls: "sheet " + (v >= 1 ? "good" : "bad") }, el("b", { text: v >= 1 ? "✅ Pegou tudo!" : v > 0 ? "🟡 Pegou uma." : "🔴 Essa escapou." }), el("p", { cls: "small", text: it.pt || "" }))); setTimeout(function () { score(v, it.band); }, v >= 1 ? 1200 : 2000); }
+        var pd = player(url, { max: 2, onEnd: function () { ob.classList.remove("locked"); } });
+        w.append(el("div", { cls: "card" }, el("h2", { text: "Ouça e complete" }), pd, line, ob, msg));
+        ask(); setTimeout(function () { var b = w.querySelector(".pbtn"); if (b) b.click(); }, 300);
       } else if (P.key === "repeat") {
         var heard = false, p = player(url, { max: 2, onEnd: function () { heard = true; t.classList.remove("locked"); } });
         var t = talk(function (said, manual) { var v = manual ? 0.6 : overlap(it.en, said); testFb(w, v >= PASS.repetir, "A frase era: “" + it.en + "”", function () { score(v, it.band); }); }, { label: "🎤 Segure e repita" });
@@ -662,7 +733,7 @@
         var p3 = player(url, { max: 2, onEnd: function () { t3.classList.remove("locked"); } });
         w.append(el("div", { cls: "card" }, el("h2", { text: it.title || "Mini fofoca" }), el("p", { cls: "small", text: "Pode começar com: \"So, the story is about…\"" }), p3, t3));
       }
-      w.append(el("button", { cls: "linkish", type: "button", text: "Não entendi nada — pular", onclick: function () { score(0, it.band); } }));
+      w.append(el("button", { cls: "linkish skip-q", type: "button", text: "Não entendi nada — pular", onclick: function () { score(0, it.band); } }));
     }
     function finish() {
       var skills = {}, tops = {};
@@ -676,7 +747,8 @@
       });
       // nível = média entre o OUVIDO (a parte mais confiável) e a mediana das 3 partes de FALA, arredondando pra cima.
       // Antes era a 2ª menor das 4: um microfone que entendeu mal no iPhone derrubava um B2 pra A2 (Thiago 28/11).
-      var L = tops.entender != null ? tops.entender : -1, sp = [tops.repetir, tops.reagir, tops.recontar].map(function (x) { return x == null ? -1 : x; }).sort(function (a, b) { return a - b; })[1];
+      function med(a) { a = a.map(function (x) { return x == null ? -1 : x; }).sort(function (x, y) { return x - y; }); return a[Math.floor(a.length / 2)]; }
+      var L = med([tops.entender, tops.ver, tops.ditado]), sp = med([tops.repetir, tops.reagir, tops.recontar]);
       var band = Math.max(0, Math.min(5, Math.ceil((Math.max(0, L) + Math.max(0, sp)) / 2)));
       S.test = { band: band, skills: skills, at: today() }; S.testSave = null;
       // faixas: 0–2 A1 · 3 A2 · 4 B1 · 5 B2 (cada nível só entra se já estiver publicado)

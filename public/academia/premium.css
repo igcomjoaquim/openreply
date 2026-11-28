@@ -372,3 +372,20 @@ body.premium .land-login::after{content:"";position:absolute;inset:4px 8%;z-inde
 body.premium .aula-st{width:100%;margin:10px 0 4px;position:relative;isolation:isolate;border:0!important;background:linear-gradient(110deg,rgba(237,197,95,.28),rgba(111,42,61,.12))!important}
 .aula-chunk .vrow{justify-content:flex-start!important;text-align:left}
 .aula-chunk .vrow span{align-items:flex-start;text-align:left}
+
+/* 🔑 chunk / expressão de nativo destacado em todo lugar (Thiago 28/11) */
+mark.ck{background:linear-gradient(180deg,transparent 52%,rgba(237,197,95,.75) 52%,rgba(212,168,67,.55) 88%,transparent 88%)!important;color:var(--marsala,#6F2A3D)!important;font-weight:700;font-style:normal;padding:0 1px;border-radius:2px}
+mark.ck.nat{background:linear-gradient(180deg,transparent 52%,rgba(111,42,61,.22) 52%,rgba(111,42,61,.18) 88%,transparent 88%)!important}
+.ck-legend{font-size:13px;color:var(--muted,#7F735C);margin:6px 0 8px}
+.ck-chips{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;font-size:14px;margin:6px 0 0}
+/* 📌📒 guardar e revisar */
+.keep-list{display:flex;flex-direction:column}
+.keep-row{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;padding:9px 0;border-bottom:1px solid var(--line,#E4DED2);align-items:baseline}
+.keep-row small{grid-column:1/-1;color:var(--muted,#7F735C);font-size:12px}
+.rev-card h2{font-size:26px}
+.rev-ans{display:flex;flex-direction:column;gap:12px;margin-top:10px}
+mark.ck.big{font-size:26px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+body.premium .keep-st{width:100%;margin-top:10px}
+.keep-row{grid-template-columns:1fr!important}
+.keep-row span{color:#3B3222}

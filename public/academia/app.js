@@ -482,6 +482,7 @@
   }
   function nameScreen(after) {
     if (CONTA_OK && !PROF && !ACC && S.skipAccUntil !== today()) return signupScreen(after, "Último passo: crie sua conta pra ver o seu resultado.");
+    if (!S.name && ACC && ACC.name) { S.name = String(ACC.name).split(" ")[0]; persist(); }
     if (S.name) return after();
     var w = screen(), name = el("input", { type: "text", placeholder: "Seu primeiro nome", autocomplete: "given-name" });
     function go() { S.name = name.value.trim(); persist(); after(); }
@@ -731,6 +732,7 @@
         onclick: function () { setLevel(L[0]); } }, el("b", { text: (locked ? "🔒 " : "") + L[1] }), el("span", { cls: "small", text: locked ? "passe no teste final do " + (L[0] === "b2" ? "B1" : L[0] === "b1" ? "A2" : "A1") : L[2] })));
     });
     var more = el("details", { cls: "more" }, el("summary", {}, el("span", { text: "➕ Mais treinos" }), el("span", { cls: "small", text: "inglês de verdade, treino livre, meus erros" + (nErr ? " (" + nErr + ")" : "") + ", nível" })),
+      el("button", { cls: "station errs", type: "button", onclick: function () { pushNav(); cadernoPage(); } }, el("span", { cls: "se", text: "📒" }), el("span", { cls: "tt" }, el("b", { text: "Meu caderno" }), el("span", { cls: "small", text: "expressões de nativo que você guardou: revise" }))),
       el("button", { cls: "station errs", type: "button", onclick: extrasPage }, el("span", { cls: "se", text: "🎧" }), el("span", { cls: "tt" }, el("b", { text: "Inglês de verdade" }), el("span", { cls: "small", text: "entrevista de rua, série, vlog: ouvir e escolher" }))),
       el("h3", { cls: "sec", text: "O que mais trava você?" }), probs, er,
       el("h3", { cls: "sec", text: "Nível" }), lvSw,
@@ -1052,12 +1054,58 @@
     }
     next();
   }
+  // 📌📒 Thiago 28/11: no fim do treino, o que GUARDAR (inglês autêntico) vai pro "Meu caderno" pra revisar
+  function keepList(u) {
+    var out = [];
+    ((u.lesson && u.lesson.chunks) || []).forEach(function (c) { out.push({ k: c.chunk, pt: c.pt, tag: "🔑 frase-chave" }); });
+    var seen = []; (u.gossips || []).forEach(function (g) { (g.lines || []).forEach(function (l) { addSeen(seen, nativeIn(l.text)); }); });
+    seen.slice(0, 7).forEach(function (n) { out.push({ k: n.k, pt: n.pt, tag: (n.emo || "💬") + " fala de nativo" }); });
+    return out;
+  }
+  function saveKeep(u, list) {
+    S.caderno = S.caderno || [];
+    list.forEach(function (x) { var lk = String(x.k).toLowerCase(); if (!S.caderno.some(function (c) { return String(c.k).toLowerCase() === lk; })) S.caderno.push({ k: x.k, pt: x.pt, tag: x.tag, uid: u.id, lv: LVL, at: today(), ok: 0 }); });
+    persist();
+  }
+  function keepCard(u) {
+    var L = keepList(u); if (!L.length) return null; saveKeep(u, L);
+    var box = el("div", { cls: "keep-list" });
+    L.forEach(function (x) { box.append(el("div", { cls: "keep-row" }, el("mark", { cls: "ck", text: x.k }), el("span", { text: x.pt }), el("small", { text: x.tag }))); });
+    return el("div", { cls: "card keep" }, el("span", { cls: "eyebrow", text: "📌 Pra guardar e revisar" }), el("h2", { text: "Inglês de verdade de hoje" }),
+      el("p", { cls: "small", text: "O nativo usa isso o tempo todo, em série, filme e na rua. Já salvei no seu caderno: revise de vez em quando." }), box,
+      el("button", { cls: "btn", type: "button", text: "📒 Abrir meu caderno", onclick: function () { pushNav(); cadernoPage(); } }));
+  }
+  function cadernoPage() {
+    var w = screen(), C = (S.caderno || []).filter(function (c) { return !c.lv || c.lv === LVL; });
+    w.append(topBar(home), el("h1", { text: "📒 Meu caderno" }), el("p", { cls: "small", text: "Tudo que você guardou no " + LVL.toUpperCase() + ": inglês autêntico, do jeito que o nativo fala." }));
+    if (!C.length) { w.append(el("div", { cls: "card" }, el("p", { text: "Ainda vazio. Termine um treino do dia e as expressões aparecem aqui." })), menuBar("prog")); return; }
+    w.append(el("button", { cls: "btn big gold", type: "button", text: "🔁 Revisar " + Math.min(10, C.length) + " agora", onclick: function () { revisar(C); } }));
+    var list = el("div", { cls: "card keep-list" });
+    C.slice().reverse().forEach(function (c) { list.append(el("div", { cls: "keep-row" }, el("mark", { cls: "ck", text: c.k }), el("span", { text: c.pt }), el("small", { text: (c.ok ? "✅ " + c.ok + "x · " : "") + (c.tag || "") }))); });
+    w.append(list, menuBar("prog"));
+  }
+  function revisar(C) {
+    var pick = C.slice().sort(function (a, b) { return (a.ok || 0) - (b.ok || 0) || Math.random() - 0.5; }).slice(0, 10), i = 0, sabia = 0, w = screen();
+    w.append(el("header", { cls: "top" }, el("button", { cls: "back", type: "button", text: "← Caderno", onclick: cadernoPage })));
+    var box = el("div"); w.append(box);
+    (function one() {
+      box.replaceChildren(); var c = pick[i];
+      if (!c) { box.append(el("section", { cls: "hero center" }, el("div", { cls: "big-emoji", text: "📒" }), el("h1", { text: "Revisão feita!" }), el("p", { text: "Você lembrou de " + sabia + " de " + pick.length + ". O que não lembrou volta primeiro na próxima." })), el("button", { cls: "btn big", type: "button", text: "Voltar pro caderno", onclick: cadernoPage })); SFX.win(); return; }
+      var ans = el("div", { cls: "rev-ans", hidden: true }, el("mark", { cls: "ck big", text: c.k }),
+        el("div", { cls: "row2" }, el("button", { cls: "btn", type: "button", text: "✅ Sabia", onclick: function () { c.ok = (c.ok || 0) + 1; sabia++; persist(); fb(true); i++; one(); } }),
+          el("button", { cls: "btn ghost", type: "button", text: "🔁 Ainda não", onclick: function () { c.ok = 0; persist(); i++; one(); } })));
+      box.append(el("div", { cls: "card rev-card" }, el("span", { cls: "eyebrow", text: "Revisão " + (i + 1) + " de " + pick.length }), el("p", { cls: "small", text: "Como se diz em inglês? Fale em voz alta e depois confira." }),
+        el("h2", { text: c.pt }), el("button", { cls: "btn big", type: "button", text: "👀 Ver em inglês", onclick: function (e) { e.currentTarget.remove(); ans.hidden = false; } }), ans));
+    })();
+  }
   function celebrate() {
     var w = screen();
     w.append(topBar(), el("section", { cls: "hero center" }, el("div", { cls: "big-emoji", text: "🏆" }), el("h1", { text: "Treino de hoje feito!" }),
       el("p", { text: "🔥 Ofensiva de " + streak() + (streak() === 1 ? " dia" : " dias") + ". Amanhã tem mais, com outras variações — volta pra manter o fogo aceso!" }), el("p", { cls: "hand", text: "Falou, validou! 🚀" })),
       bonusCard(),
       el("button", { cls: "btn big", type: "button", text: "Voltar pro início", onclick: home }));
+    var D0 = S.daily && S.daily.plan && S.daily.plan[0]; var kuid = D0 && D0.uid && D0.uid !== GERAL.id ? D0.uid : INDEX[curTheme()].id;
+    getUnit(kuid).then(function (u) { var k = keepCard(u); if (k && w.isConnected) w.insertBefore(k, w.querySelector(".bonus") || null); }, function () {});
     SFX.win(); confetti();
   }
   // ⚡ RODADA BÔNUS igual ao homework: 30 s, aparece em português, toca na opção certa em inglês, 2 XP por acerto
@@ -1091,14 +1139,15 @@
   // ===== estações =====
   function frame(st, u, v, ctx, onExit) {
     var w = screen(), X = ST[st], i = uidx(u.id);
-    pushNav();
+    CURU = u; pushNav();
     CUR = { st: st, uid: u.id, v: v, i: 0, acc: 0, daily: !!(ctx && ctx.n), review: !!(ctx && ctx.review) };
     w.append(el("header", { cls: "top" },
       el("button", { cls: "back", type: "button", text: "← Sair", onclick: function () { if (onExit === home || !CUR) { CUR = null; home(); } else askExit(); } }),
       el("button", { cls: "pause", type: "button", text: "☕ Pausar", onclick: pauseNow })));
     w.append(el("div", { cls: "thead" },
       el("span", { cls: "eyebrow", text: (ctx && ctx.n ? "Treino do dia · " : "") + X.emoji + " " + X.name + (u.id === GERAL.id ? "" : " · Tema " + (i + 1) + (ctx && ctx.review ? " · revisão" : "")) + " · variação " + (v + 1) }),
-      ctx && ctx.n && S.daily ? steps(ctx.i, ctx.n, "Fase", S.daily.plan.map(function (x) { return ST[x.st].emoji; })) : null));
+      ctx && ctx.n && S.daily ? steps(ctx.i, ctx.n, "Fase", S.daily.plan.map(function (x) { return ST[x.st].emoji; })) : null,
+      el("p", { cls: "ck-legend", html: '🔑 Fique de olho: o que aparecer <mark class="ck">assim</mark> é inglês de nativo. Guarde!' })));
     return w;
   }
   // 🔥 ofensiva: dias seguidos treinando + a semana
@@ -1202,7 +1251,7 @@
     }
     function chunk(ci) {
       var C = CH[ci], ex = el("div", { cls: "vocab-list" });
-      (C.examples || []).forEach(function (e, k) { ex.append(el("div", { cls: "vrow" }, ear("ex" + ci + "_" + k), el("span", null, el("b", { text: e }), el("small", { text: (C.examplesPt || [])[k] || "" })))); });
+      (C.examples || []).forEach(function (e, k) { ex.append(el("div", { cls: "vrow" }, ear("ex" + ci + "_" + k), el("span", null, el("b", { html: hl(e, u) }), el("small", { text: (C.examplesPt || [])[k] || "" })))); });
       var pk = 0, pbox = el("div");
       function prac() {
         pbox.replaceChildren(); var P = (C.practice || [])[pk];
@@ -1285,7 +1334,8 @@
   function saidCard(lines, url) {
     if (!lines || !lines.length) return null;
     var box = el("div", { cls: "said" });
-    lines.forEach(function (l) { var t = typeof l === "string" ? l : l.text; if (!t) return; box.append(el("p", { html: esc(t).replace(/\*\*([^*]+)\*\*/g, "<mark>$1</mark>") })); });
+    lines.forEach(function (l) { var t = typeof l === "string" ? l : l.text; if (!t) return; box.append(el("p", { html: hl(t, CURU) })); });
+    box.append(ckLegend());
     return el("div", { cls: "card" }, el("span", { cls: "eyebrow", text: "📜 O que foi dito: agora pode ler" }),
       el("p", { cls: "small", text: "Ouça de novo acompanhando o texto: é aqui que o ouvido conecta som e palavra." }),
       url ? el("div", { cls: "ears" }, el("button", { cls: "ear", type: "button", text: "🔊 ouvir lendo", onclick: function () { playUrl(url); } })) : "", box);
@@ -1433,7 +1483,7 @@
   function stLeitura(u, v, next, ctx) {
     var G = u.gossips[v], w = frame("leitura", u, v, ctx, next), ph = evoOf("leitura").phase;
     var L = G.lines.map(function (l) { return plain(l.text); }), st0 = Math.max(0, Math.floor(L.length / 2) - 1), txt = L.slice(st0, st0 + 3).join(" ");
-    var maxS = Math.max(12, Math.round(words(txt).length * 0.6)), rt = el("p", { cls: "sh-line read-txt", text: txt }), res = el("div", { cls: "sh-score" });
+    var maxS = Math.max(12, Math.round(words(txt).length * 0.6)), rt = el("p", { cls: "sh-line read-txt", html: hl(txt, u) }), res = el("div", { cls: "sh-score" });
     var t = talk(function (said, manual, secs) {
       var pm = manual ? null : paintModel(txt, said); if (pm) rt.replaceChildren(pm.node);
       var tot = words(txt).length, pct = manual ? 0.8 : Math.max(0, (tot - pm.miss.length) / Math.max(1, tot)), sc = pct, extra = "";
@@ -1474,7 +1524,7 @@
     var chk = el("button", { cls: "btn", type: "button", text: "Conferir", onclick: function () {
       if (words(ta.value).length < Math.min(8, words(full).length / 2)) { notice("Escreva todas as frases antes de conferir. Pode ouvir de novo."); return; }
       var pm = paintModel(full, ta.value), tot = words(full).length, pct = Math.max(0, (tot - pm.miss.length) / Math.max(1, tot));
-      out.replaceChildren(pm.node); out.hidden = false; chk.remove(); ta.disabled = true; fb(pct >= 0.85);
+      out.replaceChildren(pm.node); out.hidden = false; var dk = ckChips(out.textContent, u); if (dk) out.after(dk); chk.remove(); ta.disabled = true; fb(pct >= 0.85);
       var seenM = {}, miss = pm.miss.filter(function (x) { var k = x.toLowerCase(); if (!x || seenM[k]) return false; seenM[k] = 1; return true; }).slice(0, 8), tr = el("div", { cls: "chips" });
       miss.forEach(function (m) { tr.append(el("button", { cls: "ear", type: "button", text: "🔊 " + m, onclick: function () { try { var q = new SpeechSynthesisUtterance(m); q.lang = "en-US"; q.rate = 0.85; speechSynthesis.cancel(); speechSynthesis.speak(q); } catch (e) {} } })); });
       if (pct < 0.85) D.forEach(function (l) { if (pm.miss.some(function (m) { var c = m.replace(/[^\w']/g, ""); return c && new RegExp("\\b" + c + "\\b", "i").test(l.en); })) addError({ uid: u.id, kind: "shadow", en: l.en, pt: "", file: l.file }); });
@@ -1530,7 +1580,7 @@
         res.innerHTML = "";
         res.append(el("b", { text: (o >= 0.8 ? "✅ " : o >= 0.5 ? "🟡 " : "🔴 ") + Math.round(o * 100) + "%" + (late ? " · passou do tempo" : "") }),
           el("span", { cls: "small", text: said ? "Você: \"" + said + "\"" : "Não ouvi nada." }),
-          el("p", { cls: "model" }, el("button", { cls: "ear", type: "button", "aria-label": "Ouvir o modelo", text: "🔊", onclick: function () { var f = af(u, "rp" + v + "_" + i0); if (f) playUrl(f); } }), manual ? el("span", { text: P.en }) : paintModel(P.en, said).node),
+          el("p", { cls: "model" }, el("button", { cls: "ear", type: "button", "aria-label": "Ouvir o modelo", text: "🔊", onclick: function () { var f = af(u, "rp" + v + "_" + i0); if (f) playUrl(f); } }), manual ? el("span", { text: P.en }) : paintModel(P.en, said).node), ckChips(P.en, u),
           !manual && paintModel(P.en, said).miss.length ? el("span", { cls: "small miss-list", text: "Faltou: " + paintModel(P.en, said).miss.join(", ") }) : null);
         nx.disabled = false;
       }, { onRecEnd: function () { clearInterval(timer); } });
@@ -2217,7 +2267,32 @@
   var PARTS = null;
   function loadParts() { if (PARTS) return Promise.resolve(PARTS); return j("/academia/cenas-partes.json?v=" + (window.__v || 1)).then(function (x) { PARTS = x || {}; return PARTS; }, function () { PARTS = {}; return PARTS; }); }
   function partsOf(V) { return PARTS && V && PARTS[V.youtubeId + "@" + (V.start || 0)] || null; }
-  function rich(s) { return esc(s).replace(/\*\*(.+?)\*\*/g, "<mark>$1</mark>").replace(/\+\+(.+?)\+\+/g, '<mark class="nat">$1</mark>'); }
+  function rich(s) { return hl(s, CURU); }
+  // 🔑 Thiago 28/11: TODO chunk / expressão de nativo aparece destacado, em qualquer texto, pro aluno saber o que guardar
+  var CURU = null; // tema aberto agora (pra achar os chunks dele)
+  function ckPhrases(u) {
+    if (u && u.__ck) return u.__ck;
+    var out = [];
+    ((u && u.lesson && u.lesson.chunks) || []).forEach(function (c) { String(c.chunk || "").split(/\s*\/\s*|\s*·\s*/).forEach(function (x) { x = x.replace(/[…]|\.\.\.|\(.*?\)/g, "").replace(/[?!.,]+$/, "").trim(); if (x.split(/\s+/).length >= 2 && x.length >= 4) out.push(x.toLowerCase()); }); });
+    Object.keys(EBOOK || {}).forEach(function (k) { if (/\s/.test(k) && k.indexOf("…") < 0 && k.length >= 5) out.push(k.toLowerCase()); });
+    out = out.filter(function (x, i) { return out.indexOf(x) === i; }).sort(function (a, b) { return b.length - a.length; });
+    if (u) u.__ck = out; return out;
+  }
+  function hl(raw, u) {
+    var h = esc(raw).replace(/\*\*(.+?)\*\*/g, '<mark class="ck">$1</mark>').replace(/\+\+(.+?)\+\+/g, '<mark class="ck nat">$1</mark>');
+    ckPhrases(u).forEach(function (ph) {
+      var re = new RegExp("(^|[^a-z'])(" + ph.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/'/g, "['’]") + ")(?![a-z])", "gi");
+      h = h.split(/(<mark[^>]*>.*?<\/mark>)/).map(function (seg) { return seg.indexOf("<mark") === 0 ? seg : seg.replace(re, '$1<mark class="ck">$2</mark>'); }).join("");
+    });
+    return h;
+  }
+  function ckLegend() { return el("p", { cls: "ck-legend", html: '<mark class="ck">destacado</mark> = como o nativo fala de verdade. Você vai ouvir isso em série e filme: guarde!' }); }
+  function ckChips(text, u) { // "🔑 Guarde: …" embaixo de respostas que já vêm coloridas por acerto/erro
+    var t = String(text || "").toLowerCase(), found = ckPhrases(u).filter(function (ph) { return new RegExp("(^|[^a-z'])" + ph.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "(?![a-z])").test(t); });
+    found = found.filter(function (x) { return !found.some(function (y) { return y !== x && y.indexOf(x) > -1; }); }).slice(0, 4);
+    if (!found.length) return null;
+    return el("p", { cls: "ck-chips" }, el("span", { text: "🔑 Guarde: " }), found.map(function (f) { return el("mark", { cls: "ck", text: f }); }));
+  }
   function clean(s) { return String(s || "").replace(/\*\*|\+\+/g, ""); }
   function miniBar() {
     var fill = el("i"), lab = el("span", { cls: "mb-lab" }), tm = el("span", { cls: "mb-tm" });
@@ -2417,6 +2492,7 @@
       CUR = null; var pbtn = w.querySelector(".top .pause"); if (pbtn) pbtn.remove();
       head.querySelector(".pt-steps") && head.querySelector(".pt-steps").remove();
       var tl = el("div", { cls: "tr-lines" }), rows = [];
+      tl.append(ckLegend());
       (X.transcript || []).forEach(function (L) { var r = el("div", { cls: "tr-line", role: "button", tabindex: "0", html: rich(L.en), onclick: function () { Y.free(L.t); }, onkeydown: function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); Y.free(L.t); } } }); rows.push({ t: L.t, el: r }); tl.append(r); });
       barFn = function (cur, st) { var c = -1; rows.forEach(function (x, i) { if (cur >= x.t - 0.3) c = i; }); rows.forEach(function (x, i) { x.el.classList.toggle("now", i === c && st === 1); }); if (cur >= T1 + 0.3 && st === 1) Y.pause(); };
       var vg = el("div", { cls: "vocab-list" });
@@ -2606,7 +2682,9 @@
     w.append(topBar(), el("h1", { text: "📊 Seu progresso" }),
       el("div", { cls: "card status-card" }, el("span", { cls: "eyebrow", text: "Seu status agora" }), el("b", { cls: "st-big", text: st.ic + " " + st.t }), el("p", { cls: "small", text: st.why }), el("p", { cls: "next-step", text: "👉 " + st.how }),
         el("details", { cls: "faq" }, el("summary", { text: "❓ Como funciona o status?" }), el("ul", null, el("li", { text: "🔥 Em chamas: média 85% e 3 dias seguidos" }), el("li", { text: "🚀 Decolando: média 70%" }), el("li", { text: "🙂 No ritmo: média 50%" }), el("li", { text: "⚠️ Precisa acelerar: abaixo de 50% ou 3 dias sem treinar" }), el("li", { cls: "small", text: "A média é dos seus últimos 8 exercícios. Sobe e desce conforme você treina." })))),
-      xpCard(), levelsCard(), accountCard());
+      xpCard(), levelsCard(),
+      el("button", { cls: "station keep-st", type: "button", onclick: function () { pushNav(); cadernoPage(); } }, el("span", { cls: "se", text: "📒" }), el("b", { text: "Meu caderno" }), el("span", { cls: "small", text: ((S.caderno || []).length ? (S.caderno || []).length + " expressões guardadas · revisar" : "as expressões de nativo que você guardou") })),
+      accountCard());
     var MD = medals(), nGot = MD.filter(function (m) { return m.cur >= m.goal; }).length;
     var md = el("div", { cls: "card" }, el("span", { cls: "eyebrow", text: "🏅 Medalhas · " + nGot + " de " + MD.length }));
     MD.forEach(function (m) {

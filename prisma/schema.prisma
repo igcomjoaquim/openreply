@@ -588,6 +588,9 @@ model DtvUser {
   selfLevel    String?
   testLevel    String?
   marketingOk  Boolean   @default(false)
+  /// Lembrete diário por e-mail: true = a pessoa saiu pelo link do e-mail. reminderAt = dia (AAAA-MM-DD) do último enviado.
+  reminderOff  Boolean   @default(false)
+  reminderAt   String?
   consentAt    DateTime  @default(now())
   /// Progresso do treino (o mesmo objeto que fica no aparelho), pra não perder ao trocar de celular.
   progress     Json?

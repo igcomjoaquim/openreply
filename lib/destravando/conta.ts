@@ -98,23 +98,23 @@ export async function sendCode(to: string, name: string, code: string): Promise<
   const html = `<div style="font-family:system-ui,sans-serif;font-size:16px;color:#2B211B;max-width:480px"><p>Oi, ${escapeHtml(name.split(" ")[0])}!</p><p>Seu código pra criar uma senha nova no <b>Destravando</b> é:</p><p style="font-size:34px;font-weight:800;letter-spacing:6px;background:#FFD21F;display:inline-block;padding:8px 16px;border-radius:12px">${code}</p><p>Ele vale <b>20 minutos</b>. Se não foi você que pediu, é só ignorar este e-mail.</p><p>Bora destravar? 🔓<br>Thiago · Inglês com Joaquim</p></div>`;
   await sendMail(to, subject, text, html);
 }
-async function sendMail(to: string, subject: string, text: string, html: string): Promise<void> {
+export async function sendMail(to: string, subject: string, text: string, html: string, headers?: Record<string, string>): Promise<void> {
   const from = process.env.DESTRAVANDO_EMAIL_FROM ?? (process.env.DESTRAVANDO_RESEND_KEY ? "Destravando <nao-responda@destravando.inglescomjoaquim.com>" : process.env.EMAIL_FROM) ?? "Destravando <nao-responda@destravando.inglescomjoaquim.com>";
   // Chave própria do Destravando (domínio destravando.inglescomjoaquim.com no Resend). A RESEND_API_KEY é a do login do painel: não mexer.
   const key = process.env.DESTRAVANDO_RESEND_KEY ?? process.env.RESEND_API_KEY;
   if (process.env.DESTRAVANDO_RESEND_KEY || (!process.env.EMAIL_SERVER && key)) {
-    const r = await fetch("https://api.resend.com/emails", { method: "POST", headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" }, body: JSON.stringify({ from, to, subject, text, html }) });
+    const r = await fetch("https://api.resend.com/emails", { method: "POST", headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" }, body: JSON.stringify({ from, to, subject, text, html, ...(headers ? { headers } : {}) }) });
     if (!r.ok) console.error("[destravando] resend", r.status, (await r.text().catch(() => "")).slice(0, 300));
     if (!r.ok) throw new Error("resend " + r.status);
     return;
   }
   if (process.env.EMAIL_SERVER) {
-    await nodemailer.createTransport(process.env.EMAIL_SERVER).sendMail({ from, to, subject, text, html });
+    await nodemailer.createTransport(process.env.EMAIL_SERVER).sendMail({ from, to, subject, text, html, headers });
     return;
   }
   throw new Error("sem servidor de e-mail configurado");
 }
-function escapeHtml(s: string) { return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c] as string); }
+export function escapeHtml(s: string) { return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c] as string); }
 
 // ---- limite simples por IP (evita robô tentando senha) ----
 const hits = new Map<string, number[]>();

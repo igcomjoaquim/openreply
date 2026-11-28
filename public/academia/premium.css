@@ -400,3 +400,16 @@ body.premium .keep-st{width:100%;margin-top:10px}
 .keep-ex small{color:var(--muted,#7F735C)}
 .keep-tag{color:var(--muted,#7F735C);font-size:12px}
 .keep-day{margin-top:10px}
+/* 😄 frases, gancho, projeção, lembrete */
+.fun-line{font-size:22px!important;margin:6px 0}
+.teaser h2{font-family:var(--f-display,Georgia);font-size:24px;margin:4px 0}
+.proj p{margin:6px 0}
+.proj-bar{height:10px;border-radius:999px;background:rgba(111,42,61,.1);overflow:hidden;margin-top:8px}
+.proj-bar i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,#EDC55F,#D4A843 60%,#8E3A52)}
+.rem{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:8px}
+.rem-sel{border:1px solid #E2D4B5;border-radius:12px;padding:8px 10px;background:#FFFDF8;font:16px var(--f-body,system-ui)}
+.rem-card{margin-top:10px}
+.rank-list{list-style:none;padding:0;margin:8px 0 0;display:flex;flex-direction:column}
+.rank-list li{display:flex;justify-content:space-between;padding:8px 4px;border-bottom:1px solid var(--line,#E4DED2)}
+.rank-list li.me{background:linear-gradient(110deg,rgba(237,197,95,.28),rgba(111,42,61,.10));border-radius:10px;font-weight:700}
+.rank-msg{display:block;margin:4px 0;color:var(--marsala,#6F2A3D)}

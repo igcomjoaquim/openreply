@@ -124,7 +124,9 @@
     var k = dkey(st, uid, v), r = S.done[k] || { n: 0, best: 0 };
     r.n++; r.best = Math.max(r.best, pct); r.last = today(); S.done[k] = r;
     S.hist = (S.hist || []).concat([{ d: today(), st: st, p: Math.round(pct * 100) / 100 }]).slice(-40);
-    S.xp += Math.round(10 + pct * 20); markDay(); persist();
+    var gain = Math.round(10 + pct * 20); S.xp += gain; S.xpByDay = S.xpByDay || {}; S.xpByDay[today()] = (S.xpByDay[today()] || 0) + gain;
+    Object.keys(S.xpByDay).forEach(function (d) { if (d < new Date(Date.now() - 40 * 86400000).toISOString().slice(0, 10)) delete S.xpByDay[d]; });
+    markDay(); persist();
   }
   function addError(e) {
     if (S.errors.some(function (x) { return x.en === e.en; })) return;
@@ -629,6 +631,7 @@
       el("p", { html: msg }));
   }
   function result() {
+    if (S.goA2 && S.level && S.level !== "a1") setTimeout(function () { try { SFX.win(); confetti(); } catch (e) {} }, 400);
     var w = screen(), T = S.test, wk = weakest();
     w.append(topBar(), el("section", { cls: "hero" },
       el("span", { cls: "eyebrow", text: "Seu resultado" + (S.name ? ", " + S.name : "") }),
@@ -750,7 +753,7 @@
   }
   function unlockScreen(uid) {
     var i = uidx(uid), I = INDEX[i], N = INDEX[i + 1], w = screen();
-    markDay(); persist();
+    markDay(); persist(); setTimeout(function () { SFX.win(); confetti(); }, 250);
     w.append(topBar(), el("section", { cls: "hero center unlock" }, el("div", { cls: "big-emoji", text: "🔓" }),
       el("span", { cls: "eyebrow", text: "Tema " + (i + 1) + " dominado" }),
       el("h1", { html: N ? "Liberou o <mark>tema " + (i + 2) + "</mark>!" : "Você dominou <mark>todo o " + LVL.toUpperCase() + "</mark>!" }),
@@ -896,7 +899,7 @@
       F.parts.forEach(function (P) { var v = res[P.key] || 0; total += v; if (v < 25 * F.passPart / 100) low.push(P); });
       var pass = total >= F.passTotal && !low.length;
       S[FS] = null; S[FL] = { total: total, res: res, pass: pass, date: today() };
-      if (pass) S[DONE_KEY[LVL]] = true;
+      if (pass) { S[DONE_KEY[LVL]] = true; setTimeout(function () { SFX.win(); confetti(); }, 300); }
       markDay(); persist();
       var w = screen();
       w.append(topBar(home), el("section", { cls: "hero" + (pass ? " center" : "") },
@@ -1022,11 +1025,30 @@
     if (!S.daily || S.daily.date !== today()) { S.daily = { date: today(), plan: dailyPlan(), i: 0 }; persist(); }
     return S.daily;
   }
+  // 😄 Thiago 28/11: incentivo e humor no tom dele (irreverente, sem discriminação)
+  var FUN = [
+    "Vai dar tudo certo. É só levantar a bunda do sofá. Ah, você já levantou. 👏",
+    "Antes você não sabia nada. Agora… parece que é o começo. E começo é tudo.",
+    "Se você quer rir, tem que fazer o outro rir. Se quer falar inglês, tem que abrir a boca.",
+    "Nativo também erra. A diferença é que ele não para de falar.",
+    "Ninguém fica fluente lendo apostila deitado. Bora, que você tá no caminho.",
+    "Você tá treinando o ouvido que nem academia: dói um pouco, mas amanhã tá mais forte.",
+    "Errou? Ótimo. Errar falando vale mais que acertar calado.",
+    "Daqui a pouco você vai entender série sem legenda e vai achar que é mágica. Não é: é isso aqui.",
+    "15 minutos por dia. Menos que uma série no celular. E rende muito mais.",
+    "Inglês não é dom. É repetição com vergonha na cara. 😏",
+    "O Tony fofoca, o Max apronta e você aprende. Todo mundo sai ganhando.",
+    "Falou, validou. Não falou… ninguém ficou sabendo. 🤫"
+  ];
+  var CHEER = ["Isso aí! 🔥", "É isso mesmo, continua!", "Mandou bem! 👏", "Tá voando! 🚀", "Olha você falando inglês! 😎", "Perfeito, segue assim!"];
+  function fun() { return FUN[Math.floor(Math.random() * FUN.length)]; }
   function restScreen(D, go) {
     var w = screen(), nx = D.plan[D.i], X = ST[nx.st], pct = Math.round(D.i / D.plan.length * 100);
     w.append(topBar(home), el("div", { cls: "thead" }, el("span", { cls: "eyebrow", text: "Treino do dia" }), steps(D.i + 1, D.plan.length, "Próxima: fase", D.plan.map(function (x) { return ST[x.st].emoji; }))),
-      el("section", { cls: "hero center rest" }, el("div", { cls: "big-emoji", text: "☕" }), el("h1", { text: "Respira." }),
-        el("p", { text: "Fase concluída. Se precisar parar, pode sair: amanhã… ou daqui a pouco, você continua daqui." }),
+      el("section", { cls: "hero center rest" }, el("div", { cls: "big-emoji", text: D.plan.length - D.i <= 1 ? "🏁" : pct >= 50 ? "💪" : "☕" }),
+        el("h1", { text: D.plan.length - D.i <= 1 ? "Última fase! Só mais um pouquinho." : pct >= 50 ? "Já passou da metade!" : "Respira. Tá indo bem." }),
+        el("p", { cls: "hand fun-line", text: fun() }),
+        el("p", { cls: "small", text: "Se precisar parar, pode sair: você continua daqui depois." }),
         el("div", { cls: "card nextph" }, el("span", { cls: "eyebrow", text: "Próxima fase" }), el("b", { text: X.emoji + " " + X.name }), el("span", { cls: "small", text: X.pt }))),
       el("button", { cls: "btn big", type: "button", text: "Bora →", onclick: go }),
       el("button", { cls: "linkish", type: "button", text: "Parar por agora", onclick: home }));
@@ -1083,14 +1105,55 @@
       el("button", { cls: "btn", type: "button", text: "📒 Abrir meu caderno", onclick: function () { pushNav(); cadernoPage(); } }));
   }
   // 👤 a página do aluno: o que é DELE sempre à mão (Thiago 28/11: "sensação de individualidade e personalização")
+  // 🎯 onde você vai chegar (pra quem é competitivo enxergar o futuro)
+  function projection() {
+    var n = INDEX.length, done = INDEX.filter(function (x) { return themeMastery(x.id) >= 2; }).length, left = n - done;
+    var since = new Date(Date.now() - 14 * 86400000).toISOString().slice(0, 10);
+    var act14 = (S.days || []).filter(function (d) { return d >= since; }).length, perWeek = Math.max(3, Math.min(7, Math.round(act14 / 2) || 4));
+    var dayPerTheme = done ? Math.max(2, Math.min(6, Math.round((S.days || []).length / done))) : 3;
+    function when(pw) { var d = new Date(Date.now() + Math.ceil(left * dayPerTheme / pw * 7) * 86400000); return String(d.getDate()).padStart(2, "0") + "/" + String(d.getMonth() + 1).padStart(2, "0"); }
+    var NX = NEXT_LV[LVL] ? NEXT_LV[LVL].toUpperCase() : null;
+    if (!left) return el("div", { cls: "card proj" }, el("span", { cls: "eyebrow", text: "🎯 Onde você vai chegar" }), el("b", { text: "Trilha do " + LVL.toUpperCase() + " completa! " + (NX ? "Faça o teste final e vá pro " + NX + "." : "Você chegou no topo. 🏆") }));
+    return el("div", { cls: "card proj" }, el("span", { cls: "eyebrow", text: "🎯 Onde você vai chegar" }),
+      el("p", null, "No seu ritmo (" + perWeek + " dias por semana), você fecha o ", el("b", { text: LVL.toUpperCase() }), " lá por ", el("b", { text: when(perWeek) }), NX ? " e já entra no " + NX + "." : "."),
+      el("p", { cls: "small", text: "Treinando todo dia: " + when(7) + ". Faltam " + left + " de " + n + " temas. Cada dia conta." }),
+      el("div", { cls: "proj-bar" }, el("i", { style: "width:" + Math.max(3, Math.round(done / n * 100)) + "%" })));
+  }
+  // 📅 lembrete diário na agenda do próprio celular (.ics), sem depender de app nem de notificação
+  function reminderBtn() {
+    var sel = el("select", { cls: "rem-sel", "aria-label": "Horário do lembrete" }); ["07:00", "08:00", "12:00", "18:00", "19:00", "20:00", "21:00", "22:00"].forEach(function (h) { sel.append(el("option", { value: h, text: h, selected: h === (S.remind || "19:00") ? true : null })); });
+    return el("div", { cls: "rem" }, el("span", { cls: "small", text: "📅 Me lembra todo dia às" }), sel, el("button", { cls: "btn sm", type: "button", text: "Pôr na agenda", onclick: function () {
+      var hm = sel.value.replace(":", ""), d = new Date(); d.setDate(d.getDate() + 1); var ds = d.getFullYear() + String(d.getMonth() + 1).padStart(2, "0") + String(d.getDate()).padStart(2, "0");
+      var ics = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Destravando//PT", "BEGIN:VEVENT", "UID:destravando-" + Date.now() + "@inglescomjoaquim.com", "DTSTAMP:" + new Date().toISOString().replace(/[-:]/g, "").slice(0, 15) + "Z",
+        "DTSTART:" + ds + "T" + hm + "00", "DURATION:PT15M", "RRULE:FREQ=DAILY", "SUMMARY:🔓 Destravando: 15 min de inglês", "DESCRIPTION:Bora treinar! https://destravando.inglescomjoaquim.com", "URL:https://destravando.inglescomjoaquim.com",
+        "BEGIN:VALARM", "TRIGGER:PT0M", "ACTION:DISPLAY", "DESCRIPTION:Hora do Destravando! 🔥", "END:VALARM", "END:VEVENT", "END:VCALENDAR"].join("\r\n");
+      S.remind = sel.value; persist();
+      var a = el("a", { href: URL.createObjectURL(new Blob([ics], { type: "text/calendar" })), download: "destravando-lembrete.ics" }); document.body.append(a); a.click(); a.remove();
+      notice("📅 Abriu a agenda? Toque em Adicionar. Todo dia às " + sel.value + " o celular te chama.");
+    } }));
+  }
+  // 🏆 ranking da semana (competitivo tipo a Carla): só com conta; primeiro nome + inicial
+  function rankingCard() {
+    if (!ACC || !CONTA_OK || PROF) return null;
+    var box = el("div", { cls: "card rank" }, el("span", { cls: "eyebrow", text: "🏆 Ranking da semana" }), el("p", { cls: "small", text: "Carregando…" }));
+    pushNow(function () { api("ranking", "GET").then(function (r) {
+      if (!r || !r.top) { box.remove(); return; }
+      var list = el("ol", { cls: "rank-list" });
+      r.top.forEach(function (x) { list.append(el("li", { cls: x.me ? "me" : null }, el("span", { text: (x.pos <= 3 ? ["🥇", "🥈", "🥉"][x.pos - 1] : x.pos + "º") + " " + x.n + (x.me ? " (você)" : "") }), el("b", { text: x.xp + " XP" }))); });
+      var msg = !r.me ? "Faça o treino de hoje pra entrar no ranking. 🔥" : r.me.pos === 1 ? "Você tá em 1º! Agora é defender o trono. 👑" : (function () { var ahead = r.top[r.me.pos - 2]; return ahead ? "Faltam " + (ahead.xp - r.me.xp + 1) + " XP pra passar " + ahead.n + ". Bora?" : "Você tá em " + r.me.pos + "º de " + r.total + ". Bora subir!"; })();
+      box.replaceChildren(el("span", { cls: "eyebrow", text: "🏆 Ranking da semana · XP dos últimos 7 dias" }), el("b", { cls: "rank-msg", text: msg }), list);
+    }); });
+    return box;
+  }
   function myTiles() {
     var nC = (S.caderno || []).filter(function (c) { return !c.lv || c.lv === LVL; }).length, nE = myErrors().length;
     function tile(ic, t, sub, fn) { return el("button", { cls: "my-tile", type: "button", onclick: function () { pushNav(); fn(); } }, el("span", { cls: "mt-ic", text: ic }), el("b", { text: t }), el("span", { cls: "small", text: sub })); }
-    return el("section", { cls: "my-tiles" }, el("span", { cls: "eyebrow", text: "👤 Seu espaço" }),
+    return el("section", { cls: "my-tiles" }, projection(), el("span", { cls: "eyebrow", text: "👤 Seu espaço" }),
       el("div", { cls: "mt-row" },
         tile("📒", "Meu caderno", nC ? nC + " pra revisar" : "o que você guardar", cadernoPage),
         tile("🧠", "Meus erros", nE ? nE + " pra corrigir" : "nada pendente 🎉", function () { if (nE) runErrors(); else { notice("🎉 Nada pra revisar por enquanto!"); home(); } }),
-        tile("📊", "Progresso", "nível, medalhas, evolução", progressPage)));
+        tile("📊", "Progresso", "nível, medalhas, evolução", progressPage)),
+      S.remind ? null : el("div", { cls: "card rem-card" }, el("b", { text: "⏰ Constância é tudo" }), el("p", { cls: "small", text: "Escolha um horário e o seu celular te lembra todo dia. 15 minutos, e o 🔥 não apaga." }), reminderBtn()));
   }
   function cadernoPage() {
     var w = screen(), C = (S.caderno || []).filter(function (c) { return !c.lv || c.lv === LVL; });
@@ -1125,10 +1188,16 @@
     var w = screen();
     w.append(topBar(), el("section", { cls: "hero center" }, el("div", { cls: "big-emoji", text: "🏆" }), el("h1", { text: "Treino de hoje feito!" }),
       el("p", { text: "🔥 Ofensiva de " + streak() + (streak() === 1 ? " dia" : " dias") + ". Amanhã tem mais, com outras variações — volta pra manter o fogo aceso!" }), el("p", { cls: "hand", text: "Falou, validou! 🚀" })),
-      bonusCard(),
+      bonusCard(), rankingCard(),
       el("button", { cls: "btn big", type: "button", text: "Voltar pro início", onclick: home }));
     var D0 = S.daily && S.daily.plan && S.daily.plan[0]; var kuid = D0 && D0.uid && D0.uid !== GERAL.id ? D0.uid : INDEX[curTheme()].id;
-    getUnit(kuid).then(function (u) { var k = keepCard(u); if (k && w.isConnected) w.insertBefore(k, w.querySelector(".bonus") || null); }, function () {});
+    getUnit(kuid).then(function (u) {
+      var k = keepCard(u); if (k && w.isConnected) w.insertBefore(k, w.querySelector(".bonus") || null);
+      // 👀 gancho: a fofoca de amanhã (curiosidade traz o aluno de volta)
+      var fv = nextVar("fofoca", u), G = fv >= 0 && u.gossips && u.gossips[fv];
+      if (G && w.isConnected) w.insertBefore(el("div", { cls: "card teaser" }, el("span", { cls: "eyebrow", text: "👀 Amanhã no Sunset Building" }), el("h2", { text: "“" + G.title + "”" }),
+        el("p", { cls: "small", text: "Tem fofoca nova te esperando. Volta amanhã pra saber o que aconteceu (e manter o 🔥)." }), reminderBtn()), w.querySelector(".keep") || w.querySelector(".bonus") || null);
+    }, function () {});
     SFX.win(); confetti();
   }
   // ⚡ RODADA BÔNUS igual ao homework: 30 s, aparece em português, toca na opção certa em inglês, 2 XP por acerto
@@ -1994,7 +2063,7 @@
     combo++; S.comboBest = Math.max(S.comboBest || 0, combo);
     if (combo >= 3) {
       SFX.combo(combo); S.xp++; persist();
-      var t = el("div", { cls: "combo-toast", role: "status", text: "🔥 Combo x" + combo + "!  +1 XP" });
+      var t = el("div", { cls: "combo-toast", role: "status", text: (combo % 5 === 0 ? CHEER[Math.floor(Math.random() * CHEER.length)] + "  " : "") + "🔥 Combo x" + combo + "!  +1 XP" });
       document.body.append(t); setTimeout(function () { t.remove(); }, 1300);
     } else SFX.small();
   }
@@ -2705,7 +2774,7 @@
     w.append(topBar(), el("h1", { text: "📊 Seu progresso" }),
       el("div", { cls: "card status-card" }, el("span", { cls: "eyebrow", text: "Seu status agora" }), el("b", { cls: "st-big", text: st.ic + " " + st.t }), el("p", { cls: "small", text: st.why }), el("p", { cls: "next-step", text: "👉 " + st.how }),
         el("details", { cls: "faq" }, el("summary", { text: "❓ Como funciona o status?" }), el("ul", null, el("li", { text: "🔥 Em chamas: média 85% e 3 dias seguidos" }), el("li", { text: "🚀 Decolando: média 70%" }), el("li", { text: "🙂 No ritmo: média 50%" }), el("li", { text: "⚠️ Precisa acelerar: abaixo de 50% ou 3 dias sem treinar" }), el("li", { cls: "small", text: "A média é dos seus últimos 8 exercícios. Sobe e desce conforme você treina." })))),
-      xpCard(), levelsCard(),
+      rankingCard(), xpCard(), levelsCard(),
       el("button", { cls: "station keep-st", type: "button", onclick: function () { pushNav(); cadernoPage(); } }, el("span", { cls: "se", text: "📒" }), el("b", { text: "Meu caderno" }), el("span", { cls: "small", text: ((S.caderno || []).length ? (S.caderno || []).length + " expressões guardadas · revisar" : "as expressões de nativo que você guardou") })),
       accountCard());
     var MD = medals(), nGot = MD.filter(function (m) { return m.cur >= m.goal; }).length;

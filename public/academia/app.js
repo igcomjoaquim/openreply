@@ -99,6 +99,10 @@
   function b1Open() { return B1_READY && (ALL || S.level === "b1" || S.level === "b2" || S.a2Done); }
   var B2_READY = B1_READY; // B1 e B2 ficam prontos juntos
   function b2Open() { return B2_READY && (ALL || S.level === "b2" || S.b1Done); }
+  // 🎓 teste final por nível (A1→A2, A2→B1, B1→B2): cada nível guarda a sua tentativa
+  var NEXT_LV = { a1: "a2", a2: "b1", b1: "b2" }, DONE_KEY = { a1: "a1Done", a2: "a2Done", b1: "b1Done" };
+  var FS = LVL === "a1" ? "finalSave" : "finalSave_" + LVL, FL = LVL === "a1" ? "finalLast" : "finalLast_" + LVL;
+  function hasFinal() { return LVL === "a1" || ((LVL === "a2" || LVL === "b1") && B1_READY); }
   var LV_LABEL = { a1: "A1 · Básico", a2: "A2 · Pré-intermediário", b1: "B1 · Intermediário", b2: "B2 · Intermediário superior" };
   S.done = S.done || {};     // "est:uid:v" -> {n, best, last}
   S.errors = S.errors || []; // [{uid, kind, en, pt, file}]
@@ -307,7 +311,7 @@
     }
     var playB = el("button", { cls: "btn pt-big pulse", type: "button", text: "▶ Ouvir o trecho", onclick: demoPlay });
     var faq = el("div", { cls: "land-faq" });
-    [["Eu sou muito iniciante. Isso funciona pra mim?", "Funciona. O teste de nível mostra por onde você começa, e a trilha vai do A1 ao A2, um tema por vez. No começo tudo vem com a tradução do lado, sem pressão e sem vergonha."],
+    [["Eu sou muito iniciante. Isso funciona pra mim?", "Funciona. O teste de nível mostra por onde você começa, e a trilha vai do zero até conversar com confiança (A1, A2, B1 e B2), um tema por vez. No começo tudo vem com a tradução do lado, sem pressão e sem vergonha."],
      ["Quanto tempo por dia eu preciso?", "Uns 15 minutos. O treino do dia é feito de fases curtas. O que muda o jogo não é o tempo, é a constância: treinar um pouquinho todo dia."],
      ["Preciso marcar horário ou aula ao vivo?", "Não. Você treina no seu tempo, no celular ou no computador, na hora que der."],
      ["E se eu travar ou errar?", "Ótimo, é pra isso que serve. O que você erra vai pro Meus erros e volta em outro dia, numa situação nova, até você acertar. Errar falando vale mais que acertar no silêncio."],
@@ -334,14 +338,14 @@
       el("span", { cls: "hc-badge", text: "Falou, validou!" }));
     // ➖ faixa que corre
     var mq = el("div", { cls: "land-marquee" }), mqIn = el("div", { cls: "mq-in" });
-    var MQ = ["Ouvir nativo de verdade", "Falar todo dia", "Cenas reais", "Correção na hora", "Sem decoreba", "No seu nível", "15 minutos por dia", "Falou, validou", "Do zero ao A2", "Chega de travar"];
+    var MQ = ["Ouvir nativo de verdade", "Falar todo dia", "Cenas reais", "Correção na hora", "Sem decoreba", "No seu nível", "15 minutos por dia", "Falou, validou", "Do zero ao B2", "Chega de travar"];
     for (var mr = 0; mr < 2; mr++) MQ.forEach(function (t) { mqIn.append(el("span", { text: t }), el("i", { text: "✦" })); });
     mq.append(mqIn);
     // 💳 oferta: o que você leva + assinatura
     var oferta = sec("A decisão é sua", "Daqui a alguns meses você pode estar entendendo e falando, ou exatamente onde está hoje", "land-offer");
     oferta.id = "assinatura";
     var leva = el("ul", { cls: "land-check" });
-    ["Trilha completa do A1 ao A2, um tema por vez", "Cenas reais de séries, entrevistas de rua e vlogs, em partes, com Raio-X do som", "Treino de fala todo dia: você grava, se ouve e vê o que a página entendeu", "Ditado, fofoca, shadowing, leitura em voz alta e Real Time", "Meus erros: o que você erra volta até você acertar", "Teste de nível, evolução 🌱🌿🌳🍎 e medalhas", "Tudo no celular ou no computador, no seu tempo, sem hora marcada"].forEach(function (t) { leva.append(el("li", { text: t })); });
+    ["Trilha completa do zero ao B2 (A1, A2, B1 e B2), um tema por vez, com teste final pra passar de nível", "Cenas reais de séries, entrevistas de rua e vlogs, em partes, com Raio-X do som", "Treino de fala todo dia: você grava, se ouve e vê o que a página entendeu", "Ditado, fofoca, shadowing, leitura em voz alta e Real Time", "Meus erros: o que você erra volta até você acertar", "Teste de nível, evolução 🌱🌿🌳🍎 e medalhas", "Tudo no celular ou no computador, no seu tempo, sem hora marcada"].forEach(function (t) { leva.append(el("li", { text: t })); });
     oferta.append(el("div", { cls: "land-offer-card" },
       el("div", { cls: "lo-top" }, el("span", { cls: "eyebrow", text: "O que você leva" }), el("h3", { text: "Destravando · Assinatura" }), leva),
       el("div", { cls: "lo-bottom" }, el("span", { cls: "lo-pill", text: "⚡ Acesso imediato" }), el("small", { text: "Assinatura" }), el("strong", { text: "Treino novo todo dia" }), el("small", { text: "pra destravar de vez" }),
@@ -354,7 +358,7 @@
     w.append(
       top,
       el("section", { cls: "land-hero" },
-        el("span", { cls: "eyebrow", text: "• Destravando · A1 · A2" }),
+        el("span", { cls: "eyebrow", text: "• Destravando · do zero ao B2" }),
         el("h1", { html: "Você estuda inglês há anos e ainda <mark>trava</mark> na hora de ouvir e falar?" }),
         el("p", { html: "A culpa não é sua: é do método que te ensinaram. Na <b>Destravando</b>, você treina o ouvido e a fala <b>todo dia</b>, com nativo de verdade, e valida na prática. Nada de teoria sem fim." }),
         el("p", { cls: "hand", text: "Falou, validou." }),
@@ -408,11 +412,13 @@
         });
         x.append(el("p", { text: "Cada fofoca e cada cena planta, sem você perceber, o que separa o “inglês de escola” do inglês que soa como gente de verdade:" }), g);
         return x; })(),
-      (function () { var x = sec("Não importa onde você está", "No seu nível, do zero ao A2");
+      (function () { var x = sec("Não importa onde você está", "4 níveis, do zero até conversar com confiança");
         x.append(el("div", { cls: "land-levels" },
-          el("div", null, el("em", { text: "A1" }), el("b", { text: "Começando do zero, ou quase" }), el("span", { text: "Tudo com tradução do lado, frases curtas e fala lenta. Você percebe que consegue desde o primeiro dia." })),
-          el("div", null, el("em", { text: "A2" }), el("b", { text: "Já entende, mas trava" }), el("span", { text: "Cenas mais rápidas, phrasal verbs e reconto. Você conta a história com as suas palavras." }))),
-          el("p", { cls: "small", text: "Não sabe seu nível? Sem crise: o teste mostra por onde começar." }));
+          el("div", null, el("em", { text: "A1" }), el("b", { text: "Básico · começando do zero" }), el("span", { text: "Se apresentar, falar da rotina, pedir comida. Tudo com tradução do lado, frases curtas e fala lenta." })),
+          el("div", null, el("em", { text: "A2" }), el("b", { text: "Pré-intermediário · já entende, mas trava" }), el("span", { text: "Contar o que fez, viajar, dar conselho. Cenas mais rápidas e reconto com as suas palavras." })),
+          el("div", null, el("em", { text: "B1" }), el("b", { text: "Intermediário · se vira sozinho" }), el("span", { text: "Contar uma história com detalhe, repassar fofoca, reclamar, combinar planos, dar opinião." })),
+          el("div", null, el("em", { text: "B2" }), el("b", { text: "Intermediário superior · conversa com confiança" }), el("span", { text: "Argumentar, negociar, falar de arrependimento e entender nativo falando rápido, sem legenda." }))),
+          el("p", { cls: "small", text: "A1, A2, B1 e B2 são os níveis do Quadro Europeu, a régua usada no mundo todo. Não sabe o seu? Sem crise: o teste mostra por onde começar, e cada nível termina com um teste final pra passar pro próximo." }));
         return x; })(),
       (function () { var x = sec("Quem tá do outro lado", null, "land-prof land-wine"); x.id = "professor";
         x.append(el("div", { cls: "land-prof-in" }, el("img", { src: SITE + "profile.png", alt: "Thiago Joaquim, professor de inglês" }),
@@ -496,7 +502,9 @@
     function nextPart() {
       if (pi >= parts.length) return finish();
       var P = parts[pi];
-      items = (T[P.key] || []).slice().sort(function (a, b) { return a.band - b.band; }); ii = 0; missStreak = 0;
+      // começa sempre do mais fácil; quem disse "nível zero"/"um pouquinho" nem vê as perguntas de B1/B2 (Thiago 28/11: "começar mais simples")
+      var cap = S.self == null ? 5 : [3, 4, 5, 5][S.self] || 5;
+      items = (T[P.key] || []).filter(function (x) { return x.band <= cap; }).sort(function (a, b) { return a.band - b.band; }); ii = 0; missStreak = 0;
       base = JSON.parse(JSON.stringify(res));
       if (resumeT) { ii = resumeT.ii; missStreak = resumeT.miss; resumeT = null; return nextItem(); }
       var w = screen();
@@ -516,7 +524,7 @@
           } })),
         el("span", { cls: "eyebrow", text: "Teste de nível · " + P.title.replace(/^\S+\s/, "").replace(/Parte \d de \d · /, "") }),
         steps(pi + 1, total, "Parte", ["👂", "🔁", "⚡", "🗣️"]),
-        n && i > 0 ? steps(Math.min(i, n), n, "Pergunta") : (n ? el("p", { cls: "small", text: "Até " + n + " perguntas nesta parte. Se ficar difícil demais, ela acaba antes." }) : null));
+        n && i > 0 ? steps(Math.min(i, n), n, "Pergunta") : (n ? el("p", { cls: "small", text: "Começa fácil e vai ficando mais difícil. Errou 2 seguidas? A parte acaba e você não perde nada." }) : null));
     }
     function score(ok, band) {
       if (scored) return; scored = true;
@@ -681,8 +689,9 @@
       tl.append(node);
       if (i < INDEX.length - 1) tl.append(el("span", { cls: "tline" + (done ? " done" : ""), style: "--x:" + ((XS[i % XS.length] + XS[(i + 1) % XS.length]) / 2) }));
     });
-    tl.append(LVL === "a1" ? el("button", { cls: "tgoal final", type: "button", onclick: runFinal }, el("span", { cls: "disc" }, S.a1Done ? "🎓" : "🏆"), el("b", { text: S.a1Done ? "Teste final: aprovado ✅" : "🎓 Teste final do A1" }), el("span", { cls: "small", text: S.a1Done ? "A2 liberado" : nDone >= INDEX.length ? "Bora! Quem passa libera o A2 →" : "Recomendado depois do tema " + INDEX.length + " · passe e libere o A2" }))
-      : el("div", { cls: "tgoal" }, el("span", { cls: "disc" }, "🏆"), el("b", { text: "A2 completo!" }), el("span", { cls: "small", text: "Depois: B1, em breve" })));
+    var NX = NEXT_LV[LVL] ? NEXT_LV[LVL].toUpperCase() : "", OKF = S[DONE_KEY[LVL]];
+    tl.append(hasFinal() ? el("button", { cls: "tgoal final", type: "button", onclick: runFinal }, el("span", { cls: "disc" }, OKF ? "🎓" : "🏆"), el("b", { text: OKF ? "Teste final: aprovado ✅" : "🎓 Teste final do " + LVL.toUpperCase() }), el("span", { cls: "small", text: OKF ? NX + " liberado" : nDone >= INDEX.length ? "Bora! Quem passa libera o " + NX + " →" : "Recomendado depois do tema " + INDEX.length + " · passe e libere o " + NX }))
+      : el("div", { cls: "tgoal" }, el("span", { cls: "disc" }, "🏆"), el("b", { text: LVL.toUpperCase() + " completo!" }), el("span", { cls: "small", text: LVL === "b2" ? "Você chegou ao topo da trilha. Falou, validou!" : "Próximo nível em breve" })));
     w.append(el("h2", { cls: "sec", text: "🗺️ Sua trilha do " + LVL.toUpperCase() }),
       el("div", { cls: "trail-head" }, steps(t + 1, INDEX.length, "Tema"), el("p", { cls: "small", text: nDone + " de " + INDEX.length + " temas dominados. Cada tema abre o próximo quando você manda bem (70%+) em 2 Real Times dele." })), tl);
     // ➕ mais treinos: tudo que é opcional fica guardado aqui (menos escolha = mais treino)
@@ -701,7 +710,7 @@
     [["a1", "A1", "Básico"], ["a2", "A2", "Pré-intermediário"]].concat(B1_READY ? [["b1", "B1", "Intermediário"], ["b2", "B2", "Interm. superior"]] : []).forEach(function (L) {
       var locked = (L[0] === "a2" && !a2Open()) || (L[0] === "b1" && !b1Open()) || (L[0] === "b2" && !b2Open());
       lvSw.append(el("button", { cls: "lvs" + (L[0] === LVL ? " sel" : "") + (locked ? " locked" : ""), type: "button", disabled: locked && L[0] !== LVL,
-        onclick: function () { setLevel(L[0]); } }, el("b", { text: (locked ? "🔒 " : "") + L[1] }), el("span", { cls: "small", text: locked ? (L[0] === "b2" ? "domine todo o B1" : L[0] === "b1" ? "domine todo o A2" : "passe no teste final do A1") : L[2] })));
+        onclick: function () { setLevel(L[0]); } }, el("b", { text: (locked ? "🔒 " : "") + L[1] }), el("span", { cls: "small", text: locked ? "passe no teste final do " + (L[0] === "b2" ? "B1" : L[0] === "b1" ? "A2" : "A1") : L[2] })));
     });
     var more = el("details", { cls: "more" }, el("summary", {}, el("span", { text: "➕ Mais treinos" }), el("span", { cls: "small", text: "inglês de verdade, treino livre, meus erros" + (nErr ? " (" + nErr + ")" : "") + ", nível" })),
       el("button", { cls: "station errs", type: "button", onclick: extrasPage }, el("span", { cls: "se", text: "🎧" }), el("span", { cls: "tt" }, el("b", { text: "Inglês de verdade" }), el("span", { cls: "small", text: "entrevista de rua, série, vlog: ouvir e escolher" }))),
@@ -721,8 +730,6 @@
   }
   function unlockScreen(uid) {
     var i = uidx(uid), I = INDEX[i], N = INDEX[i + 1], w = screen();
-    if (!N && LVL === "a2") S.a2Done = true; // dominou o A2 inteiro: libera o B1
-    if (!N && LVL === "b1") S.b1Done = true; // dominou o B1 inteiro: libera o B2
     markDay(); persist();
     w.append(topBar(), el("section", { cls: "hero center unlock" }, el("div", { cls: "big-emoji", text: "🔓" }),
       el("span", { cls: "eyebrow", text: "Tema " + (i + 1) + " dominado" }),
@@ -730,34 +737,32 @@
       el("p", { text: "Você mandou bem em " + I.emoji + " " + I.title + "." }),
       N ? el("div", { cls: "card nextph" }, el("span", { cls: "eyebrow", text: "Próximo tema" }), el("b", { text: N.emoji + " " + N.title }), el("span", { cls: "small", text: N.titlePt || "" })) : null,
       el("p", { cls: "hand", text: "🔥 " + streak() + (streak() === 1 ? " dia" : " dias") + " de ofensiva. Falou, validou!" })),
-      !N && LVL === "a1" && !S.a1Done ? el("button", { cls: "btn big", type: "button", text: "🎓 Fazer o teste final do A1 →", onclick: runFinal }) :"",
-      !N && LVL === "a2" && B1_READY ? el("button", { cls: "btn big gold", type: "button", text: "Ir pro B1 →", onclick: function () { setLevel("b1"); } }) : "",
-      !N && LVL === "b1" && B2_READY ? el("button", { cls: "btn big gold", type: "button", text: "Ir pro B2 →", onclick: function () { setLevel("b2"); } }) : "",
-      el("button", { cls: N || S.a1Done || LVL !== "a1" ? "btn big" : "linkish", type: "button", text: N ? "Bora pro próximo →" : "Ver minha trilha", onclick: home }));
+      !N && hasFinal() && !S[DONE_KEY[LVL]] ? el("button", { cls: "btn big", type: "button", text: "🎓 Fazer o teste final do " + LVL.toUpperCase() + " →", onclick: runFinal }) :"",
+      el("button", { cls: N || S[DONE_KEY[LVL]] || !hasFinal() ? "btn big" : "linkish", type: "button", text: N ? "Bora pro próximo →" : "Ver minha trilha", onclick: home }));
     buzz([40, 60, 40]);
   }
   // ---------- teste final A1 -> A2 (4 partes x 25 pts; passa com 65 e >= 50% em cada parte) ----------
   var FINAL = null;
-  function loadFinal() { if (FINAL) return Promise.resolve(FINAL); return j("/aprender/data/teste-final.json?v=" + (window.__v || 1)).then(function (x) { FINAL = x; return x; }); }
+  function loadFinal() { if (FINAL) return Promise.resolve(FINAL); return j("/aprender/" + (LVL === "a1" ? "" : LVL + "/") + "data/teste-final.json?v=" + (window.__v || 1)).then(function (x) { FINAL = x; return x; }); }
   function runFinal() {
     var w = screen(); w.append(el("p", { text: "Carregando o teste…" }));
     loadFinal().then(finalIntro).catch(function () { netError(); });
   }
   function finalIntro(F) {
-    var w = screen(), SV = S.finalSave;
+    var w = screen(), SV = S[FS];
     w.append(topBar(home), el("section", { cls: "hero" },
-      el("span", { cls: "eyebrow", text: "🎓 Teste final do A1" }),
-      el("h1", { html: "Pronto pro <mark>A2</mark>?" }),
-      el("p", { text: "São 4 partes, uns 20 minutos, só ouvindo e falando: " + F.parts.map(function (P) { return P.emoji + " " + P.title; }).join(" · ") + ". Dá pra pausar e continuar depois." }),
-      el("p", { cls: "small", text: "Pra passar: " + F.passTotal + " de 100 pontos e pelo menos metade em cada parte. Quem passa libera o A2." })),
-      S.finalLast ? el("div", { cls: "card" }, el("b", { text: "Última tentativa: " + S.finalLast.total + "/100 " + (S.finalLast.pass ? "✅" : "") }), el("p", { cls: "small", text: S.finalLast.date })) : "",
+      el("span", { cls: "eyebrow", text: "🎓 Teste final do " + LVL.toUpperCase() }),
+      el("h1", { html: "Pronto pro <mark>" + NEXT_LV[LVL].toUpperCase() + "</mark>?" }),
+      el("p", { text: "São 4 partes, uns 20 minutos: " + F.parts.map(function (P) { return P.emoji + " " + P.title; }).join(" · ") + ". Dá pra pausar e continuar depois." }),
+      el("p", { cls: "small", text: "Pra passar: " + F.passTotal + " de 100 pontos e pelo menos metade em cada parte. Quem passa libera o " + NEXT_LV[LVL].toUpperCase() + "." })),
+      S[FL] ? el("div", { cls: "card" }, el("b", { text: "Última tentativa: " + S[FL].total + "/100 " + (S[FL].pass ? "✅" : "") }), el("p", { cls: "small", text: S[FL].date })) : "",
       el("button", { cls: "btn big", type: "button", text: SV ? "Continuar da parte " + (SV.pi + 1) + (SV.ii ? ", questão " + (SV.ii + 1) : "") + " →" : "Começar o teste →", onclick: function () { finalFlow(F); } }),
-      SV ? el("button", { cls: "linkish", type: "button", text: "Recomeçar do zero", onclick: function () { S.finalSave = null; persist(); finalFlow(F); } }) : "");
+      SV ? el("button", { cls: "linkish", type: "button", text: "Recomeçar do zero", onclick: function () { S[FS] = null; persist(); finalFlow(F); } }) : "");
   }
   function finalFlow(F) {
-    var SV = S.finalSave, res = SV ? SV.res : {}, pi = SV ? SV.pi : 0, ii = 0, got = [];
+    var SV = S[FS], res = SV ? SV.res : {}, pi = SV ? SV.pi : 0, ii = 0, got = [];
     var resumeAt = SV && SV.ii ? { ii: SV.ii, got: SV.got || [] } : null; // pausa volta na questão exata
-    function save() { S.finalSave = { res: res, pi: pi, ii: ii, got: got.slice(), date: today() }; persist(); }
+    function save() { S[FS] = { res: res, pi: pi, ii: ii, got: got.slice(), date: today() }; persist(); }
     var A = "/aprender/audio/";
     function head(P, intro) {
       return el("div", { cls: "thead" }, el("header", { cls: "top" }, el("span", { cls: "brand", text: "🎓 Teste final" }),
@@ -798,7 +803,8 @@
         var body = el("div", { cls: "fbody" + (it.audio ? " locked" : "") });
         if (it.type === "mcq") {
           var opts = el("div", { cls: "opts" });
-          it.options.forEach(function (o, k) { opts.append(el("button", { cls: "opt", type: "button", text: o, onclick: function (e) { e.currentTarget.classList.add("sel"); once(k === it.answer ? 1 : 0); } })); });
+          // embaralha as alternativas (no A1 a certa era sempre a 1ª: dava pra passar no chute)
+          it.options.map(function (o, k) { return k; }).sort(function () { return Math.random() - 0.5; }).forEach(function (k) { var o = it.options[k]; opts.append(el("button", { cls: "opt", type: "button", text: o, onclick: function (e) { e.currentTarget.classList.add("sel"); once(k === it.answer ? 1 : 0); } })); });
           body.append(opts);
         } else {
           var inp = el("input", { type: "text", cls: "final-in", placeholder: it.digits ? "só números" : "digite aqui", autocomplete: "off", autocapitalize: "off", spellcheck: "false" });
@@ -869,20 +875,20 @@
       var total = 0, low = [];
       F.parts.forEach(function (P) { var v = res[P.key] || 0; total += v; if (v < 25 * F.passPart / 100) low.push(P); });
       var pass = total >= F.passTotal && !low.length;
-      S.finalSave = null; S.finalLast = { total: total, res: res, pass: pass, date: today() };
-      if (pass) S.a1Done = true;
+      S[FS] = null; S[FL] = { total: total, res: res, pass: pass, date: today() };
+      if (pass) S[DONE_KEY[LVL]] = true;
       markDay(); persist();
       var w = screen();
       w.append(topBar(home), el("section", { cls: "hero" + (pass ? " center" : "") },
         pass ? el("div", { cls: "big-emoji", text: "🎓" }) : null,
         el("span", { cls: "eyebrow", text: "Resultado do teste final" }),
-        el("h1", { html: pass ? "Você passou: <mark>" + total + "/100</mark>! O A2 está liberado 🚀" : "Você fez <mark>" + total + "/100</mark>. Quase lá!" }),
-        el("p", { text: pass ? "Mandou bem nas 4 partes. Agora é A2." : "Pra passar precisa de " + F.passTotal + " pontos e pelo menos metade em cada parte. Treine o que está abaixo e tente de novo quando quiser." })));
+        el("h1", { html: pass ? "Você passou: <mark>" + total + "/100</mark>! O " + NEXT_LV[LVL].toUpperCase() + " está liberado 🚀" : "Você fez <mark>" + total + "/100</mark>. Quase lá!" }),
+        el("p", { text: pass ? "Mandou bem nas 4 partes. Agora é " + NEXT_LV[LVL].toUpperCase() + "." : "Pra passar precisa de " + F.passTotal + " pontos e pelo menos metade em cada parte. Treine o que está abaixo e tente de novo quando quiser." })));
       var bars = el("div", { cls: "card skills" });
       F.parts.forEach(function (P) { var v = res[P.key] || 0, pct = Math.round(v / 25 * 100), weak = low.indexOf(P) > -1;
         bars.append(el("div", { cls: "skill" + (weak ? " weak" : "") }, el("div", { cls: "skrow" }, el("b", { text: P.emoji + " " + P.title }), el("span", { text: v + "/25" })),
           el("div", { cls: "pbar2" }, el("i", { style: "width:" + Math.max(4, pct) + "%" })), el("p", { cls: "small", text: pct >= 70 ? "Muito bom! ✅" : weak ? "Abaixo do mínimo. " + P.focus : "Ok, mas dá pra melhorar. " + P.focus }))); });
-      w.append(bars, pass ? el("button", { cls: "btn big", type: "button", text: "Ir pro A2 →", onclick: function () { setLevel("a2"); } })
+      w.append(bars, pass ? el("button", { cls: "btn big", type: "button", text: "Ir pro " + NEXT_LV[LVL].toUpperCase() + " →", onclick: function () { setLevel(NEXT_LV[LVL]); } })
         : el("button", { cls: "btn big", type: "button", text: "Voltar a treinar →", onclick: home }),
         el("p", { cls: "small", text: "A nota da fala é automática, pelo reconhecimento de voz: é uma estimativa." }));
     }

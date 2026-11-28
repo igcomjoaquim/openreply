@@ -23,6 +23,32 @@
   // ---------- helpers ----------
   // nunca escrever "null"/"undefined"/"false" na tela: o append nativo transforma isso em texto (achado no pente-fino de 28/11)
   (function () { var nat = Element.prototype.append; if (nat.__dtv) return; var safe = function () { return nat.apply(this, [].filter.call(arguments, function (x) { return x != null && x !== false && x !== ""; })); }; safe.__dtv = true; Element.prototype.append = safe; })();
+  // 💡 EXPLICAÇÃO DE CADA EXERCÍCIO (Thiago 29/11: "ele não sabe o que é Real Time"): aparece na 1ª vez, depois só no "O que é isso?"
+  var EXPL = {
+    aula: ["As frases que você mais vai usar nesse tema, com áudio e tradução.", ["Ouça quantas vezes quiser", "Entenda pela tradução", "Fale em voz alta (ou digite)"], "São as peças que você vai usar na vida real. Sem decoreba: em contexto."],
+    cena: ["Um trecho de verdade: série, vlog, entrevista na rua. Nada de áudio de livro.", ["A tela fica coberta: primeiro só ouvindo", "Você responde o que entendeu e completa o pedaço difícil", "Depois assiste com a imagem"], "É assim que o seu ouvido acostuma com o inglês rápido, com sotaque e tudo."],
+    fofoca: ["Uma historinha da vizinhança, contada por um nativo. Sim, fofoca. 😏", ["Ouça a história", "Responda umas perguntas rápidas", "Reconte com as suas palavras, gravando"], "Contar com as suas palavras é o que destrava a conversa."],
+    shadow: ["Shadowing é repetir colado no nativo, no mesmo ritmo, como se fosse a sombra dele.", ["Ouça a frase", "Repita junto, imitando a musiquinha", "Compare e repita de novo"], "Treina pronúncia, ritmo e o jeito que o nativo emenda as palavras."],
+    rt: ["Real Time é responder na hora, como numa conversa de verdade.", ["Aparece uma frase em português", "Você fala em inglês antes do tempo acabar", "Sem tempo de traduzir na cabeça: é aí que destrava"], "Na vida real ninguém espera você montar a frase. Aqui você treina isso."],
+    leitura: ["Você lê um trecho em voz alta e as palavras ficam verdes quando saem claras.", ["Toque no microfone", "Leia com calma", "O que ficar sem verde, tente de novo"], "Treina pronúncia clara e confiança pra falar."],
+    ditado: ["Você ouve frases emendadas e escreve tudo o que ouviu.", ["Ouça (pode repetir)", "Escreva do jeito que entendeu", "Confira o que escapou"], "Ensina o ouvido a separar as palavras que o nativo gruda."],
+    lacuna: ["O nativo fala e falta um pedaço da frase.", ["Ouça", "Toque nas palavras que faltam", "Confira na hora"], "Treina pegar os detalhes que fazem diferença."],
+    grudada: ["O que o nativo engole: wanna, gonna, whaddaya…", ["Ouça como ele fala de verdade", "Escolha o que ele quis dizer", "Compare com o jeito escrito"], "Sem isso, o inglês de série parece outra língua."],
+    pares: ["Qual você ouviu? 13 ou 30? Live ou leave?", ["Ouça", "Escolha a palavra certa", "Ouça as duas pra sentir a diferença"], "Afina o ouvido pros sons que o brasileiro confunde."],
+    contar: ["Quantas palavras tem nessa fala? Parece fácil… até ouvir.", ["Ouça", "Conte as palavras", "Veja onde cada uma acaba"], "Ensina o ouvido a achar onde uma palavra termina e a outra começa."],
+    erros: ["O que você errou volta aqui até você acertar.", ["Refaça o que escapou", "Acertou 2 vezes em dias diferentes? Sai da lista"], "Erro não é vergonha: é o mapa do que falta."]
+  };
+  function explainSt(st, force) {
+    var E = EXPL[st], X = ST[st]; if (!E || !X) return;
+    S.seenSt = S.seenSt || {}; if (S.seenSt[st] && !force) return; S.seenSt[st] = 1; persist();
+    var ol = el("ol", { cls: "ex-how" }); E[1].forEach(function (t) { ol.append(el("li", { text: t })); });
+    var card = el("div", { cls: "fb-card ex-card" }, el("span", { cls: "ex-ic" }, icn(STICN[st] || "alvo")), el("span", { cls: "eyebrow", text: force ? "O que é isso?" : "Primeira vez aqui" }), el("h2", { text: X.name }),
+      el("p", { cls: "ex-what", text: E[0] }), el("b", { cls: "ex-sub", text: "Como funciona" }), ol, el("p", { cls: "ex-why" }, el("b", { text: "Por que treinar isso: " }), document.createTextNode(E[2])),
+      el("button", { cls: "btn big gold", type: "button", text: "Entendi, bora!", onclick: function () { close(); } }));
+    var ov = el("div", { cls: "fb-ov", onclick: function (e) { if (e.target === ov) close(); } }, card);
+    function close() { ov.remove(); }
+    document.body.append(ov); sheetify(ov, card, close);
+  }
   // 🎨 ÍCONES DE TRAÇO (Thiago 29/11: "o mais profissional e sofisticado possível"): emoji fica só no humor
   var SVGA = '<svg viewBox="0 0 24 24" aria-hidden="true">', SVGZ = '</svg>';
   var ICN = {
@@ -1537,10 +1563,12 @@
       el("span", { cls: "top-r" }, CONTA_OK && !PROF ? el("button", { cls: "stat ico-btn", type: "button", "aria-label": "Achou um problema? Me conta", onclick: feedbackOpen }, icn("ajuda")) : null,
         el("button", { cls: "pause", type: "button", onclick: pauseNow }, icn("pausa"), el("span", { text: "Pausar" })))));
     w.append(el("div", { cls: "thead" },
-      el("span", { cls: "eyebrow" }, icn(STICN[st] || "alvo", "eb-ic"), el("span", { text: X.name + (u.id === GERAL.id ? "" : " · Tema " + (i + 1) + (ctx && ctx.review ? " · revisão" : "")) })),
+      el("div", { cls: "eb-row" }, el("span", { cls: "eyebrow" }, icn(STICN[st] || "alvo", "eb-ic"), el("span", { text: X.name + (u.id === GERAL.id ? "" : " · Tema " + (i + 1) + (ctx && ctx.review ? " · revisão" : "")) })),
+        EXPL[st] ? el("button", { cls: "what-btn", type: "button", onclick: function () { explainSt(st, true); } }, icn("ajuda"), el("span", { text: "O que é isso?" })) : null),
       ctx && ctx.n && S.daily ? steps(ctx.i, ctx.n, "Fase", S.daily.plan.map(function (x) { return x.review ? "REV" : ST[x.st].emoji; })) : null,
       lbar(ctx),
       el("p", { cls: "ck-legend", html: 'Fique de olho: o que aparecer <mark class="ck">assim</mark> é inglês de nativo. Guarde!' })));
+    setTimeout(function () { if (w.isConnected) explainSt(st); }, 350);
     return w;
   }
   // 🔥 ofensiva: dias seguidos treinando + a semana

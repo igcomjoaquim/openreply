@@ -701,3 +701,16 @@ body:has(.upd) .fb-tab{display:none}
 .dlist .dl-ic+.dl-ic::before{content:"";position:absolute;left:-14px;top:50%;width:14px;height:1.5px;background:rgba(142,122,90,.35)}
 .dlist .dl-ic.dn{background:#6F2A3D!important;color:#FFF8EC!important}
 .dlist .dl-ic.nx{box-shadow:0 0 0 1.5px #6F2A3D;color:#6F2A3D!important}
+/* 💡 explicação de cada exercício */
+.eb-row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.what-btn{display:inline-flex;align-items:center;gap:5px;border:0;background:none;color:#8E3A52;font:600 13px "Inter",system-ui,sans-serif;padding:4px 0;cursor:pointer;white-space:nowrap}
+.what-btn .icn{width:16px;height:16px}
+.ex-card{gap:8px!important}
+.ex-ic{width:56px;height:56px;border-radius:16px;display:grid;place-items:center;background:linear-gradient(135deg,rgba(237,197,95,.4),rgba(142,58,82,.18));color:#6F2A3D;transform:rotate(-4deg)}
+.ex-ic .icn{width:28px;height:28px}
+.ex-what{font-size:17px;line-height:1.45;margin:0}
+.ex-sub{margin-top:4px}
+.ex-how{margin:0;padding-left:0;list-style:none;counter-reset:ex;display:flex;flex-direction:column;gap:8px}
+.ex-how li{counter-increment:ex;display:flex;gap:10px;align-items:flex-start;line-height:1.35}
+.ex-how li::before{content:counter(ex);flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:#6F2A3D;color:#FFF8EC;font:800 12px "Inter",system-ui,sans-serif;margin-top:1px}
+.ex-why{margin:4px 0 6px;color:#5b5040;line-height:1.45;background:#FFF8EC;border-radius:14px;padding:10px 12px}

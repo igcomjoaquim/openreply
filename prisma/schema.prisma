@@ -580,6 +580,7 @@ model DtvUser {
   whatsapp     String?
   gender       String?
   ageRange     String?
+  country      String?
   state        String?
   city         String?
   goal         String?

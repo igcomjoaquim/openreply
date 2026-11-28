@@ -485,3 +485,8 @@ body{padding-bottom:96px}
 .land-end mark{background:linear-gradient(transparent 55%,var(--yellow) 55%);color:inherit}
 @media (min-width:720px){.land-hero h1{font-size:46px}.land-grid{grid-template-columns:1fr 1fr 1fr}}
 .said-box{display:block}.said-box small{display:block}
+
+.chk-lock{background:rgba(201,162,39,.12);border:1px dashed rgba(122,30,46,.35);border-radius:12px;padding:10px 12px}
+.tel-row{display:grid;grid-template-columns:78px 1fr;gap:8px}.tel-row .ddi{text-align:center}
+.fld-stack{display:grid;gap:8px}
+.fld-row.fld-row-even{grid-template-columns:1fr 1fr}

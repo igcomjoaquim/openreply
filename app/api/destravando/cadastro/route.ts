@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
     const u = await getPrisma().dtvUser.create({
       data: {
         email, name, passwordHash: await hashPassword(pw), whatsapp, gender, ageRange,
-        state: clean(b.state, 2), city: clean(b.city, 80), goal: clean(b.goal, 60), howFound: clean(b.howFound, 60),
+        country: clean(b.country, 60), state: clean(b.state, 60), city: clean(b.city, 80), goal: clean(b.goal, 60), howFound: clean(b.howFound, 60),
         selfLevel: clean(b.selfLevel, 40), testLevel: clean(b.testLevel, 40), marketingOk: b.marketingOk === true,
         progress, progressAt: progress ? new Date() : null, lastSeenAt: new Date(),
       },

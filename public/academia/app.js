@@ -3034,24 +3034,42 @@
     var name = el("input", { type: "text", placeholder: "Seu nome", autocomplete: "name", value: S.name || "" });
     var email = el("input", { type: "email", placeholder: "seuemail@exemplo.com", autocomplete: "email", inputmode: "email", autocapitalize: "off" });
     var pw = pwInput();
-    var wpp = el("input", { type: "tel", placeholder: "(11) 99999-9999", autocomplete: "tel", inputmode: "tel" });
+    // 🌎 muita gente mora fora: país + código do país no WhatsApp; estado só vira lista no Brasil
+    var PAISES = [["Brasil", "55"], ["Estados Unidos", "1"], ["Portugal", "351"], ["Canadá", "1"], ["Reino Unido", "44"], ["Irlanda", "353"], ["Espanha", "34"], ["Itália", "39"], ["Alemanha", "49"], ["França", "33"], ["Suíça", "41"], ["Holanda", "31"], ["Japão", "81"], ["Austrália", "61"], ["Argentina", "54"], ["Chile", "56"], ["México", "52"], ["Outro país", ""]];
+    var pais = el("select", { autocomplete: "country-name" }); PAISES.forEach(function (x) { pais.append(el("option", { value: x[0], text: x[0] })); });
+    var paisOutro = el("input", { type: "text", placeholder: "Qual país?", hidden: true });
+    var ddi = el("input", { type: "tel", cls: "ddi", value: "+55", inputmode: "tel", "aria-label": "Código do país", maxlength: "5" });
+    var wpp = el("input", { type: "tel", placeholder: "(11) 99999-9999", autocomplete: "tel-national", inputmode: "tel" });
     var gender = chips(["Mulher", "Homem", "Não-binário", "Prefiro não dizer", "Outro"]);
     var age = chips(["Até 17", "18 a 24", "25 a 34", "35 a 44", "45 a 54", "55 ou mais"]);
     var uf = el("select", null, el("option", { value: "", text: "Estado" })); UFS.forEach(function (x) { uf.append(el("option", { value: x, text: x })); });
     var city = el("input", { type: "text", placeholder: "Sua cidade", autocomplete: "address-level2" });
+    var ufTxt = el("input", { type: "text", placeholder: "Estado ou região (opcional)", autocomplete: "address-level1" });
+    var ufBox = el("div", { cls: "fld-row" }, field("Estado", uf), field("Cidade", city));
+    pais.onchange = function () {
+      var br = pais.value === "Brasil", hit = PAISES.filter(function (x) { return x[0] === pais.value; })[0];
+      paisOutro.hidden = pais.value !== "Outro país";
+      ddi.value = hit && hit[1] ? "+" + hit[1] : "+";
+      wpp.placeholder = br ? "(11) 99999-9999" : pais.value === "Estados Unidos" || pais.value === "Canadá" ? "(305) 555-1234" : "Seu número";
+      ufBox.replaceChildren(br ? field("Estado", uf) : field("Estado ou região", ufTxt), field("Cidade", city));
+      ufBox.classList.toggle("fld-row-even", !br);
+    };
     var goal = chips(["Trabalho", "Viajar", "Morar fora", "Estudos", "Séries e filmes", "Conversar com gringos", "Outro"]);
     var how = chips(["Instagram", "TikTok", "YouTube", "Indicação", "Google", "Outro"]);
-    var mk = el("input", { type: "checkbox" }), ok = el("input", { type: "checkbox" });
+    var mk = el("input", { type: "checkbox" }), ok = el("input", { type: "checkbox" }), dados = el("input", { type: "checkbox" });
     var err = errBox();
     var go = el("button", { cls: "btn big", type: "button", text: "Criar minha conta →", onclick: function () {
       err.show("");
       if (!name.value.trim()) return err.show("Escreva o seu nome.");
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.value.trim())) return err.show("Confira o seu e-mail.");
       if (pw.input.value.length < 6) return err.show("A senha precisa ter pelo menos 6 caracteres.");
+      if (!dados.checked) return err.show("Marque a caixinha 🔒 dos dados pra criar a conta.");
       if (!ok.checked) return err.show("Pra criar a conta, aceite a política de privacidade.");
       go.disabled = true; go.textContent = "⏳ Criando…";
       S.name = name.value.trim(); persist();
-      api("cadastro", "POST", { name: S.name, email: email.value.trim(), password: pw.input.value, whatsapp: wpp.value, gender: gender.val(), ageRange: age.val(), state: uf.value, city: city.value, goal: goal.val(), howFound: how.val(),
+      var br = pais.value === "Brasil", num = wpp.value.replace(/\D/g, "");
+      api("cadastro", "POST", { name: S.name, email: email.value.trim(), password: pw.input.value, whatsapp: num ? (ddi.value.replace(/[^\d]/g, "") ? "+" + ddi.value.replace(/[^\d]/g, "") + " " : "") + wpp.value.trim() : "", gender: gender.val(), ageRange: age.val(),
+        country: pais.value === "Outro país" ? (paisOutro.value.trim() || "Outro país") : pais.value, state: br ? uf.value : ufTxt.value.trim(), city: city.value, goal: goal.val(), howFound: how.val(),
         marketingOk: mk.checked, consent: true, selfLevel: S.self != null && SELF[S.self] ? SELF[S.self].t : null, testLevel: S.test && !S.test.skipped ? BANDS[S.test.band] : null, progress: snapshot() })
         .then(function (r) {
           go.disabled = false; go.textContent = "Criar minha conta →";
@@ -3067,10 +3085,12 @@
         el("p", { text: "Assim você continua de qualquer celular ou computador, sem perder nada." })),
       el("div", { cls: "card form" },
         field("Nome", name), field("E-mail", email), field("Crie uma senha", pw),
-        field("WhatsApp", wpp, "Pra te mandar lembretes e novidades, se você quiser."),
+        field("Onde você mora?", el("div", { cls: "fld-stack" }, pais, paisOutro)),
+        field("WhatsApp", el("div", { cls: "tel-row" }, ddi, wpp), "Com o código do país (Brasil é +55, Estados Unidos é +1). Pra te mandar lembretes e novidades, se você quiser."),
         field("Como você se identifica?", gender), field("Idade", age),
-        el("div", { cls: "fld-row" }, field("Estado", uf), field("Cidade", city)),
+        ufBox,
         field("Pra que você quer o inglês?", goal), field("Como conheceu o Destravando?", how),
+        el("label", { cls: "chk chk-lock" }, dados, el("span", { html: "🔒 Entendo que os meus dados servem <b>só pra me dar acesso ao Destravando</b>. Ninguém vende, empresta ou passa eles pra outra pessoa." })),
         el("label", { cls: "chk" }, mk, el("span", { text: "Quero receber novidades e dicas por e-mail e WhatsApp." })),
         el("label", { cls: "chk" }, ok, el("span", { html: "Li e aceito a <a href=\"/privacidade.html\" target=\"_blank\">política de privacidade</a>." })),
         err, go),

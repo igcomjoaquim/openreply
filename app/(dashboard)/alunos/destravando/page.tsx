@@ -140,17 +140,17 @@ export default async function DestravandoLeadsPage() {
         <div className="overflow-x-auto rounded-xl border border-border">
           <table className="w-full text-sm">
             <thead className="bg-surface text-left">
-              <tr>{["Nome", "E-mail", "WhatsApp", "Gênero", "Idade", "Cidade/UF", "Objetivo", "Como conheceu", "Novidades", "Cadastro", "Último acesso"].map((h) => <th key={h} className="px-3 py-2 font-medium whitespace-nowrap">{h}</th>)}</tr>
+              <tr>{["Nome", "E-mail", "WhatsApp", "Gênero", "Idade", "Cidade · País", "Objetivo", "Como conheceu", "Novidades", "Cadastro", "Último acesso"].map((h) => <th key={h} className="px-3 py-2 font-medium whitespace-nowrap">{h}</th>)}</tr>
             </thead>
             <tbody>
               {users.map((u) => (
                 <tr key={u.id} className="border-t border-border">
                   <td className="px-3 py-2">{u.name}</td>
                   <td className="px-3 py-2">{u.email}</td>
-                  <td className="px-3 py-2">{u.whatsapp ? <a className="underline" href={`https://wa.me/${u.whatsapp.replace(/\D/g, "").replace(/^(?!55)/, "55")}`} target="_blank" rel="noreferrer">{u.whatsapp}</a> : "—"}</td>
+                  <td className="px-3 py-2">{u.whatsapp ? <a className="underline" href={`https://wa.me/${u.whatsapp.startsWith("+") ? u.whatsapp.replace(/\D/g, "") : u.whatsapp.replace(/\D/g, "").replace(/^(?!55)/, "55")}`} target="_blank" rel="noreferrer">{u.whatsapp}</a> : "—"}</td>
                   <td className="px-3 py-2">{u.gender ?? "—"}</td>
                   <td className="px-3 py-2">{u.ageRange ?? "—"}</td>
-                  <td className="px-3 py-2">{[u.city, u.state].filter(Boolean).join("/") || "—"}</td>
+                  <td className="px-3 py-2">{[[u.city, u.state].filter(Boolean).join("/"), u.country && u.country !== "Brasil" ? u.country : ""].filter(Boolean).join(" · ") || "—"}</td>
                   <td className="px-3 py-2">{u.goal ?? "—"}</td>
                   <td className="px-3 py-2">{u.howFound ?? "—"}</td>
                   <td className="px-3 py-2">{u.marketingOk ? "✅" : "—"}</td>

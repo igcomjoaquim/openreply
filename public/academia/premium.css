@@ -546,3 +546,4 @@ body:has(.onb-wrap) .fb-tab,body:has(.you-head) .fb-tab{display:none}
 .lb-track i:after{content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 30%,rgba(255,255,255,.75) 50%,transparent 70%);transform:translateX(-100%);animation:dtvShine 2.2s ease-in-out infinite}
 @keyframes dtvShine{60%,100%{transform:translateX(100%)}}
 @media (prefers-reduced-motion:reduce){.opt.ok,.pic.ok,.pt-opt.ok,.x-gap.ok,.opt.bad,.pic.bad,.pt-opt.bad,.stat.xp-up,.lb-track i:after,.ptr.spin{animation:none}}
+.sair-row b{color:#8E3A52}

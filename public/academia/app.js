@@ -3357,7 +3357,7 @@
     if (!ACC) return el("div", { cls: "card acc-card" }, el("span", { cls: "eyebrow", text: "🔐 Sua conta" }), el("p", { cls: "small", text: "Você ainda não tem conta: o progresso está só neste aparelho." }),
       el("button", { cls: "btn", type: "button", text: "Criar conta e salvar meu progresso", onclick: function () { signupScreen(home); } }));
     return el("div", { cls: "card acc-card" }, el("span", { cls: "eyebrow", text: "🔐 Sua conta" }), el("p", null, el("b", { text: ACC.name || "" }), el("br"), el("span", { cls: "small", text: ACC.email + " · progresso salvo ☁️" })),
-      el("button", { cls: "linkish", type: "button", text: "Sair desta conta", onclick: function () { pushNow(function () { api("sair", "POST").then(function () { setAcc(null); try { localStorage.removeItem(KEY); } catch (e) {} location.reload(); }); }); } }));
+      el("button", { cls: "linkish", type: "button", text: "Sair desta conta", onclick: askLogout }));
   }
 
   // 📲 APP INSTALÁVEL (Thiago 28/11: "não dá muito aquela impressão de aplicativo"): ícone na tela, tela cheia, sem barra do navegador
@@ -3433,6 +3433,25 @@
     var go = el("button", { cls: "btn", type: "button", text: "🔔 Ativar notificação", onclick: function () { pushOn(go, card); } });
     card.append(go, el("button", { cls: "linkish", type: "button", text: "Agora não", onclick: function () { var d = new Date(); d.setDate(d.getDate() + 5); S.pushHide = isoOf(d); persist(); card.remove(); } }));
     return card;
+  }
+  // 🚪 SAIR: confirma numa janela de baixo; desliga a notificação deste celular (pra não chegar lembrete da conta de outra pessoa)
+  function logoutNow(btn) {
+    if (btn) { btn.disabled = true; btn.textContent = "⏳ Saindo…"; }
+    function fim() { api("sair", "POST").then(function () { setAcc(null); try { localStorage.removeItem(KEY); navigator.clearAppBadge && navigator.clearAppBadge(); } catch (e) {} location.reload(); }); }
+    pushNow(function () {
+      var p = (navigator.serviceWorker && S.pushOn) ? navigator.serviceWorker.ready.then(function (reg) { return reg.pushManager.getSubscription(); }).then(function (sub) { if (!sub) return; return api("push", "DELETE", { endpoint: sub.endpoint }).then(function () { return sub.unsubscribe(); }); }).catch(function () {}) : Promise.resolve();
+      p.then(fim, fim);
+    });
+  }
+  function askLogout() {
+    var go = el("button", { cls: "btn big", type: "button", text: "🚪 Sair da conta" });
+    var card = el("div", { cls: "fb-card" }, el("div", { cls: "big-emoji", text: "👋" }), el("h2", { text: "Quer sair da conta?" }),
+      el("p", { cls: "small", text: "Seu progresso fica salvo. Pra voltar, é só entrar de novo com e-mail e senha" + (lsGet("dtv-faceid") ? " ou com " + faceName() : "") + "." }), go,
+      el("button", { cls: "linkish", type: "button", text: "Cancelar", onclick: function () { close(); } }));
+    var ov = el("div", { cls: "fb-ov", onclick: function (e) { if (e.target === ov) close(); } }, card);
+    function close() { ov.remove(); }
+    go.onclick = function () { logoutNow(go); };
+    document.body.append(ov); sheetify(ov, card, close);
   }
   // 🔐 FACE ID / DIGITAL (passkey)
   function bufU(b) { var a = new Uint8Array(b), s = ""; for (var i = 0; i < a.length; i++) s += String.fromCharCode(a[i]); return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""); }
@@ -3578,7 +3597,13 @@
     var g2 = el("div", { cls: "card set-card" }, el("span", { cls: "eyebrow", text: "💬 Ajuda" }),
       el("button", { cls: "set-row set-btn", type: "button", onclick: feedbackOpen }, el("span", { cls: "set-ic", text: "🐞" }), el("span", { cls: "set-t" }, el("b", { text: "Achou um problema?" }), el("small", { text: "Me conta, chega direto pra mim" })), el("span", { cls: "set-go", text: "›" })),
       el("a", { cls: "set-row set-btn", href: "/privacidade.html", target: "_blank" }, el("span", { cls: "set-ic", text: "🔒" }), el("span", { cls: "set-t" }, el("b", { text: "Privacidade" }), el("small", { text: "Seus dados servem só pro seu acesso" })), el("span", { cls: "set-go", text: "›" })));
-    w.append(g2, accountCard(), el("p", { cls: "small center you-ver", text: "Destravando · Inglês com Joaquim · Falou, validou!" }), menuBar("voce"));
+    w.append(g2);
+    // 🚪 sair da conta (Thiago 29/11: "precisa ter um botão pra deslogar")
+    if (ACC) w.append(el("div", { cls: "card set-card" }, el("span", { cls: "eyebrow", text: "🔐 Conta" }),
+      row("📧", ACC.email || "", "Seu progresso fica salvo na conta", null),
+      el("button", { cls: "set-row set-btn sair-row", type: "button", onclick: askLogout }, el("span", { cls: "set-ic", text: "🚪" }), el("span", { cls: "set-t" }, el("b", { text: "Sair da conta" })), el("span", { cls: "set-go", text: "›" }))));
+    else w.append(accountCard());
+    w.append(el("p", { cls: "small center you-ver", text: "Destravando · Inglês com Joaquim · Falou, validou!" }), menuBar("voce"));
   }
   // 👩‍🏫 painel do modo professor
   function profPanel() {

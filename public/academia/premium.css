@@ -413,3 +413,4 @@ body.premium .keep-st{width:100%;margin-top:10px}
 .rank-list li{display:flex;justify-content:space-between;padding:8px 4px;border-bottom:1px solid var(--line,#E4DED2)}
 .rank-list li.me{background:linear-gradient(110deg,rgba(237,197,95,.28),rgba(111,42,61,.10));border-radius:10px;font-weight:700}
 .rank-msg{display:block;margin:4px 0;color:var(--marsala,#6F2A3D)}
+.land-phase{margin:14px 0 2px;font:700 13px var(--f-body,system-ui);letter-spacing:.08em;text-transform:uppercase;color:var(--marsala,#6F2A3D)}

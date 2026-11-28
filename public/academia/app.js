@@ -397,12 +397,16 @@
             el("div", null, el("b", { text: "🌱 Progresso que você sente" }), el("span", { text: "Cada habilidade evolui: 🌱 → 🌿 → 🌳 → 🍎." }))),
           cta());
         return x; })(),
-      (function () { var x = sec("Como funciona na prática", "Quatro passos. Todo dia. Quinze minutos.", "land-how"); x.id = "como-funciona";
-        x.append(el("ol", { cls: "land-steps" },
-          el("li", null, el("i", { text: "01" }), el("b", { text: "Você cria sua conta" }), el("span", { text: "Assim o seu progresso fica salvo e você continua de qualquer aparelho." })),
-          el("li", null, el("i", { text: "02" }), el("b", { text: "Faz o teste de nível (uma vez só)" }), el("span", { text: "Só no começo: uns 10 minutos, só ouvindo e falando. Ele mostra onde você está e o que mais te trava." })),
-          el("li", null, el("i", { text: "03" }), el("b", { text: "Treina todo dia" }), el("span", { text: "Cena real, ditado, fofoca, shadowing, leitura em voz alta e Real Time, em fases curtas." })),
-          el("li", null, el("i", { text: "04" }), el("b", { text: "Evolui e valida" }), el("span", { text: "O que você erra volta até acertar. Falou, validou. Aí vem o próximo tema." }))));
+      (function () { var x = sec("Como funciona na prática", "Começa uma vez. Treina todo dia.", "land-how"); x.id = "como-funciona";
+        // Thiago 28/11: o teste de nível NÃO é do dia a dia (é uma vez, como em qualquer app); o método é o treino diário
+        x.append(el("p", { cls: "land-phase", text: "🚀 No começo · uma vez só" }),
+          el("ol", { cls: "land-steps" },
+            el("li", null, el("i", { text: "01" }), el("b", { text: "Você cria sua conta" }), el("span", { text: "Assim o seu progresso fica salvo e você continua de qualquer aparelho." })),
+            el("li", null, el("i", { text: "02" }), el("b", { text: "Descobre o seu nível" }), el("span", { text: "Um teste rápido, como em qualquer app, só pra saber por onde começar. Começando do zero? Pode pular." }))),
+          el("p", { cls: "land-phase", text: "🔥 Depois · todo dia, 15 minutos" }),
+          el("ol", { cls: "land-steps", start: "3" },
+            el("li", null, el("i", { text: "03" }), el("b", { text: "Faz o treino de hoje" }), el("span", { text: "Frases-chave, cena real, ditado, fofoca, shadowing e Real Time, em fases curtas. Ouvido e fala, todo dia." })),
+            el("li", null, el("i", { text: "04" }), el("b", { text: "Evolui e valida" }), el("span", { text: "O que você erra volta até acertar, o que você aprende vai pro seu caderno. Falou, validou. Aí vem o próximo tema." }))));
         return x; })(),
       (function () { var x = sec("Prévia · experimenta agora", "10 segundos de um trecho da série Modern Family. Você entende?", "land-demo"); x.id = "previa";
         x.append(el("p", { cls: "small", text: "A Claire avisou que corre rápido demais pro Phil. Ele se gaba da caminhada que faz toda manhã, e ela responde. Ouça com a tela coberta, sem ler nada, e responda." }),

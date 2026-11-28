@@ -1,7 +1,7 @@
 import { type NextRequest } from "next/server";
 import { Prisma } from "@/app/generated/prisma/client";
 import { getPrisma } from "@/lib/db/client";
-import { clean, hashPassword, json, newSession, normEmail, preflight, publicUser, tooMany } from "@/lib/destravando/conta";
+import { clean, hashPassword, json, newSession, normEmail, preflight, publicUser, sendWelcome, tooMany } from "@/lib/destravando/conta";
 
 export const runtime = "nodejs";
 export const OPTIONS = preflight;
@@ -31,6 +31,8 @@ export async function POST(req: NextRequest) {
         progress, progressAt: progress ? new Date() : null, lastSeenAt: new Date(),
       },
     });
+    // boas-vindas por e-mail: se falhar, não atrapalha o cadastro (fica só no log)
+    sendWelcome(u.email, u.name).catch((err) => console.error("[destravando] boas-vindas", String(err).slice(0, 200)));
     return json(req, { token: await newSession(u.id), user: publicUser(u) });
   } catch (e) {
     if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") return json(req, { error: "Esse e-mail já tem conta. Toque em Entrar.", exists: true }, 409);

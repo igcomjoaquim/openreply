@@ -82,10 +82,23 @@ export function newCode(): { code: string; hash: string } {
 }
 export const codeHash = sha;
 
+/** 🎉 E-mail de boas-vindas logo depois do cadastro (Thiago 28/11: aluna esperava um e-mail e não chegava nada). */
+export async function sendWelcome(to: string, name: string): Promise<void> {
+  const first = name.split(" ")[0];
+  const url = "https://destravando.inglescomjoaquim.com";
+  const subject = `${first}, sua conta no Destravando está pronta 🔓`;
+  const text = `Oi, ${first}!\n\nSua conta no Destravando foi criada. Bem-vindo(a)!\n\nPra entrar de qualquer celular ou computador:\n${url}\nToque em "Entrar" e use este e-mail (${to}) e a senha que você criou.\n\nEsqueceu a senha? Na tela de entrar, toque em "Esqueci a senha" e a gente manda um código por e-mail.\n\nO segredo é a constância: uns 15 minutos por dia de ouvido e fala.\n\nFalou, validou!\nThiago · Inglês com Joaquim`;
+  const html = `<div style="font-family:system-ui,sans-serif;font-size:16px;line-height:1.5;color:#211A10;max-width:520px"><p>Oi, ${escapeHtml(first)}!</p><p>Sua conta no <b>Destravando</b> foi criada. Bem-vindo(a)! 🎉</p><p>Pra entrar de qualquer celular ou computador, é só abrir o site, tocar em <b>Entrar</b> e usar este e-mail (<b>${escapeHtml(to)}</b>) e a senha que você criou.</p><p><a href="${url}" style="display:inline-block;background:linear-gradient(180deg,#EDC55F,#D4A843 55%,#BF922F);color:#2B2008;font-weight:700;text-decoration:none;padding:12px 22px;border-radius:999px">Abrir o Destravando →</a></p><p style="color:#7F735C;font-size:14px">Esqueceu a senha? Na tela de entrar, toque em <b>Esqueci a senha</b> e a gente manda um código por e-mail.</p><p>O segredo é a constância: uns 15 minutos por dia de ouvido e fala.</p><p style="font-family:Georgia,serif;font-style:italic;color:#6F2A3D">Falou, validou!<br>Thiago · Inglês com Joaquim</p></div>`;
+  await sendMail(to, subject, text, html);
+}
+
 export async function sendCode(to: string, name: string, code: string): Promise<void> {
   const subject = `${code} é o seu código do Destravando`;
   const text = `Oi, ${name.split(" ")[0]}!\n\nSeu código pra criar uma senha nova no Destravando é:\n\n${code}\n\nEle vale 20 minutos. Se não foi você que pediu, é só ignorar este e-mail.\n\nBora destravar? 🔓\nThiago · Inglês com Joaquim`;
   const html = `<div style="font-family:system-ui,sans-serif;font-size:16px;color:#2B211B;max-width:480px"><p>Oi, ${escapeHtml(name.split(" ")[0])}!</p><p>Seu código pra criar uma senha nova no <b>Destravando</b> é:</p><p style="font-size:34px;font-weight:800;letter-spacing:6px;background:#FFD21F;display:inline-block;padding:8px 16px;border-radius:12px">${code}</p><p>Ele vale <b>20 minutos</b>. Se não foi você que pediu, é só ignorar este e-mail.</p><p>Bora destravar? 🔓<br>Thiago · Inglês com Joaquim</p></div>`;
+  await sendMail(to, subject, text, html);
+}
+async function sendMail(to: string, subject: string, text: string, html: string): Promise<void> {
   const from = process.env.DESTRAVANDO_EMAIL_FROM ?? (process.env.DESTRAVANDO_RESEND_KEY ? "Destravando <nao-responda@destravando.inglescomjoaquim.com>" : process.env.EMAIL_FROM) ?? "Destravando <nao-responda@destravando.inglescomjoaquim.com>";
   // Chave própria do Destravando (domínio destravando.inglescomjoaquim.com no Resend). A RESEND_API_KEY é a do login do painel: não mexer.
   const key = process.env.DESTRAVANDO_RESEND_KEY ?? process.env.RESEND_API_KEY;

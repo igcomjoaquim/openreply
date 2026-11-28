@@ -121,6 +121,30 @@
       if (S.days.indexOf(iso) > -1) { n++; d.setDate(d.getDate() - 1); } else if (onVacation(iso) || (n === 0 && iso === today())) { d.setDate(d.getDate() - 1); } else break; }
     return n;
   }
+  // 🎙️ RECADOS DO JOAQUIM (voz real, gravados 28/11): 1 boas-vindas · 2 terceiro dia · 3 sete dias seguidos · 4 passou de nível · 5 voltou depois de sumir.
+  // Aparece na tela inicial no dia do momento (fica o dia todo, toca quando a pessoa quiser); cada um só uma vez (o 5, uma vez por volta).
+  var RECADO = { 1: "Boas-vindas do Joaquim", 2: "Terceiro dia! 🎉", 3: "7 dias seguidos! 🔥", 4: "Você passou de nível! 🎓", 5: "Olha quem voltou 👀" };
+  function recadoHoje() {
+    var t = today(), R = S.recados || (S.recados = {});
+    if (R.hoje && R.hoje.d === t) return R.hoje.n;
+    var days = (S.days || []).filter(function (x) { return x !== t; }).sort(), n = 0;
+    var last = days[days.length - 1], gap = last ? Math.round((new Date(t + "T12:00:00") - new Date(last + "T12:00:00")) / 86400000) : 0;
+    var y = new Date(); y.setDate(y.getDate() - 1);
+    if (R.pend === 4 && !R[4]) n = 4;
+    else if (!days.length && !R[1]) n = 1;
+    else if (gap >= 3 && R[5] !== last && !onVacation(isoOf(y))) { n = 5; R[5] = last; }
+    else if (days.length === 2 && S.days.indexOf(t) < 0 && !R[2]) n = 2;
+    else if (streak() >= 7 && !R[3]) n = 3;
+    if (!n) return 0;
+    if (n !== 5) R[n] = 1;
+    if (n === 4) R.pend = 0;
+    R.hoje = { n: n, d: t }; persist();
+    return n;
+  }
+  function recadoCard(n) {
+    if (!n) return null;
+    return el("div", { cls: "card voz-jq recado" }, el("span", { cls: "eyebrow", text: "🎙️ Recado do Joaquim" }), el("b", { text: RECADO[n] }), player("/academia/voz/recado-" + n + ".mp3", { plain: true }));
+  }
   function isoOf(d) { return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
   function brDate(iso) { var p = String(iso).split("-"); return p[2] + "/" + p[1]; }
   function vacationNow() { var t = today(); return (S.ferias || []).filter(function (f) { return t >= f.from && t <= f.to; })[0] || null; }
@@ -241,7 +265,7 @@
     });
     play.onclick = function () { if (a.paused) { stopAll(); current = a; if (a.ended) a.currentTime = 0; a.play().catch(function () {}); } else a.pause(); };
     var tools = el("div", { cls: "ptools" });
-    if (!opts.max || opts.tools) {
+    if ((!opts.max || opts.tools) && !opts.plain) {
       if (!opts.max) bar.onclick = function (e) { var r = bar.getBoundingClientRect(); if (a.duration) a.currentTime = (e.clientX - r.left) / r.width * a.duration; };
       tools.append(el("button", { type: "button", text: "⏪ 5 s", onclick: function () { a.currentTime = Math.max(0, a.currentTime - 5); a.play().catch(function () {}); } }),
         el("button", { type: "button", text: "🐢 0.75×", onclick: function (e) { slow = !slow; a.playbackRate = slow ? 0.75 : 1; e.currentTarget.textContent = slow ? "🐇 1×" : "🐢 0.75×"; e.currentTarget.classList.toggle("sel", slow); } }));
@@ -711,6 +735,7 @@
     w.append(topBar(),
       el("section", { cls: "hello" }, el("p", { cls: "hand", text: hiLine(doneToday) }),
         el("div", { cls: "lvl" }, el("span", { cls: "lvl-badge", text: LVL === "b2" ? "B2 · intermediário superior" : LVL === "b1" ? "B1 · intermediário" : LVL === "a2" ? "A2 · pré-intermediário" : BANDS[S.test.band] }), S.test.skipped ? el("span", { cls: "small", text: "começando pelo tema 1" }) : el("span", { cls: "small", text: "foco: " + PROB[focusProb()].emoji + " " + PROB[focusProb()].name.toLowerCase() }))),
+      recadoCard(recadoHoje()),
       howTo(),
       streakCard(),
       S.paused ? el("button", { cls: "paused-card", type: "button", onclick: resumePaused }, el("span", { cls: "pe", text: "☕" }),
@@ -924,7 +949,7 @@
       F.parts.forEach(function (P) { var v = res[P.key] || 0; total += v; if (v < 25 * F.passPart / 100) low.push(P); });
       var pass = total >= F.passTotal && !low.length;
       S[FS] = null; S[FL] = { total: total, res: res, pass: pass, date: today() };
-      if (pass) { S[DONE_KEY[LVL]] = true; setTimeout(function () { SFX.win(); confetti(); }, 300); }
+      if (pass) { S[DONE_KEY[LVL]] = true; S.recados = S.recados || {}; S.recados.pend = 4; setTimeout(function () { SFX.win(); confetti(); }, 300); }
       markDay(); persist();
       var w = screen();
       w.append(topBar(home), el("section", { cls: "hero" + (pass ? " center" : "") },
@@ -936,7 +961,7 @@
       F.parts.forEach(function (P) { var v = res[P.key] || 0, pct = Math.round(v / 25 * 100), weak = low.indexOf(P) > -1;
         bars.append(el("div", { cls: "skill" + (weak ? " weak" : "") }, el("div", { cls: "skrow" }, el("b", { text: P.emoji + " " + P.title }), el("span", { text: v + "/25" })),
           el("div", { cls: "pbar2" }, el("i", { style: "width:" + Math.max(4, pct) + "%" })), el("p", { cls: "small", text: pct >= 70 ? "Muito bom! ✅" : weak ? "Abaixo do mínimo. " + P.focus : "Ok, mas dá pra melhorar. " + P.focus }))); });
-      w.append(pass ? certCard(LVL, total) : null, bars, pass ? el("button", { cls: "btn big", type: "button", text: "Ir pro " + NEXT_LV[LVL].toUpperCase() + " →", onclick: function () { setLevel(NEXT_LV[LVL]); } })
+      w.append(pass ? recadoCard(recadoHoje()) : null, pass ? certCard(LVL, total) : null, bars, pass ? el("button", { cls: "btn big", type: "button", text: "Ir pro " + NEXT_LV[LVL].toUpperCase() + " →", onclick: function () { setLevel(NEXT_LV[LVL]); } })
         : el("button", { cls: "btn big", type: "button", text: "Voltar a treinar →", onclick: home }),
         el("p", { cls: "small", text: "A nota da fala é automática, pelo reconhecimento de voz: é uma estimativa." }));
     }
@@ -1464,9 +1489,8 @@
         cd.children.length ? el("b", { text: "No fim, você vai conseguir:" }) : null, cd),
         el("p", { cls: "small", text: "Aquecimento rápido antes do treino: ouça, entenda pela tradução e já fale. Toque no 🔊 quantas vezes quiser." }),
         el("button", { cls: "btn big", type: "button", text: "Bora aquecer →", onclick: go }));
-      // 🎙️ recado do Joaquim (voz real): aparece só se existir /academia/voz/<tema>.mp3
-      var vz = "/academia/voz/" + u.id + ".mp3";
-      fetch(vz, { method: "HEAD" }).then(function (r) { if (r.ok && (r.headers.get("content-type") || "").indexOf("audio") > -1 && box.isConnected && step === 0) box.firstChild.after(el("div", { cls: "card voz-jq" }, el("b", { text: "🎙️ Recado do Joaquim" }), player(vz, {}))); }).catch(function () {});
+      var vz = null; // (recado por tema saiu: agora são 5 recados por momento, ver recadoHoje)
+      if (vz) fetch(vz, { method: "HEAD" }).then(function (r) { if (r.ok && (r.headers.get("content-type") || "").indexOf("audio") > -1 && box.isConnected && step === 0) box.firstChild.after(el("div", { cls: "card voz-jq" }, el("b", { text: "🎙️ Recado do Joaquim" }), player(vz, {}))); }).catch(function () {});
     }
     function chunk(ci) {
       var C = CH[ci], ex = el("div", { cls: "vocab-list" });

@@ -118,8 +118,15 @@ function escapeHtml(s: string) { return s.replace(/[&<>"']/g, (c) => ({ "&": "&a
 
 // ---- limite simples por IP (evita robô tentando senha) ----
 const hits = new Map<string, number[]>();
+/** IP de quem está usando: vindo do site (worker com a chave secreta) vale o x-dtv-ip; chamada direta usa o último x-forwarded-for (posto pelo Railway, não dá pra forjar). */
+export function ipOf(req: NextRequest): string {
+  const key = process.env.DESTRAVANDO_PROXY_KEY;
+  if (key && req.headers.get("x-dtv-key") === key) return req.headers.get("x-dtv-ip")?.trim() || "?";
+  const xff = (req.headers.get("x-forwarded-for") ?? "").split(",").map((x) => x.trim()).filter(Boolean);
+  return xff[xff.length - 1] || "?";
+}
 export function tooMany(req: NextRequest, key: string, max: number, windowMs: number): boolean {
-  const ip = (req.headers.get("cf-connecting-ip") ?? req.headers.get("x-forwarded-for") ?? "").split(",")[0].trim() || "?";
+  const ip = ipOf(req);
   const k = key + "|" + ip, now = Date.now();
   const arr = (hits.get(k) ?? []).filter((t) => now - t < windowMs);
   arr.push(now); hits.set(k, arr);

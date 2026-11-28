@@ -11,13 +11,14 @@ const AGES = ["Até 17", "18 a 24", "25 a 34", "35 a 44", "45 a 54", "55 ou mais
 
 /** Cadastro = lead: cria a conta, já entra e guarda o progresso que estava no aparelho. */
 export async function POST(req: NextRequest) {
-  if (tooMany(req, "cadastro", 8, 3_600_000)) return json(req, { error: "Muitas tentativas. Tente de novo daqui a pouco." }, 429);
   const b = (await req.json().catch(() => ({}))) as Record<string, unknown>;
   const email = normEmail(b.email), name = clean(b.name, 80), pw = typeof b.password === "string" ? b.password : "";
   if (!name) return json(req, { error: "Escreva o seu nome." }, 400);
   if (!email) return json(req, { error: "Confira o seu e-mail." }, 400);
   if (pw.length < 6 || pw.length > 100) return json(req, { error: "A senha precisa ter pelo menos 6 caracteres." }, 400);
   if (b.consent !== true) return json(req, { error: "Pra criar a conta, aceite a política de privacidade." }, 400);
+  // só conta tentativa válida (quem erra o e-mail não fica bloqueado); 15/h por IP aguenta um Wi-Fi compartilhado
+  if (tooMany(req, "cadastro", 15, 3_600_000)) return json(req, { error: "Muitas contas criadas daqui agora há pouco. Tente de novo daqui a pouco." }, 429);
   const whatsapp = clean(b.whatsapp, 30)?.replace(/[^\d+]/g, "") || null;
   const gender = GENDERS.includes(String(b.gender)) ? String(b.gender) : clean(b.gender, 40);
   const ageRange = AGES.includes(String(b.ageRange)) ? String(b.ageRange) : null;

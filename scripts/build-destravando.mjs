@@ -41,6 +41,7 @@ export default {
       const h = new Headers(req.headers);
       h.delete("host"); h.delete("cookie");
       h.set("x-forwarded-for", req.headers.get("cf-connecting-ip") || "");
+      h.set("x-dtv-ip", req.headers.get("cf-connecting-ip") || ""); h.set("x-dtv-key", (env && env.DTV_PROXY_KEY) || ""); // o servidor só confia no IP com a chave
       const r = await fetch(BACK + u.pathname.slice(4) + u.search, {
         method: req.method, headers: h, redirect: "manual",
         body: req.method === "GET" || req.method === "HEAD" ? undefined : await req.arrayBuffer(),

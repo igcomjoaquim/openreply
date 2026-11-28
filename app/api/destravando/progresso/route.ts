@@ -20,6 +20,11 @@ export async function PUT(req: NextRequest) {
   let b: Record<string, unknown>;
   try { b = JSON.parse(raw); } catch { return json(req, { error: "bad" }, 400); }
   if (!b.progress || typeof b.progress !== "object") return json(req, { error: "bad" }, 400);
+  // dois aparelhos: o progresso mais velho não apaga o mais novo (devolve o da conta pro aparelho atrasado)
+  const cur = s.user.progress as Record<string, unknown> | null;
+  const curAt = cur && typeof cur.savedAt === "number" ? cur.savedAt : 0;
+  const newAt = typeof (b.progress as Record<string, unknown>).savedAt === "number" ? ((b.progress as Record<string, unknown>).savedAt as number) : 0;
+  if (curAt && newAt && newAt + 1000 < curAt) return json(req, { error: "Tem progresso mais novo na conta.", progress: cur }, 409);
   await getPrisma().dtvUser.update({
     where: { id: s.user.id },
     data: { progress: b.progress as Prisma.InputJsonValue, progressAt: new Date(), lastSeenAt: new Date(), ...(clean(b.testLevel, 40) ? { testLevel: clean(b.testLevel, 40) } : {}), ...(clean(b.selfLevel, 40) ? { selfLevel: clean(b.selfLevel, 40) } : {}) },

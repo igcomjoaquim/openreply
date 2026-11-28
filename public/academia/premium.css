@@ -414,3 +414,11 @@ body.premium .keep-st{width:100%;margin-top:10px}
 .rank-list li.me{background:linear-gradient(110deg,rgba(237,197,95,.28),rgba(111,42,61,.10));border-radius:10px;font-weight:700}
 .rank-msg{display:block;margin:4px 0;color:var(--marsala,#6F2A3D)}
 .land-phase{margin:14px 0 2px;font:700 13px var(--f-body,system-ui);letter-spacing:.08em;text-transform:uppercase;color:var(--marsala,#6F2A3D)}
+/* 🏖️ férias */
+.vac{margin-top:8px}
+.vac .linkish{font-size:14px}
+.vac-form{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+.vac-form input{border:1px solid #E2D4B5;border-radius:12px;padding:9px 12px;font:16px var(--f-body,system-ui);background:#FFFDF8}
+.vac.on{margin-top:8px;background:linear-gradient(110deg,rgba(130,200,230,.18),rgba(237,197,95,.18))!important}
+.vac-help{background:rgba(237,197,95,.14);border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:6px}
+.vac-help p{margin:0;font-size:14px;line-height:1.45}

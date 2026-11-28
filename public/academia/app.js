@@ -113,11 +113,33 @@
   var LOCAL_SAVED = S.savedAt || 0, SYNCED = false;
   function persist() { S.savedAt = Date.now(); try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} schedulePush(); }
   function markDay() { var t = today(); if (S.days.indexOf(t) < 0) { S.days.push(t); S.days = S.days.slice(-120); S.litNow = t; } }
+  // 🏖️ férias (Thiago 28/11): dias de férias não apagam a ofensiva (nem contam)
+  function onVacation(iso) { return (S.ferias || []).some(function (f) { return iso >= f.from && iso <= f.to; }); }
   function streak() {
-    var n = 0, d = new Date();
-    for (;;) { var iso = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
-      if (S.days.indexOf(iso) > -1) { n++; d.setDate(d.getDate() - 1); } else if (n === 0 && iso === today()) { d.setDate(d.getDate() - 1); } else break; }
+    var n = 0, d = new Date(), guard = 0;
+    for (; guard < 2000; guard++) { var iso = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+      if (S.days.indexOf(iso) > -1) { n++; d.setDate(d.getDate() - 1); } else if (onVacation(iso) || (n === 0 && iso === today())) { d.setDate(d.getDate() - 1); } else break; }
     return n;
+  }
+  function isoOf(d) { return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
+  function brDate(iso) { var p = String(iso).split("-"); return p[2] + "/" + p[1]; }
+  function vacationNow() { var t = today(); return (S.ferias || []).filter(function (f) { return t >= f.from && t <= f.to; })[0] || null; }
+  function vacationBox() {
+    var V = vacationNow();
+    if (V) return el("div", { cls: "card vac on" }, el("b", { text: "🏖️ De férias até " + brDate(V.to) }), el("p", { cls: "small", text: "Sua ofensiva de " + streak() + (streak() === 1 ? " dia" : " dias") + " tá guardada. Aproveita! Quer voltar antes? Pode treinar normalmente." }),
+      el("button", { cls: "linkish", type: "button", text: "Encerrar as férias agora", onclick: function () { var y = new Date(); y.setDate(y.getDate() - 1); V.to = isoOf(y); if (V.to < V.from) S.ferias = S.ferias.filter(function (x) { return x !== V; }); persist(); home(); } }));
+    var form = el("div", { cls: "vac-form", hidden: true }), t1 = new Date(); t1.setDate(t1.getDate() + 1); var t2 = new Date(); t2.setDate(t2.getDate() + 7);
+    var a = el("input", { type: "date", value: isoOf(t1), min: today() }), b = el("input", { type: "date", value: isoOf(t2), min: today() }), info = el("p", { cls: "small" });
+    function upd() { var n = Math.round((new Date(b.value) - new Date(a.value)) / 86400000) + 1; info.textContent = !a.value || !b.value || n < 1 ? "Escolha as datas." : n > 31 ? "Máximo de 31 dias por vez." : "🏖️ " + n + (n === 1 ? " dia" : " dias") + " de férias: a ofensiva fica guardada."; return n; }
+    a.addEventListener("change", upd); b.addEventListener("change", upd); upd();
+    form.append(el("div", { cls: "vac-help" },
+        el("b", { text: "🏖️ O que são as férias?" }),
+        el("p", { text: "Vai viajar, tá numa semana puxada ou só precisa descansar? Marque as datas. Nesses dias a sua ofensiva 🔥 fica congelada: não aumenta, mas também não apaga. Quando voltar, continua de onde parou." }),
+        el("p", { text: "Pode tirar até 31 dias por vez. Se quiser treinar no meio das férias, pode: nada muda." }),
+        el("p", { cls: "small", text: "☕ Só quer parar uns minutos no meio de um exercício? Não precisa de férias: use o botão ☕ Pausar, no topo de cada exercício. Ele guarda exatamente onde você parou." })),
+      el("label", { cls: "fld" }, el("span", { cls: "fld-l", text: "De" }), a), el("label", { cls: "fld" }, el("span", { cls: "fld-l", text: "Até" }), b), info,
+      el("button", { cls: "btn", type: "button", text: "Confirmar férias", onclick: function () { var n = upd(); if (n < 1 || n > 31) return; S.ferias = (S.ferias || []).concat([{ from: a.value, to: b.value }]); persist(); notice("🏖️ Férias marcadas! Sua ofensiva fica guardada até " + brDate(b.value) + "."); home(); } }));
+    return el("div", { cls: "vac" }, el("button", { cls: "linkish", type: "button", text: "🏖️ Vai viajar ou descansar? Tirar férias sem perder a ofensiva", onclick: function () { form.hidden = !form.hidden; } }), form);
   }
   function dkey(st, uid, v) { return st + ":" + uid + ":" + v; }
   function record(st, uid, v, pct) {
@@ -1252,11 +1274,11 @@
     d.setDate(d.getDate() - d.getDay());
     for (var k = 0; k < 7; k++) {
       var iso = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
-      row.append(el("span", { cls: "wd" + (S.days.indexOf(iso) > -1 ? " on" : "") + (iso === today() ? " td" : "") }, el("i", { text: S.days.indexOf(iso) > -1 ? "🔥" : "·" }), el("small", { text: DN[k] })));
+      row.append(el("span", { cls: "wd" + (S.days.indexOf(iso) > -1 ? " on" : "") + (iso === today() ? " td" : "") }, el("i", { text: S.days.indexOf(iso) > -1 ? "🔥" : onVacation(iso) ? "🏖️" : "·" }), el("small", { text: DN[k] })));
       d.setDate(d.getDate() + 1);
     }
     return el("div", { cls: "streak" + (lit ? " lit" : "") }, el("div", { cls: "sk" }, el("span", { cls: "fire", text: "🔥" }), el("span", { cls: "tt" }, el("b", { text: n + (n === 1 ? " dia" : " dias") + " de ofensiva" }),
-      el("span", { cls: "small", text: lit ? "Hoje já tá garantido. Volta amanhã pra não perder!" : n ? "Treine hoje pra não perder a ofensiva!" : "Faça 1 exercício hoje e comece sua ofensiva." }))), row);
+      el("span", { cls: "small", text: lit ? "Hoje já tá garantido. Volta amanhã pra não perder!" : vacationNow() ? "Você tá de férias: a ofensiva tá guardada. 🏖️" : n ? "Treine hoje pra não perder a ofensiva!" : "Faça 1 exercício hoje e comece sua ofensiva." }))), row, vacationBox());
   }
   function streakToast(w) {
     if (S.litNow !== today()) return; S.litNow = null; persist();

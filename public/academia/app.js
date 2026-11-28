@@ -79,7 +79,11 @@
     a = a.slice(); for (var i = a.length - 1; i > 0; i--) { seed = (seed * 1103515245 + 12345) >>> 0; var j = seed % (i + 1); var t = a[i]; a[i] = a[j]; a[j] = t; } return a;
   }
   function today() { var d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
-  function buzz(p) { try { if (navigator.vibrate) navigator.vibrate(p); } catch (e) {} }
+  var HAP = null;
+  function buzz(p) { try { if (navigator.vibrate) { navigator.vibrate(p); return; }
+      if (/iPhone|iPad/.test(navigator.userAgent)) { if (!HAP) { var inp = el("input", { type: "checkbox", switch: true, id: "dtv-hap", tabindex: "-1", "aria-hidden": "true" }); HAP = el("label", { for: "dtv-hap", cls: "hap" }, inp); document.body.append(HAP); } HAP.click(); }
+    } catch (e) {} }
+  function skel() { return el("div", { cls: "skel", "aria-label": "Carregando" }, el("i"), el("i"), el("i")); }
 
   // ---------- progresso ----------
   var S = (function () { try { return JSON.parse(localStorage.getItem(KEY) || "null"); } catch (e) { return null; } })() || {};
@@ -557,7 +561,7 @@
   // ===== teste de nivelamento =====
   function runTest() {
     var w = screen();
-    w.append(el("p", { cls: "boot", text: "Carregando o teste…" }));
+    w.append(skel());
     loadTest().then(function (T) { testFlow(T); }).catch(function () { w.innerHTML = ""; w.append(el("p", { text: "Não consegui carregar o teste. Confira a internet e tente de novo." }), el("button", { cls: "btn", type: "button", text: "Tentar de novo", onclick: runTest })); });
   }
   // acerto mínimo por parte: ouvir (múltipla escolha) 0.6; fala 0.5 (o reconhecimento de voz erra palavras de quem fala bem)
@@ -1091,7 +1095,7 @@
   }
   function getUnit(uid) { return Promise.all([loadOuv(), loadSeven(), loadParts(), loadRef()]).then(function () { return uid === GERAL.id ? GERAL : loadUnit(uid); }); }
   function pickVar(st, uid) {
-    var w = screen(); w.append(topBar(home), el("p", { cls: "boot", text: "Carregando…" }));
+    var w = screen(); w.append(topBar(home), skel());
     getUnit(uid).catch(function () { netError(); return Promise.reject(); }).then(function (u) {
       w.innerHTML = ""; var X = ST[st], i = uidx(uid);
       w.append(topBar(home), el("span", { cls: "eyebrow", text: X.emoji + " " + X.name + (uid === GERAL.id ? "" : " · Tema " + (i + 1) + " · " + u.title) }), el("h1", { text: "Escolha a variação" }),
@@ -1114,7 +1118,7 @@
   function gapParts(en) { var m = en.match(/\[\[([^\]]+)\]\]/); if (!m) return null; return { ans: m[1].split("|")[0], before: en.slice(0, m.index), after: en.slice(m.index + m[0].length) }; }
   function cleanLine(en) { return en.replace(/\[\[([^\]]+)\]\]/g, function (_, a) { return a.split("|")[0]; }); }
   function extrasPage() {
-    var w = screen(); w.append(topBar(home), el("p", { cls: "boot", text: "Carregando…" }));
+    var w = screen(); w.append(topBar(home), skel());
     loadExtras().then(function (L) {
       w.innerHTML = ""; S.extras = S.extras || {};
       w.append(topBar(home), el("span", { cls: "eyebrow", text: "➕ Quer mais?" }), el("h1", { text: "🎧 Inglês de verdade" }),
@@ -1304,7 +1308,8 @@
     return el("div", { cls: "card mission" }, el("span", { cls: "eyebrow", text: "🎯 Missão da vida real · 1 minuto" }),
       el("h2", { html: "Mande um áudio em inglês pra alguém usando <mark class=\"ck\">" + esc(k) + "</mark>" }),
       el("p", { cls: "small", text: "Pode ser bobo, pode ser curto. O que vale é usar fora daqui. Falou, validou! 😎" }),
-      el("a", { cls: "btn gold", href: "https://wa.me/?text=" + encodeURIComponent(msg), target: "_blank", rel: "noopener", text: "📲 Abrir o WhatsApp" }));
+      navigator.share ? el("button", { cls: "btn gold", type: "button", text: "📲 Compartilhar", onclick: function () { navigator.share({ text: msg }).catch(function () {}); } })
+        : el("a", { cls: "btn gold", href: "https://wa.me/?text=" + encodeURIComponent(msg), target: "_blank", rel: "noopener", text: "📲 Abrir o WhatsApp" }));
   }
   function keepCard(u) {
     var L = keepList(u); if (!L.length) return null; saveKeep(u, L);
@@ -2345,12 +2350,12 @@
   function isPortuguese(t) { var w = nrm(t).split(/\s+/).filter(Boolean), p = w.filter(function (x) { return PTW.indexOf(x) > -1 && ["a", "e", "o"].indexOf(x) < 0; }); return w.length > 0 && p.length >= 2 && p.length / w.length >= 0.12; }
   // ← Sair no meio do exercício: janela no próprio site (nada de confirm cinza)
   function askExit() {
-    var ov = el("div", { cls: "evo-ov", role: "dialog", "aria-modal": "true" }, el("div", { cls: "evo-card" },
+    var ov = el("div", { cls: "evo-ov bsheet", role: "dialog", "aria-modal": "true", onclick: function (e) { if (e.target === ov) ov.remove(); } }, el("div", { cls: "evo-card bs-card" },
       el("b", { cls: "evo-name", text: "Quer parar agora?" }), el("p", { cls: "small", text: "Com ☕ Pausar, você continua exatamente daqui depois." }),
       el("button", { cls: "btn", type: "button", text: "☕ Pausar e sair", onclick: function () { ov.remove(); pauseNow(); } }),
       el("button", { cls: "btn ghost", type: "button", text: "Continuar aqui", onclick: function () { ov.remove(); } }),
       el("button", { cls: "linkish", type: "button", text: "Sair sem salvar", onclick: function () { ov.remove(); CUR = null; home(); } })));
-    document.body.append(ov); ov.querySelector(".btn").focus();
+    document.body.append(ov); sheetify(ov, ov.querySelector(".bs-card"), function () { ov.remove(); }); ov.querySelector(".btn").focus();
   }
   // ⬅️ voltar do Android: dentro de exercício pausa (salva), nas abas volta pro início
   var navPushed = false;
@@ -3060,7 +3065,7 @@
   // menu fixo embaixo (Thiago: "tudo que é navegação tem que GRITAR, aluno não procura")
   function menuBar(cur) {
     var nErr = myErrors().length;
-    var items = [["home", "🏠", "Início", home], ["prog", "📊", "Progresso", progressPage], ["erros", "🧠", "Meus erros", function () { runErrors(); }], ["nativo", "🎧", "Inglês real", extrasPage]];
+    var items = [["home", "🏠", "Início", home], ["prog", "📊", "Progresso", progressPage], ["erros", "🧠", "Meus erros", function () { runErrors(); }], ["nativo", "🎧", "Inglês real", extrasPage], ["voce", "👤", "Você", youPage]];
     var bar = el("nav", { cls: "tabbar" });
     items.forEach(function (it) {
       bar.append(el("button", { cls: "tab" + (it[0] === cur ? " on" : ""), type: "button", onclick: function () { if (it[0] === "erros" && !nErr) { notice("🎉 Nada pra revisar por enquanto!"); return; } if (it[0] !== "home") pushNav(); it[3](); } },
@@ -3126,6 +3131,7 @@
       ta, ACC ? null : nm, ACC ? null : em, el("p", { cls: "fb-where", text: "📍 " + where }), send, msg);
     var ov = el("div", { cls: "fb-ov", onclick: function (e) { if (e.target === ov) close(); } }, card);
     function close() { ov.remove(); }
+    sheetify(ov, card, close);
     send.onclick = function () {
       var t = ta.value.trim(); if (t.length < 2) { msg.textContent = "Escreve o que aconteceu 🙂"; ta.focus(); return; }
       send.disabled = true; send.textContent = "Enviando…";
@@ -3417,6 +3423,59 @@
     card.append(go, el("button", { cls: "linkish", type: "button", text: "Agora não", onclick: function () { var d = new Date(); d.setDate(d.getDate() + 5); S.pushHide = isoOf(d); persist(); card.remove(); } }));
     return card;
   }
+  // ⬆️ JANELA QUE SOBE DE BAIXO: alcinha em cima, arrasta pra baixo pra fechar (igual iPhone)
+  function sheetify(ov, card, close) {
+    ov.classList.add("bsheet"); card.classList.add("bs-card"); card.prepend(el("div", { cls: "bs-h", "aria-hidden": "true" }));
+    var y0 = null, dy = 0;
+    card.addEventListener("touchstart", function (e) { if (card.scrollTop > 0) return; y0 = e.touches[0].clientY; dy = 0; card.style.transition = "none"; }, { passive: true });
+    card.addEventListener("touchmove", function (e) { if (y0 == null) return; dy = Math.max(0, e.touches[0].clientY - y0); card.style.transform = "translateY(" + dy + "px)"; }, { passive: true });
+    card.addEventListener("touchend", function () { if (y0 == null) return; y0 = null; card.style.transition = ""; if (dy > 90) { card.style.transform = "translateY(110%)"; setTimeout(close, 180); } else card.style.transform = ""; });
+  }
+  // 👋 BOAS-VINDAS DO APP (só na 1ª vez que abre pelo ícone, sem conta): 3 telas deslizantes
+  function onboarding(done) {
+    var w = screen(); w.classList.add("onb-wrap");
+    var S3 = [["🎧", "Aqui você não assiste aula.", "Você <b>treina</b>: ouve gente de verdade, repete, erra e acerta. É prática, do jeito que o seu cérebro aprende."],
+      ["⏱️", "15 minutinhos por dia.", "Um treino curto e diferente todo dia, com <b>cena real</b>, <b>fofoca</b> e <b>frases-chave</b>. O segredo é a constância."],
+      ["🚀", "Do zero ao B2.", "Um teste rapidinho mostra o seu nível e o app monta o caminho. Falou, validou!"]];
+    var track = el("div", { cls: "onb-track" }), dots = el("div", { cls: "onb-dots" });
+    S3.forEach(function (x, i) { track.append(el("section", { cls: "onb-slide" }, i === 0 ? el("img", { cls: "onb-ic", src: "/academia/app/icon-192.png", alt: "" }) : el("div", { cls: "onb-em", text: x[0] }), el("h1", { text: x[1] }), el("p", { html: x[2] }))); dots.append(el("i", { cls: i ? "" : "on" })); });
+    var nx = el("button", { cls: "btn big gold", type: "button", text: "Próximo →" });
+    function idx() { return Math.round(track.scrollLeft / Math.max(1, track.clientWidth)); }
+    function fin() { try { localStorage.setItem("dtv-onb", "1"); } catch (e) {} done(); }
+    track.addEventListener("scroll", function () { var i = idx(); [].forEach.call(dots.children, function (d, k) { d.className = k === i ? "on" : ""; }); nx.textContent = i >= 2 ? "Começar →" : "Próximo →"; }, { passive: true });
+    nx.onclick = function () { var i = idx(); if (i >= 2) return fin(); track.scrollTo({ left: (i + 1) * track.clientWidth, behavior: "smooth" }); };
+    w.append(el("button", { cls: "onb-skip linkish", type: "button", text: "Pular", onclick: fin }), track, dots, nx);
+  }
+  // 👤 ABA "VOCÊ": tudo da conta num lugar só, estilo Ajustes
+  function youPage() {
+    var w = screen(), x = xpLevel(), n = (ACC && ACC.name) || S.name || "Você";
+    var row = function (ic, t, sub, right) { return el("div", { cls: "set-row" }, el("span", { cls: "set-ic", text: ic }), el("span", { cls: "set-t" }, el("b", { text: t }), sub ? el("small", { text: sub }) : null), right || null); };
+    function sw(on, fn) { var b = el("button", { cls: "sw" + (on ? " on" : ""), type: "button", role: "switch", "aria-checked": on ? "true" : "false", onclick: function () { fn(!b.classList.contains("on"), b); } }, el("i")); return b; }
+    function setSw(b, on) { b.classList.toggle("on", on); b.setAttribute("aria-checked", on ? "true" : "false"); }
+    w.append(topBar(home), el("section", { cls: "you-head" }, el("div", { cls: "you-av", text: n.trim().charAt(0).toUpperCase() }), el("div", null, el("h1", { text: n }), el("p", { cls: "small", text: (ACC && ACC.email) || "Progresso só neste aparelho" })),
+      el("div", { cls: "you-badges" }, el("span", { text: "🎯 " + LVL.toUpperCase() }), el("span", { text: "⭐ " + x.name }), el("span", { text: "🔥 " + streak() + (streak() === 1 ? " dia" : " dias") }))));
+    // notificações
+    var g1 = el("div", { cls: "card set-card" }, el("span", { cls: "eyebrow", text: "🔔 Lembretes" }));
+    if (PUSH_OK && ACC) {
+      var pb = sw(!!S.pushOn && window.Notification && Notification.permission === "granted", function (on, b) {
+        if (on) { var tmp = el("button"); pushOn(tmp, null); var t = setInterval(function () { if (S.pushOn) { setSw(b, true); clearInterval(t); } else if (!tmp.disabled && tmp.textContent.indexOf("Ativar") > -1) clearInterval(t); }, 400); return; }
+        navigator.serviceWorker.ready.then(function (reg) { return reg.pushManager.getSubscription(); }).then(function (sub) { if (sub) { api("push", "DELETE", { endpoint: sub.endpoint }); return sub.unsubscribe(); } })
+          .then(function () { S.pushOn = null; persist(); setSw(b, false); try { navigator.clearAppBadge && navigator.clearAppBadge(); } catch (e) {} notice("🔕 Notificação desligada neste celular."); });
+      });
+      g1.append(row("📲", "Notificação no celular", "1 por dia, só se você ainda não treinou", pb));
+    } else g1.append(row("📲", "Notificação no celular", IOS && !STANDALONE ? "Instale o app na tela de início pra ativar" : "Este navegador não aceita notificação", null));
+    if (ACC) {
+      var eb = sw(true, function (on, b) { setSw(b, on); api("preferencias", "POST", { emailLembrete: on }).then(function (r) { if (!r.ok) { setSw(b, !on); notice(r.error || "Não deu certo."); } }); });
+      g1.append(row("✉️", "Lembrete por e-mail", "Às 19h, se você ainda não treinou", eb));
+      api("preferencias").then(function (r) { if (r && typeof r.emailLembrete === "boolean") setSw(eb, r.emailLembrete); });
+    }
+    w.append(g1, vacationBox());
+    if (!STANDALONE) { var ic = installCard(); if (ic) w.append(ic); }
+    var g2 = el("div", { cls: "card set-card" }, el("span", { cls: "eyebrow", text: "💬 Ajuda" }),
+      el("button", { cls: "set-row set-btn", type: "button", onclick: feedbackOpen }, el("span", { cls: "set-ic", text: "🐞" }), el("span", { cls: "set-t" }, el("b", { text: "Achou um problema?" }), el("small", { text: "Me conta, chega direto pra mim" })), el("span", { cls: "set-go", text: "›" })),
+      el("a", { cls: "set-row set-btn", href: "/privacidade.html", target: "_blank" }, el("span", { cls: "set-ic", text: "🔒" }), el("span", { cls: "set-t" }, el("b", { text: "Privacidade" }), el("small", { text: "Seus dados servem só pro seu acesso" })), el("span", { cls: "set-go", text: "›" })));
+    w.append(g2, accountCard(), el("p", { cls: "small center you-ver", text: "Destravando · Inglês com Joaquim · Falou, validou!" }), menuBar("voce"));
+  }
   // 👩‍🏫 painel do modo professor
   function profPanel() {
     if (!PROF || document.querySelector(".prof-fab")) return;
@@ -3447,7 +3506,9 @@
     if (Q.get("resultado") === "1" && S.test) return result();
     // 🔐 quem já treina sem conta: cria a conta (o progresso do aparelho vai junto)
     // 📲 aberto pelo ícone (app instalado) e sem conta: vai direto pro Entrar, sem a página de vendas (Thiago 28/11)
-    if (CONTA_OK && !ACC && !PROF && S.skipAccUntil !== today()) return STANDALONE ? loginFromLanding() : landing();
+    if (CONTA_OK && !ACC && !PROF && S.skipAccUntil !== today()) { if (!STANDALONE) return landing(); return lsGet("dtv-onb") ? loginFromLanding() : onboarding(loginFromLanding); }
     S.test ? home() : welcome();
+    // 📲 atalhos do ícone (segurar o ícone no Android): ?ir=treino | erros | caderno
+    var IR = Q.get("ir"); if (IR && S.test) setTimeout(function () { if (IR === "treino") runDaily(); else if (IR === "erros" && myErrors().length) runErrors(); else if (IR === "caderno") cadernoPage(); }, 60);
   }).catch(function () { root.innerHTML = "<p class='boot'>Não consegui carregar. Confira a internet e recarregue.</p>"; });
 })();

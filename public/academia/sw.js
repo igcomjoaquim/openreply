@@ -2,7 +2,7 @@
 // - abre na hora: guarda a "casca" do app e os arquivos com ?v= (mudam de nome a cada atualização, então nunca ficam velhos)
 // - página: sempre tenta a internet primeiro (atualização chega na hora); sem internet, usa a última guardada
 // - 🔔 notificação no celular + número no ícone
-var CACHE = "dtv-v1";
+var CACHE = "dtv-v2";
 self.addEventListener("install", function () { self.skipWaiting(); });
 self.addEventListener("activate", function (e) {
   e.waitUntil(caches.keys().then(function (ks) { return Promise.all(ks.filter(function (k) { return k !== CACHE; }).map(function (k) { return caches.delete(k); })); }).then(function () { return self.clients.claim(); }));

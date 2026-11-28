@@ -11,8 +11,61 @@
   "theme_color": "#F4EBDD",
   "lang": "pt-BR",
   "icons": [
-    { "src": "/academia/app/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "/academia/app/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "/academia/app/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    {
+      "src": "/academia/app/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/academia/app/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/academia/app/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Treino de hoje",
+      "short_name": "Treino",
+      "url": "/?app=1&ir=treino",
+      "icons": [
+        {
+          "src": "/academia/app/icon-96.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Meus erros",
+      "short_name": "Erros",
+      "url": "/?app=1&ir=erros",
+      "icons": [
+        {
+          "src": "/academia/app/icon-96.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Meu caderno",
+      "short_name": "Caderno",
+      "url": "/?app=1&ir=caderno",
+      "icons": [
+        {
+          "src": "/academia/app/icon-96.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    }
   ]
 }

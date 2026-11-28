@@ -287,7 +287,11 @@
 
   // ---------- telas ----------
   var TALKS = [];
-  function screen() { stopAll(); TALKS.splice(0).forEach(function (f) { try { f(); } catch (e) {} }); root.innerHTML = ""; window.scrollTo(0, 0); var w = el("main", { cls: "wrap" }); root.append(w);
+  var BACKING = false, POPPING = false;
+  function screen() { stopAll(); TALKS.splice(0).forEach(function (f) { try { f(); } catch (e) {} }); root.innerHTML = ""; window.scrollTo(0, 0);
+    var w = el("main", { cls: "wrap " + (BACKING ? "enter-back" : "enter") }); root.append(w); BACKING = false;
+    // 📲 app instalado: cada tela entra no histórico, aí o "voltar" do Android (e o gesto) funciona como app
+    try { if (STANDALONE && !POPPING) history.pushState({ dtv: 1 }, ""); } catch (e) {}
     return w; }
   function topBar(back) {
     var s = streak();
@@ -828,6 +832,7 @@
   }
   function home() {
     if (!S.test) return welcome();
+    try { syncBadge(); } catch (e) {}
     var fresh = unlockCheck(); if (fresh) return unlockScreen(fresh);
     var w = screen(), t = curTheme(), I = INDEX[t];
     var D = todayPlan(), plan = D.plan, doneToday = (S.dailyDone === today()), roundOver = D.i >= plan.length, resume = D.i > 0 && !roundOver;
@@ -835,7 +840,7 @@
       el("section", { cls: "hello" }, el("p", { cls: "hand", text: hiLine(doneToday) }),
         el("div", { cls: "lvl" }, el("span", { cls: "lvl-badge", text: LVL === "b2" ? "B2 · intermediário superior" : LVL === "b1" ? "B1 · intermediário" : LVL === "a2" ? "A2 · pré-intermediário" : BANDS[S.test.band] }), S.test.skipped ? el("span", { cls: "small", text: "começando pelo tema 1" }) : el("span", { cls: "small", text: "foco: " + PROB[focusProb()].emoji + " " + PROB[focusProb()].name.toLowerCase() }))),
       recadoCard(recadoHoje()),
-      installCard(),
+      installCard() || pushCard(),
       howTo(),
       streakCard(),
       S.paused ? el("button", { cls: "paused-card", type: "button", onclick: resumePaused }, el("span", { cls: "pe", text: "☕" }),
@@ -1424,6 +1429,7 @@
     })();
   }
   function celebrate() {
+    setTimeout(syncBadge, 300);
     var w = screen();
     w.append(topBar(), el("section", { cls: "hero center" }, el("div", { cls: "big-emoji", text: "🏆" }), el("h1", { text: "Treino de hoje feito!" }),
       el("p", { text: "🔥 Ofensiva de " + streak() + (streak() === 1 ? " dia" : " dias") + ". Amanhã tem mais, com outras variações — volta pra manter o fogo aceso!" }), el("p", { cls: "hand", text: "Falou, validou! 🚀" })),
@@ -3361,6 +3367,55 @@
     else card.append(el("button", { cls: "btn inst-go", type: "button", hidden: !INSTALL_EVT, text: "📲 Instalar o app", onclick: function () { if (!INSTALL_EVT) return; INSTALL_EVT.prompt(); INSTALL_EVT.userChoice.then(function (c) { if (c && c.outcome === "accepted") { S.installed = today(); persist(); card.remove(); } INSTALL_EVT = null; }); } }),
       el("p", { cls: "small", text: "Não apareceu o botão? No Chrome, toque nos 3 pontinhos ⋮ e em “Instalar app” ou “Adicionar à tela inicial”." }));
     card.append(el("button", { cls: "linkish", type: "button", text: "Agora não", onclick: later }));
+    return card;
+  }
+  // ⬅️ VOLTAR como app: arrastar da beirada esquerda (iPhone) e o botão voltar do Android
+  function goBack() {
+    var b = root.querySelector("header .back") || root.querySelector("button.back");
+    if (b) { BACKING = true; b.click(); return true; }
+    if (S.test && !root.querySelector("section.hello")) { BACKING = true; home(); return true; } // qualquer outra tela volta pro início
+    return false;
+  }
+  if (STANDALONE) {
+    window.addEventListener("popstate", function () { POPPING = true; try { goBack(); } finally { POPPING = false; } });
+    var sx = 0, sy = 0, edge = false;
+    document.addEventListener("touchstart", function (e) { var t = e.touches[0]; edge = t.clientX < 26; sx = t.clientX; sy = t.clientY; }, { passive: true });
+    document.addEventListener("touchend", function (e) { if (!edge) return; edge = false; var t = e.changedTouches[0]; if (t.clientX - sx > 70 && Math.abs(t.clientY - sy) < 60) goBack(); }, { passive: true });
+  }
+  // 📶 sem internet: aviso fixo no topo (some quando volta)
+  function netBanner() {
+    var b = document.querySelector(".net-off");
+    if (navigator.onLine) { if (b) b.remove(); return; }
+    if (!b) document.body.append(el("div", { cls: "net-off", text: "📶 Sem internet. O que você fizer fica salvo e sobe quando a conexão voltar." }));
+  }
+  window.addEventListener("offline", netBanner); window.addEventListener("online", function () { netBanner(); notice("✅ Internet de volta!"); });
+  // ⌨️ teclado: botão "Ir" e nada de zoom sozinho no iPhone (fonte ≥ 16 px no CSS)
+  document.addEventListener("focusin", function (e) { var t = e.target; if (t && t.tagName === "INPUT" && !t.getAttribute("enterkeyhint")) t.setAttribute("enterkeyhint", t.type === "email" ? "next" : "go"); });
+  // 🔔 NOTIFICAÇÃO NO CELULAR + número no ícone
+  var PUSH_OK = "serviceWorker" in navigator && "PushManager" in window && "Notification" in window && (STANDALONE || !IOS);
+  function syncBadge() { try { if (!navigator.setAppBadge) return; if (S.dailyDone === today()) navigator.clearAppBadge(); else if (window.Notification && Notification.permission === "granted") navigator.setAppBadge(1); } catch (e) {} }
+  function b64u(s) { var p = "=".repeat((4 - s.length % 4) % 4), b = atob((s + p).replace(/-/g, "+").replace(/_/g, "/")), a = new Uint8Array(b.length); for (var i = 0; i < b.length; i++) a[i] = b.charCodeAt(i); return a; }
+  function pushOn(btn, card) {
+    btn.disabled = true; btn.textContent = "⏳ Ativando…";
+    function fail(t) { btn.disabled = false; btn.textContent = "🔔 Ativar notificação"; notice(t); }
+    Notification.requestPermission().then(function (perm) {
+      if (perm !== "granted") { S.pushHide = "9999-12-31"; persist(); if (card) card.remove(); return notice("Tudo bem! Se mudar de ideia, libere as notificações do Destravando nos Ajustes do celular."); }
+      return Promise.all([navigator.serviceWorker.ready, api("push", "GET")]).then(function (x) {
+        var reg = x[0], key = x[1] && x[1].key; if (!key) return fail("A notificação ainda não está ligada no servidor. Tente mais tarde.");
+        return reg.pushManager.getSubscription().then(function (old) { return old || reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64u(key) }); })
+          .then(function (sub) { return api("push", "POST", { sub: sub.toJSON(), device: (navigator.userAgent.match(/iPhone|iPad|Android[^;)]*/) || ["?"])[0], teste: true }); })
+          .then(function (r) { if (!r.ok) return fail(r.error || "Não deu certo. Tente de novo."); S.pushOn = today(); persist(); syncBadge(); if (card) card.remove(); SFX.win(); notice("🔔 Pronto! Mandei uma notificação de teste agora."); });
+      });
+    }).catch(function () { fail("Não deu certo. Tente de novo."); });
+  }
+  function pushCard() {
+    if (!PUSH_OK || !ACC || PROF || S.pushOn || (S.pushHide && S.pushHide > today())) return null;
+    if (window.Notification && Notification.permission === "denied") return null;
+    var card = el("div", { cls: "card push-card" }, el("span", { cls: "eyebrow", text: "🔔 Lembrete no celular" }),
+      el("b", { text: "Ative e eu te lembro do treino no fim do dia, direto na tela do celular, como qualquer app." }),
+      el("p", { cls: "small", text: "Só 1 por dia, e só se você ainda não treinou. De férias, não chega nada." }));
+    var go = el("button", { cls: "btn", type: "button", text: "🔔 Ativar notificação", onclick: function () { pushOn(go, card); } });
+    card.append(go, el("button", { cls: "linkish", type: "button", text: "Agora não", onclick: function () { var d = new Date(); d.setDate(d.getDate() + 5); S.pushHide = isoOf(d); persist(); card.remove(); } }));
     return card;
   }
   // 👩‍🏫 painel do modo professor

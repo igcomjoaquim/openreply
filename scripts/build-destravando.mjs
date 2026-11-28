@@ -29,11 +29,8 @@ writeFileSync(join(out, "aprender/index.html"), html("app/aprender/route.ts"));
 mkdirSync(join(out, "academia"), { recursive: true });
 writeFileSync(join(out, "academia/index.html"), html("app/academia/route.ts"));
 // 📲 app instalável: o service worker precisa morar na raiz pra valer pro site todo.
-// Ele NÃO guarda páginas em cache (assim toda atualização chega na hora); só existe pra o celular oferecer "Instalar".
-writeFileSync(join(out, "sw.js"), `self.addEventListener("install", function () { self.skipWaiting(); });
-self.addEventListener("activate", function (e) { e.waitUntil(self.clients.claim()); });
-self.addEventListener("fetch", function () {});
-`);
+// Ele guarda a "casca" pra abrir na hora/sem internet (página sempre tenta a internet primeiro) e recebe as notificações.
+cpSync(join(root, "public/academia/sw.js"), join(out, "sw.js"));
 // política de privacidade na raiz (link do cadastro)
 cpSync(join(root, "public/academia/privacidade.html"), join(out, "privacidade.html"));
 // 🔐 /api/* do Destravando → servidor do projeto (contas, leads, progresso). O aluno só vê o endereço do Destravando.

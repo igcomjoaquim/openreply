@@ -603,6 +603,22 @@ model DtvUser {
 
   sessions DtvSession[]
   resets   DtvReset[]
+  pushes   DtvPush[]
+}
+
+/// 🔔 Destravando: aparelho inscrito pra notificação no celular (Web Push).
+model DtvPush {
+  id        String    @id @default(cuid())
+  userId    String
+  endpoint  String    @unique
+  p256dh    String
+  auth      String
+  device    String?
+  createdAt DateTime  @default(now())
+  lastOkAt  DateTime?
+  user      DtvUser   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model DtvSession {

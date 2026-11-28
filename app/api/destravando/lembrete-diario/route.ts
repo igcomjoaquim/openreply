@@ -2,6 +2,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import { getPrisma } from "@/lib/db/client";
 import { escapeHtml, sendMail } from "@/lib/destravando/conta";
+import { pushUser } from "@/lib/destravando/push";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -82,8 +83,26 @@ async function cron(req: NextRequest) {
     }
     await new Promise((r) => setTimeout(r, 600)); // Resend: no máx. ~2 por segundo
   }
-  console.log(`[destravando] lembrete ${hoje}: enviados ${enviados}, pulados ${pulados}, erros ${erros}`);
-  return NextResponse.json({ hoje, enviados, pulados, erros });
+  // 🔔 notificação no celular (quem ativou no app): mesmas regras, independente do e-mail
+  let notif = 0;
+  const comPush = await prisma.dtvUser.findMany({ where: teste ? { email: teste.toLowerCase(), pushes: { some: {} } } : { pushes: { some: {} } }, select: { id: true, name: true, progress: true, createdAt: true } });
+  for (const u of comPush) {
+    const p = (u.progress && typeof u.progress === "object" ? u.progress : {}) as Prog;
+    const days = Array.isArray(p.days) ? (p.days as unknown[]).filter((x): x is string => typeof x === "string").sort() : [];
+    const ferias = Array.isArray(p.ferias) ? (p.ferias as { from?: string; to?: string }[]) : [];
+    if (!teste) {
+      const ultimo = days[days.length - 1];
+      const ativo = ultimo ? Date.parse(hoje) - Date.parse(ultimo) <= 7 * DAY : Date.now() - u.createdAt.getTime() <= 3 * DAY;
+      const deFerias = ferias.some((f) => typeof f?.from === "string" && typeof f?.to === "string" && hoje >= f.from && hoje <= f.to);
+      if (days.includes(hoje) || deFerias || !ativo) continue;
+    }
+    const first = u.name.split(" ")[0] || "você", st = streakOf(days, hoje), dia = Math.floor(Date.parse(hoje) / DAY);
+    const title = st >= 2 ? `🔥 ${st} dias seguidos, ${first}!` : `${first}, bora treinar? 🔓`;
+    const body = st >= 2 ? "Não deixa a ofensiva apagar hoje: são só 15 minutinhos." : ZOADA[dia % ZOADA.length];
+    notif += await pushUser(u.id, { title, body, url: "/?app=1", badge: 1, tag: "lembrete" });
+  }
+  console.log(`[destravando] lembrete ${hoje}: e-mails ${enviados}, pulados ${pulados}, erros ${erros}, notificações ${notif}`);
+  return NextResponse.json({ hoje, enviados, pulados, erros, notif });
 }
 
 /** Link "não quero mais esses lembretes" do e-mail (GET = clique; POST com sair = botão de descadastro do Gmail). */

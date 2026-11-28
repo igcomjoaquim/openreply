@@ -1273,7 +1273,7 @@
     "Daqui a pouco você vai comprar pão na padaria lá fora sem precisar do Google Tradutor. 🥖",
     "Quer falar inglês? Então fala. Pensar em inglês calado não conta.",
     "Bora treinar, que você não é a Bruna Marquezine. 💅",
-    "Quando der vontade de desistir do inglês, dá uma olhadinha na sua conta bancária. Isso vai te incentivar a continuar. kkkk",
+    "Quando der vontade de desistir do inglês, dá uma olhadinha na sua conta bancária. Você tem condições de desistir? kkkkkkk 😂",
     "Não adianta jogar tudo pro alto, porque você não tem nada pra jogar pro alto. Bora treinar.",
     "Nadou, nadou… vai morrer na praia agora? Bora pra próxima.",
     "Nativo também erra. A diferença é que ele não para de falar.",

@@ -34,7 +34,7 @@ const ZOADA = [
   "Hoje você ainda não treinou… depois vai falar pra todo mundo que a minha plataforma não funciona, né? 😏",
   "É só levantar a bunda do sofá. Ou nem isso: dá pra fazer deitado. 😏",
   "Nadou, nadou… vai morrer na praia agora?",
-  "Quando der vontade de desistir do inglês, dá uma olhadinha na sua conta bancária. Isso vai te incentivar a continuar. kkkk",
+  "Quando der vontade de desistir do inglês, dá uma olhadinha na sua conta bancária. Você tem condições de desistir? kkkkkkk 😂",
   "Bora treinar, que você não é a Bruna Marquezine. 💅",
   "Não adianta jogar tudo pro alto, porque você não tem nada pra jogar pro alto. Bora treinar.",
   "Daqui a pouco você vai comprar pão na padaria lá fora sem precisar do Google Tradutor. 🥖",

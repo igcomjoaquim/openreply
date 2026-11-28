@@ -118,15 +118,19 @@ function escapeHtml(s: string) { return s.replace(/[&<>"']/g, (c) => ({ "&": "&a
 
 // ---- limite simples por IP (evita robô tentando senha) ----
 const hits = new Map<string, number[]>();
+/** De onde veio a chamada (só pra conferir a proteção): "chave" = pelo site com a chave certa. */
+export function viaOf(req: NextRequest): string {
+  const key = process.env.DESTRAVANDO_PROXY_KEY, sent = req.headers.get("x-dtv-key");
+  return !key ? "sem-chave-no-servidor" : sent === key ? "chave" : sent ? "chave-errada" : "sem-chave";
+}
 /** IP de quem está usando: vindo do site (worker com a chave secreta) vale o x-dtv-ip; chamada direta usa o último x-forwarded-for (posto pelo Railway, não dá pra forjar). */
 export function ipOf(req: NextRequest): string {
   const key = process.env.DESTRAVANDO_PROXY_KEY;
   if (key && req.headers.get("x-dtv-key") === key) return req.headers.get("x-dtv-ip")?.trim() || "?";
   const xff = (req.headers.get("x-forwarded-for") ?? "").split(",").map((x) => x.trim()).filter(Boolean);
-  // sem a chave configurada, ou chamada SEM a chave (site antigo ainda no ar): comportamento antigo, pra não juntar todos os alunos num IP só
-  const sent = req.headers.get("x-dtv-key");
-  if (!key || sent === null || sent === "") return (req.headers.get("cf-connecting-ip") ?? xff[0] ?? "").trim() || "?";
-  // chave errada = alguém tentando forjar: usa o IP que o Railway viu (não dá pra mentir)
+  // sem a chave configurada no servidor: comportamento antigo
+  if (!key) return (req.headers.get("cf-connecting-ip") ?? xff[0] ?? "").trim() || "?";
+  // modo rígido (28/11, site oficial já manda a chave): sem chave ou chave errada = chamada direta; vale o IP que o Railway viu (não dá pra forjar)
   return xff[xff.length - 1] || "?";
 }
 export function tooMany(req: NextRequest, key: string, max: number, windowMs: number): boolean {

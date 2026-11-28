@@ -711,7 +711,7 @@
     var NX = NEXT_LV[LVL] ? NEXT_LV[LVL].toUpperCase() : "", OKF = S[DONE_KEY[LVL]];
     tl.append(hasFinal() ? el("button", { cls: "tgoal final", type: "button", onclick: runFinal }, el("span", { cls: "disc" }, OKF ? "🎓" : "🏆"), el("b", { text: OKF ? "Teste final: aprovado ✅" : "🎓 Teste final do " + LVL.toUpperCase() }), el("span", { cls: "small", text: OKF ? NX + " liberado" : nDone >= INDEX.length ? "Bora! Quem passa libera o " + NX + " →" : "Recomendado depois do tema " + INDEX.length + " · passe e libere o " + NX }))
       : el("div", { cls: "tgoal" }, el("span", { cls: "disc" }, "🏆"), el("b", { text: nDone >= INDEX.length ? LVL.toUpperCase() + " completo!" : "🏁 Meta: o " + LVL.toUpperCase() + " inteiro" }), el("span", { cls: "small", text: nDone >= INDEX.length ? (LVL === "b2" ? "Você chegou ao topo da trilha. Falou, validou!" : "Próximo nível em breve") : "Faltam " + (INDEX.length - nDone) + " temas pra fechar a trilha" })));
-    w.append(el("h2", { cls: "sec", text: "🗺️ Sua trilha do " + LVL.toUpperCase() }),
+    w.append(myTiles(), el("h2", { cls: "sec", text: "🗺️ Sua trilha do " + LVL.toUpperCase() }),
       el("div", { cls: "trail-head" }, steps(t + 1, INDEX.length, "Tema"), el("p", { cls: "small", text: nDone + " de " + INDEX.length + " temas dominados. Cada tema abre o próximo quando você manda bem (70%+) em 2 Real Times dele." })), tl);
     // ➕ mais treinos: tudo que é opcional fica guardado aqui (menos escolha = mais treino)
     var fp = focusProb(), probs = el("div", { cls: "probs" });
@@ -1055,34 +1055,57 @@
     next();
   }
   // 📌📒 Thiago 28/11: no fim do treino, o que GUARDAR (inglês autêntico) vai pro "Meu caderno" pra revisar
+  // pouca coisa por dia (Thiago: "muita informação, a pessoa não grava nenhuma") e SEMPRE com exemplo em contexto
   function keepList(u) {
     var out = [];
-    ((u.lesson && u.lesson.chunks) || []).forEach(function (c) { out.push({ k: c.chunk, pt: c.pt, tag: "🔑 frase-chave" }); });
-    var seen = []; (u.gossips || []).forEach(function (g) { (g.lines || []).forEach(function (l) { addSeen(seen, nativeIn(l.text)); }); });
-    seen.slice(0, 7).forEach(function (n) { out.push({ k: n.k, pt: n.pt, tag: (n.emo || "💬") + " fala de nativo" }); });
+    ((u.lesson && u.lesson.chunks) || []).slice(0, 5).forEach(function (c) { out.push({ k: c.chunk, pt: c.pt, tag: "🔑 frase-chave", ex: (c.examples || [])[0] || "", exPt: (c.examplesPt || [])[0] || "" }); });
+    var seen = [], where = {};
+    (u.gossips || []).forEach(function (g) { (g.lines || []).forEach(function (l) { nativeIn(l.text).forEach(function (n) { var lk = n.k.toLowerCase(); if (!where[lk]) where[lk] = l; }); addSeen(seen, nativeIn(l.text)); }); });
+    seen.slice(0, 3).forEach(function (n) { var l = where[n.k.toLowerCase()] || {}; out.push({ k: n.k, pt: n.pt, tag: (n.emo || "💬") + " fala de nativo", ex: plain(l.text || ""), exPt: l.pt || "" }); });
     return out;
+  }
+  function keepRow(x) {
+    return el("div", { cls: "keep-row" }, el("mark", { cls: "ck", text: x.k }), el("span", { text: x.pt }),
+      x.ex ? el("p", { cls: "keep-ex" }, el("i", { html: hl(x.ex.replace(new RegExp("(" + String(x.k).split(/\s*\/\s*/)[0].replace(/[…]|\.\.\./g, "").trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + ")", "i"), "**$1**"), null) }), x.exPt ? el("small", { text: x.exPt }) : null) : null,
+      el("small", { cls: "keep-tag", text: (x.ok ? "✅ lembrou " + x.ok + "x · " : "") + (x.tag || "") }));
   }
   function saveKeep(u, list) {
     S.caderno = S.caderno || [];
-    list.forEach(function (x) { var lk = String(x.k).toLowerCase(); if (!S.caderno.some(function (c) { return String(c.k).toLowerCase() === lk; })) S.caderno.push({ k: x.k, pt: x.pt, tag: x.tag, uid: u.id, lv: LVL, at: today(), ok: 0 }); });
+    list.forEach(function (x) { var lk = String(x.k).toLowerCase(); if (!S.caderno.some(function (c) { return String(c.k).toLowerCase() === lk; })) S.caderno.push({ k: x.k, pt: x.pt, tag: x.tag, ex: x.ex, exPt: x.exPt, uid: u.id, lv: LVL, at: today(), ok: 0 }); });
     persist();
   }
   function keepCard(u) {
     var L = keepList(u); if (!L.length) return null; saveKeep(u, L);
     var box = el("div", { cls: "keep-list" });
-    L.forEach(function (x) { box.append(el("div", { cls: "keep-row" }, el("mark", { cls: "ck", text: x.k }), el("span", { text: x.pt }), el("small", { text: x.tag }))); });
+    L.forEach(function (x) { box.append(keepRow(x)); });
     return el("div", { cls: "card keep" }, el("span", { cls: "eyebrow", text: "📌 Pra guardar e revisar" }), el("h2", { text: "Inglês de verdade de hoje" }),
       el("p", { cls: "small", text: "O nativo usa isso o tempo todo, em série, filme e na rua. Já salvei no seu caderno: revise de vez em quando." }), box,
       el("button", { cls: "btn", type: "button", text: "📒 Abrir meu caderno", onclick: function () { pushNav(); cadernoPage(); } }));
+  }
+  // 👤 a página do aluno: o que é DELE sempre à mão (Thiago 28/11: "sensação de individualidade e personalização")
+  function myTiles() {
+    var nC = (S.caderno || []).filter(function (c) { return !c.lv || c.lv === LVL; }).length, nE = myErrors().length;
+    function tile(ic, t, sub, fn) { return el("button", { cls: "my-tile", type: "button", onclick: function () { pushNav(); fn(); } }, el("span", { cls: "mt-ic", text: ic }), el("b", { text: t }), el("span", { cls: "small", text: sub })); }
+    return el("section", { cls: "my-tiles" }, el("span", { cls: "eyebrow", text: "👤 Seu espaço" }),
+      el("div", { cls: "mt-row" },
+        tile("📒", "Meu caderno", nC ? nC + " pra revisar" : "o que você guardar", cadernoPage),
+        tile("🧠", "Meus erros", nE ? nE + " pra corrigir" : "nada pendente 🎉", function () { if (nE) runErrors(); else { notice("🎉 Nada pra revisar por enquanto!"); home(); } }),
+        tile("📊", "Progresso", "nível, medalhas, evolução", progressPage)));
   }
   function cadernoPage() {
     var w = screen(), C = (S.caderno || []).filter(function (c) { return !c.lv || c.lv === LVL; });
     w.append(topBar(home), el("h1", { text: "📒 Meu caderno" }), el("p", { cls: "small", text: "Tudo que você guardou no " + LVL.toUpperCase() + ": inglês autêntico, do jeito que o nativo fala." }));
     if (!C.length) { w.append(el("div", { cls: "card" }, el("p", { text: "Ainda vazio. Termine um treino do dia e as expressões aparecem aqui." })), menuBar("prog")); return; }
     w.append(el("button", { cls: "btn big gold", type: "button", text: "🔁 Revisar " + Math.min(10, C.length) + " agora", onclick: function () { revisar(C); } }));
-    var list = el("div", { cls: "card keep-list" });
-    C.slice().reverse().forEach(function (c) { list.append(el("div", { cls: "keep-row" }, el("mark", { cls: "ck", text: c.k }), el("span", { text: c.pt }), el("small", { text: (c.ok ? "✅ " + c.ok + "x · " : "") + (c.tag || "") }))); });
-    w.append(list, menuBar("prog"));
+    // organizado por dia: "28/11 · Tema 1 · Hello!"
+    var days = {}, order = [];
+    C.forEach(function (c) { var k = (c.at || "") + "|" + (c.uid || ""); if (!days[k]) { days[k] = []; order.push(k); } days[k].push(c); });
+    order.reverse().forEach(function (k) {
+      var at = k.split("|")[0], uid = k.split("|")[1], ti = uidx(uid), T = INDEX[ti], d = at.split("-");
+      var card = el("div", { cls: "card keep-day" }, el("span", { cls: "eyebrow", text: "📅 " + (d.length === 3 ? d[2] + "/" + d[1] : at) + (T ? " · Tema " + (ti + 1) + " · " + T.title : "") }));
+      var list = el("div", { cls: "keep-list" }); days[k].forEach(function (c) { list.append(keepRow(c)); }); card.append(list); w.append(card);
+    });
+    w.append(menuBar("prog"));
   }
   function revisar(C) {
     var pick = C.slice().sort(function (a, b) { return (a.ok || 0) - (b.ok || 0) || Math.random() - 0.5; }).slice(0, 10), i = 0, sabia = 0, w = screen();
@@ -1091,7 +1114,7 @@
     (function one() {
       box.replaceChildren(); var c = pick[i];
       if (!c) { box.append(el("section", { cls: "hero center" }, el("div", { cls: "big-emoji", text: "📒" }), el("h1", { text: "Revisão feita!" }), el("p", { text: "Você lembrou de " + sabia + " de " + pick.length + ". O que não lembrou volta primeiro na próxima." })), el("button", { cls: "btn big", type: "button", text: "Voltar pro caderno", onclick: cadernoPage })); SFX.win(); return; }
-      var ans = el("div", { cls: "rev-ans", hidden: true }, el("mark", { cls: "ck big", text: c.k }),
+      var ans = el("div", { cls: "rev-ans", hidden: true }, el("mark", { cls: "ck big", text: c.k }), c.ex ? el("p", { cls: "keep-ex" }, el("i", { html: hl(c.ex, null) }), c.exPt ? el("small", { text: c.exPt }) : null) : null,
         el("div", { cls: "row2" }, el("button", { cls: "btn", type: "button", text: "✅ Sabia", onclick: function () { c.ok = (c.ok || 0) + 1; sabia++; persist(); fb(true); i++; one(); } }),
           el("button", { cls: "btn ghost", type: "button", text: "🔁 Ainda não", onclick: function () { c.ok = 0; persist(); i++; one(); } })));
       box.append(el("div", { cls: "card rev-card" }, el("span", { cls: "eyebrow", text: "Revisão " + (i + 1) + " de " + pick.length }), el("p", { cls: "small", text: "Como se diz em inglês? Fale em voz alta e depois confira." }),
